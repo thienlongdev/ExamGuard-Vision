@@ -1,0 +1,34 @@
+{
+  "CEILING_HIGH": {
+    "posture_visibility": "SUPPORTED",
+    "headpose_eligibility": "UNAVAILABLE",
+    "expected_occlusion_issues": "MODERATE_DESK_OCCLUSION",
+    "phone_visibility_caveats": "Phones flat on desks visible from top; handheld obscured by head/body",
+    "tracking_caveats": "High perspective foreshortening; person height compressed",
+    "pilot_readiness": "SUPPORTED_WITHOUT_HEADPOSE"
+  },
+  "FRONT_OBLIQUE": {
+    "posture_visibility": "SUPPORTED_OPTIMAL",
+    "headpose_eligibility": "SUPPORTED_PRIMARY",
+    "expected_occlusion_issues": "LOW_TO_MODERATE",
+    "phone_visibility_caveats": "Lap-level phones occluded by desk edge; desk-surface phones visible",
+    "tracking_caveats": "Optimal perspective for ByteTrack feature association",
+    "pilot_readiness": "RECOMMENDED_PILOT_VIEWPOINT"
+  },
+  "SIDE_OBLIQUE": {
+    "posture_visibility": "SUPPORTED",
+    "headpose_eligibility": "LIMITED_PROFILE_ONLY",
+    "expected_occlusion_issues": "INTER_STUDENT_ROW_OCCLUSION",
+    "phone_visibility_caveats": "Near-side hands clearly visible; far-side hand occluded by torso",
+    "tracking_caveats": "Students in same row frequently occlude each other in dense layout",
+    "pilot_readiness": "SUPPORTED_WITH_CAVEATS"
+  },
+  "REAR_OBLIQUE": {
+    "posture_visibility": "SUPPORTED",
+    "headpose_eligibility": "UNAVAILABLE",
+    "expected_occlusion_issues": "DESK_AND_MONITOR_OCCLUSION",
+    "phone_visibility_caveats": "Phones on lap or chest occluded by student back",
+    "tracking_caveats": "Back-of-head visible; zero facial yaw",
+    "pilot_readiness": "NOT_RECOMMENDED_FOR_MULTI_CUE"
+  }
+}

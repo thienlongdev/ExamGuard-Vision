@@ -1,0 +1,19 @@
+# Portable runtime dependencies for DETECTOR-YOLO Live Demo
+# Note: Install torch and torchvision separately with the appropriate CUDA build for your GPU:
+# e.g.: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu124
+
+fastapi>=0.110.0
+uvicorn>=0.28.0
+websockets>=12.0
+pydantic>=2.6.0
+PyYAML>=6.0.1
+opencv-python>=4.9.0
+numpy>=1.26.0
+ultralytics>=8.1.0
+pillow>=10.2.0
+psutil>=5.9.0
+scipy>=1.12.0
+matplotlib>=3.8.0
+lap>=0.5.12
+httpx>=0.27.0
+pytest>=8.0.0

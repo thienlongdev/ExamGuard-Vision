@@ -1,0 +1,26 @@
+{
+  "jitter_low_10ms": {
+    "injected_jitter_std_ms": 10.0,
+    "observed_interframe_std_ms": 4.48,
+    "strictly_monotonic_timestamps": true,
+    "queue_depth": 0,
+    "bounded_backpressure": true,
+    "timestamp_first_duration_preserved": true
+  },
+  "jitter_med_30ms": {
+    "injected_jitter_std_ms": 30.0,
+    "observed_interframe_std_ms": 16.73,
+    "strictly_monotonic_timestamps": true,
+    "queue_depth": 0,
+    "bounded_backpressure": true,
+    "timestamp_first_duration_preserved": true
+  },
+  "jitter_high_60ms": {
+    "injected_jitter_std_ms": 60.0,
+    "observed_interframe_std_ms": 31.8,
+    "strictly_monotonic_timestamps": true,
+    "queue_depth": 0,
+    "bounded_backpressure": true,
+    "timestamp_first_duration_preserved": true
+  }
+}

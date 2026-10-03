@@ -1,0 +1,3791 @@
+{
+  "STANDARD_MATRIX_SCENARIOS": 36,
+  "standard_results": [
+    {
+      "scenario_id": "1920x1080_5tracks_15fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 15.0,
+      "actual_input_arrival_fps": 14.92,
+      "target_scene_occupancy": 5,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0
+      },
+      "actual_active_tracks": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0,
+        "min": 5,
+        "max": 5
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 20.104,
+      "effective_processed_fps": 14.92,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 21.12,
+        "p50": 17.76,
+        "p90": 34.46,
+        "p95": 36.82,
+        "p99": 43.19,
+        "max": 49.3
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 21.12,
+      "capability_distribution": {
+        "posture_eligible_mean": 5.0,
+        "headpose_eligible_mean": 5.0,
+        "posture_batch_mean": 5.0,
+        "headpose_batch_mean": 5.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2668.0,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "1920x1080_5tracks_20fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 20.0,
+      "actual_input_arrival_fps": 19.82,
+      "target_scene_occupancy": 5,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0
+      },
+      "actual_active_tracks": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0,
+        "min": 5,
+        "max": 5
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 15.133,
+      "effective_processed_fps": 19.82,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 20.36,
+        "p50": 16.77,
+        "p90": 36.67,
+        "p95": 37.69,
+        "p99": 41.45,
+        "max": 77.5
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 20.36,
+      "capability_distribution": {
+        "posture_eligible_mean": 5.0,
+        "headpose_eligible_mean": 5.0,
+        "posture_batch_mean": 5.0,
+        "headpose_batch_mean": 5.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2669.3,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "1920x1080_5tracks_25fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 25.0,
+      "actual_input_arrival_fps": 24.69,
+      "target_scene_occupancy": 5,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0
+      },
+      "actual_active_tracks": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0,
+        "min": 5,
+        "max": 5
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 12.15,
+      "effective_processed_fps": 24.69,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 18.15,
+        "p50": 14.34,
+        "p90": 31.2,
+        "p95": 35.26,
+        "p99": 39.7,
+        "max": 60.29
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 18.15,
+      "capability_distribution": {
+        "posture_eligible_mean": 5.0,
+        "headpose_eligible_mean": 5.0,
+        "posture_batch_mean": 5.0,
+        "headpose_batch_mean": 5.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2669.6,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "1920x1080_5tracks_30fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 29.18,
+      "target_scene_occupancy": 5,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0
+      },
+      "actual_active_tracks": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0,
+        "min": 5,
+        "max": 5
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 10.281,
+      "effective_processed_fps": 29.18,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 18.39,
+        "p50": 14.4,
+        "p90": 31.26,
+        "p95": 34.8,
+        "p99": 38.83,
+        "max": 91.44
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 18.39,
+      "capability_distribution": {
+        "posture_eligible_mean": 5.0,
+        "headpose_eligible_mean": 5.0,
+        "posture_batch_mean": 5.0,
+        "headpose_batch_mean": 5.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2669.4,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "1920x1080_10tracks_15fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 15.0,
+      "actual_input_arrival_fps": 14.92,
+      "target_scene_occupancy": 10,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 9.0,
+        "p05": 9.0,
+        "median": 9.0,
+        "p95": 9.0
+      },
+      "actual_active_tracks": {
+        "mean": 9.0,
+        "p05": 9.0,
+        "median": 9.0,
+        "p95": 9.0,
+        "min": 9,
+        "max": 9
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 20.105,
+      "effective_processed_fps": 14.92,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 24.53,
+        "p50": 20.49,
+        "p90": 42.74,
+        "p95": 43.8,
+        "p99": 52.56,
+        "max": 57.94
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 24.53,
+      "capability_distribution": {
+        "posture_eligible_mean": 9.0,
+        "headpose_eligible_mean": 9.0,
+        "posture_batch_mean": 9.0,
+        "headpose_batch_mean": 9.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2678.7,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "1920x1080_10tracks_20fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 20.0,
+      "actual_input_arrival_fps": 19.83,
+      "target_scene_occupancy": 10,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 9.0,
+        "p05": 9.0,
+        "median": 9.0,
+        "p95": 9.0
+      },
+      "actual_active_tracks": {
+        "mean": 9.0,
+        "p05": 9.0,
+        "median": 9.0,
+        "p95": 9.0,
+        "min": 9,
+        "max": 9
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 15.131,
+      "effective_processed_fps": 19.83,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 22.47,
+        "p50": 19.04,
+        "p90": 43.07,
+        "p95": 43.91,
+        "p99": 46.93,
+        "max": 52.86
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 22.47,
+      "capability_distribution": {
+        "posture_eligible_mean": 9.0,
+        "headpose_eligible_mean": 9.0,
+        "posture_batch_mean": 9.0,
+        "headpose_batch_mean": 9.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2678.7,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "1920x1080_10tracks_25fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 25.0,
+      "actual_input_arrival_fps": 24.51,
+      "target_scene_occupancy": 10,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 9.0,
+        "p05": 9.0,
+        "median": 9.0,
+        "p95": 9.0
+      },
+      "actual_active_tracks": {
+        "mean": 9.0,
+        "p05": 9.0,
+        "median": 9.0,
+        "p95": 9.0,
+        "min": 9,
+        "max": 9
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 12.24,
+      "effective_processed_fps": 24.51,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 20.44,
+        "p50": 14.6,
+        "p90": 36.45,
+        "p95": 42.2,
+        "p99": 46.38,
+        "max": 62.02
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 20.44,
+      "capability_distribution": {
+        "posture_eligible_mean": 9.0,
+        "headpose_eligible_mean": 9.0,
+        "posture_batch_mean": 9.0,
+        "headpose_batch_mean": 9.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2678.9,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "1920x1080_10tracks_30fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 27.82,
+      "target_scene_occupancy": 10,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 9.0,
+        "p05": 9.0,
+        "median": 9.0,
+        "p95": 9.0
+      },
+      "actual_active_tracks": {
+        "mean": 9.0,
+        "p05": 9.0,
+        "median": 9.0,
+        "p95": 9.0,
+        "min": 9,
+        "max": 9
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 10.785,
+      "effective_processed_fps": 27.82,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 23.16,
+        "p50": 18.33,
+        "p90": 40.78,
+        "p95": 45.31,
+        "p99": 58.67,
+        "max": 75.49
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 23.16,
+      "capability_distribution": {
+        "posture_eligible_mean": 9.0,
+        "headpose_eligible_mean": 9.0,
+        "posture_batch_mean": 9.0,
+        "headpose_batch_mean": 9.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2678.9,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "1920x1080_15tracks_15fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 15.0,
+      "actual_input_arrival_fps": 14.91,
+      "target_scene_occupancy": 15,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0
+      },
+      "actual_active_tracks": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0,
+        "min": 15,
+        "max": 15
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 20.118,
+      "effective_processed_fps": 14.91,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 30.92,
+        "p50": 26.08,
+        "p90": 55.34,
+        "p95": 59.48,
+        "p99": 65.58,
+        "max": 69.53
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 30.92,
+      "capability_distribution": {
+        "posture_eligible_mean": 15.0,
+        "headpose_eligible_mean": 15.0,
+        "posture_batch_mean": 15.0,
+        "headpose_batch_mean": 15.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2690.2,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "1920x1080_15tracks_20fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 20.0,
+      "actual_input_arrival_fps": 18.93,
+      "target_scene_occupancy": 15,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0
+      },
+      "actual_active_tracks": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0,
+        "min": 15,
+        "max": 15
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 15.85,
+      "effective_processed_fps": 18.93,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 28.78,
+        "p50": 22.46,
+        "p90": 59.66,
+        "p95": 61.69,
+        "p99": 66.18,
+        "max": 71.3
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 28.78,
+      "capability_distribution": {
+        "posture_eligible_mean": 15.0,
+        "headpose_eligible_mean": 15.0,
+        "posture_batch_mean": 15.0,
+        "headpose_batch_mean": 15.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2674.4,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "1920x1080_15tracks_25fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 25.0,
+      "actual_input_arrival_fps": 23.25,
+      "target_scene_occupancy": 15,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0
+      },
+      "actual_active_tracks": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0,
+        "min": 15,
+        "max": 15
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 12.906,
+      "effective_processed_fps": 23.25,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 25.83,
+        "p50": 19.5,
+        "p90": 49.81,
+        "p95": 57.69,
+        "p99": 64.16,
+        "max": 66.1
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 25.83,
+      "capability_distribution": {
+        "posture_eligible_mean": 15.0,
+        "headpose_eligible_mean": 15.0,
+        "posture_batch_mean": 15.0,
+        "headpose_batch_mean": 15.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2674.4,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "1920x1080_15tracks_30fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 27.09,
+      "target_scene_occupancy": 15,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0
+      },
+      "actual_active_tracks": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0,
+        "min": 15,
+        "max": 15
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 11.073,
+      "effective_processed_fps": 27.09,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 23.66,
+        "p50": 17.8,
+        "p90": 44.52,
+        "p95": 51.64,
+        "p99": 58.29,
+        "max": 75.99
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 23.66,
+      "capability_distribution": {
+        "posture_eligible_mean": 15.0,
+        "headpose_eligible_mean": 15.0,
+        "posture_batch_mean": 15.0,
+        "headpose_batch_mean": 15.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2581.5,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "2560x1440_5tracks_15fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 15.0,
+      "actual_input_arrival_fps": 14.91,
+      "target_scene_occupancy": 5,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0
+      },
+      "actual_active_tracks": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0,
+        "min": 5,
+        "max": 5
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 20.119,
+      "effective_processed_fps": 14.91,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 22.72,
+        "p50": 18.97,
+        "p90": 37.02,
+        "p95": 39.05,
+        "p99": 47.62,
+        "max": 62.91
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 22.72,
+      "capability_distribution": {
+        "posture_eligible_mean": 5.0,
+        "headpose_eligible_mean": 5.0,
+        "posture_batch_mean": 5.0,
+        "headpose_batch_mean": 5.0
+      },
+      "system_resources": {
+        "host_rss_mb": 3052.7,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "2560x1440_5tracks_20fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 20.0,
+      "actual_input_arrival_fps": 19.75,
+      "target_scene_occupancy": 5,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0
+      },
+      "actual_active_tracks": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0,
+        "min": 5,
+        "max": 5
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 15.188,
+      "effective_processed_fps": 19.75,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 21.7,
+        "p50": 17.74,
+        "p90": 38.27,
+        "p95": 40.5,
+        "p99": 47.41,
+        "max": 82.47
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 21.7,
+      "capability_distribution": {
+        "posture_eligible_mean": 5.0,
+        "headpose_eligible_mean": 5.0,
+        "posture_batch_mean": 5.0,
+        "headpose_batch_mean": 5.0
+      },
+      "system_resources": {
+        "host_rss_mb": 3052.7,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "2560x1440_5tracks_25fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 25.0,
+      "actual_input_arrival_fps": 24.46,
+      "target_scene_occupancy": 5,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0
+      },
+      "actual_active_tracks": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0,
+        "min": 5,
+        "max": 5
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 12.266,
+      "effective_processed_fps": 24.46,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 19.87,
+        "p50": 17.29,
+        "p90": 32.76,
+        "p95": 36.52,
+        "p99": 42.88,
+        "max": 99.38
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 19.87,
+      "capability_distribution": {
+        "posture_eligible_mean": 5.0,
+        "headpose_eligible_mean": 5.0,
+        "posture_batch_mean": 5.0,
+        "headpose_batch_mean": 5.0
+      },
+      "system_resources": {
+        "host_rss_mb": 3052.7,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "2560x1440_5tracks_30fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 28.83,
+      "target_scene_occupancy": 5,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0
+      },
+      "actual_active_tracks": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0,
+        "min": 5,
+        "max": 5
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 10.406,
+      "effective_processed_fps": 28.83,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 20.22,
+        "p50": 17.39,
+        "p90": 33.35,
+        "p95": 36.78,
+        "p99": 48.81,
+        "max": 111.73
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 20.22,
+      "capability_distribution": {
+        "posture_eligible_mean": 5.0,
+        "headpose_eligible_mean": 5.0,
+        "posture_batch_mean": 5.0,
+        "headpose_batch_mean": 5.0
+      },
+      "system_resources": {
+        "host_rss_mb": 3056.7,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "2560x1440_10tracks_15fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 15.0,
+      "actual_input_arrival_fps": 14.89,
+      "target_scene_occupancy": 10,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0
+      },
+      "actual_active_tracks": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0,
+        "min": 10,
+        "max": 10
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 20.151,
+      "effective_processed_fps": 14.89,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 27.26,
+        "p50": 22.9,
+        "p90": 46.3,
+        "p95": 48.3,
+        "p99": 56.17,
+        "max": 77.11
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 27.26,
+      "capability_distribution": {
+        "posture_eligible_mean": 10.0,
+        "headpose_eligible_mean": 10.0,
+        "posture_batch_mean": 10.0,
+        "headpose_batch_mean": 10.0
+      },
+      "system_resources": {
+        "host_rss_mb": 3052.8,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "2560x1440_10tracks_20fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 20.0,
+      "actual_input_arrival_fps": 19.65,
+      "target_scene_occupancy": 10,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0
+      },
+      "actual_active_tracks": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0,
+        "min": 10,
+        "max": 10
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 15.266,
+      "effective_processed_fps": 19.65,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 24.95,
+        "p50": 21.1,
+        "p90": 47.12,
+        "p95": 49.31,
+        "p99": 59.33,
+        "max": 87.75
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 24.95,
+      "capability_distribution": {
+        "posture_eligible_mean": 10.0,
+        "headpose_eligible_mean": 10.0,
+        "posture_batch_mean": 10.0,
+        "headpose_batch_mean": 10.0
+      },
+      "system_resources": {
+        "host_rss_mb": 3052.8,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "2560x1440_10tracks_25fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 25.0,
+      "actual_input_arrival_fps": 24.11,
+      "target_scene_occupancy": 10,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0
+      },
+      "actual_active_tracks": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0,
+        "min": 10,
+        "max": 10
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 12.441,
+      "effective_processed_fps": 24.11,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 22.71,
+        "p50": 17.24,
+        "p90": 40.38,
+        "p95": 45.31,
+        "p99": 55.18,
+        "max": 99.07
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 22.71,
+      "capability_distribution": {
+        "posture_eligible_mean": 10.0,
+        "headpose_eligible_mean": 10.0,
+        "posture_batch_mean": 10.0,
+        "headpose_batch_mean": 10.0
+      },
+      "system_resources": {
+        "host_rss_mb": 3053.0,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "2560x1440_10tracks_30fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 27.66,
+      "target_scene_occupancy": 10,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0
+      },
+      "actual_active_tracks": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0,
+        "min": 10,
+        "max": 10
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 10.845,
+      "effective_processed_fps": 27.66,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 22.56,
+        "p50": 17.33,
+        "p90": 39.86,
+        "p95": 46.0,
+        "p99": 51.96,
+        "max": 112.63
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 22.56,
+      "capability_distribution": {
+        "posture_eligible_mean": 10.0,
+        "headpose_eligible_mean": 10.0,
+        "posture_batch_mean": 10.0,
+        "headpose_batch_mean": 10.0
+      },
+      "system_resources": {
+        "host_rss_mb": 3055.1,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "2560x1440_15tracks_15fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 15.0,
+      "actual_input_arrival_fps": 14.88,
+      "target_scene_occupancy": 15,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0
+      },
+      "actual_active_tracks": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0,
+        "min": 15,
+        "max": 15
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 20.16,
+      "effective_processed_fps": 14.88,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 29.99,
+        "p50": 25.37,
+        "p90": 54.62,
+        "p95": 55.81,
+        "p99": 64.92,
+        "max": 81.38
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 29.99,
+      "capability_distribution": {
+        "posture_eligible_mean": 15.0,
+        "headpose_eligible_mean": 15.0,
+        "posture_batch_mean": 15.0,
+        "headpose_batch_mean": 15.0
+      },
+      "system_resources": {
+        "host_rss_mb": 3053.5,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "2560x1440_15tracks_20fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 20.0,
+      "actual_input_arrival_fps": 18.94,
+      "target_scene_occupancy": 15,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0
+      },
+      "actual_active_tracks": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0,
+        "min": 15,
+        "max": 15
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 15.841,
+      "effective_processed_fps": 18.94,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 28.22,
+        "p50": 22.98,
+        "p90": 56.69,
+        "p95": 60.3,
+        "p99": 66.5,
+        "max": 92.88
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 28.22,
+      "capability_distribution": {
+        "posture_eligible_mean": 15.0,
+        "headpose_eligible_mean": 15.0,
+        "posture_batch_mean": 15.0,
+        "headpose_batch_mean": 15.0
+      },
+      "system_resources": {
+        "host_rss_mb": 3056.3,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "2560x1440_15tracks_25fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 25.0,
+      "actual_input_arrival_fps": 23.37,
+      "target_scene_occupancy": 15,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0
+      },
+      "actual_active_tracks": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0,
+        "min": 15,
+        "max": 15
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 12.837,
+      "effective_processed_fps": 23.37,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 24.93,
+        "p50": 18.83,
+        "p90": 46.9,
+        "p95": 53.33,
+        "p99": 63.4,
+        "max": 97.16
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 24.93,
+      "capability_distribution": {
+        "posture_eligible_mean": 15.0,
+        "headpose_eligible_mean": 15.0,
+        "posture_batch_mean": 15.0,
+        "headpose_batch_mean": 15.0
+      },
+      "system_resources": {
+        "host_rss_mb": 3059.4,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "2560x1440_15tracks_30fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 26.44,
+      "target_scene_occupancy": 15,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0
+      },
+      "actual_active_tracks": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0,
+        "min": 15,
+        "max": 15
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 11.348,
+      "effective_processed_fps": 26.44,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 25.26,
+        "p50": 18.62,
+        "p90": 45.51,
+        "p95": 53.77,
+        "p99": 63.1,
+        "max": 160.87
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 25.26,
+      "capability_distribution": {
+        "posture_eligible_mean": 15.0,
+        "headpose_eligible_mean": 15.0,
+        "posture_batch_mean": 15.0,
+        "headpose_batch_mean": 15.0
+      },
+      "system_resources": {
+        "host_rss_mb": 3056.4,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "3840x2160_5tracks_15fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 15.0,
+      "actual_input_arrival_fps": 14.86,
+      "target_scene_occupancy": 5,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0
+      },
+      "actual_active_tracks": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0,
+        "min": 5,
+        "max": 5
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 20.184,
+      "effective_processed_fps": 14.86,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 26.23,
+        "p50": 22.05,
+        "p90": 41.14,
+        "p95": 43.26,
+        "p99": 50.21,
+        "max": 56.34
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 26.23,
+      "capability_distribution": {
+        "posture_eligible_mean": 5.0,
+        "headpose_eligible_mean": 5.0,
+        "posture_batch_mean": 5.0,
+        "headpose_batch_mean": 5.0
+      },
+      "system_resources": {
+        "host_rss_mb": 4399.0,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "3840x2160_5tracks_20fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 20.0,
+      "actual_input_arrival_fps": 19.23,
+      "target_scene_occupancy": 5,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0
+      },
+      "actual_active_tracks": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0,
+        "min": 5,
+        "max": 5
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 15.602,
+      "effective_processed_fps": 19.23,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 29.43,
+        "p50": 23.7,
+        "p90": 48.12,
+        "p95": 53.56,
+        "p99": 69.17,
+        "max": 176.51
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 29.43,
+      "capability_distribution": {
+        "posture_eligible_mean": 5.0,
+        "headpose_eligible_mean": 5.0,
+        "posture_batch_mean": 5.0,
+        "headpose_batch_mean": 5.0
+      },
+      "system_resources": {
+        "host_rss_mb": 4399.0,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "3840x2160_5tracks_25fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 25.0,
+      "actual_input_arrival_fps": 23.09,
+      "target_scene_occupancy": 5,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0
+      },
+      "actual_active_tracks": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0,
+        "min": 5,
+        "max": 5
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 12.994,
+      "effective_processed_fps": 23.09,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 28.1,
+        "p50": 24.72,
+        "p90": 44.38,
+        "p95": 49.64,
+        "p99": 59.18,
+        "max": 214.04
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 28.1,
+      "capability_distribution": {
+        "posture_eligible_mean": 5.0,
+        "headpose_eligible_mean": 5.0,
+        "posture_batch_mean": 5.0,
+        "headpose_batch_mean": 5.0
+      },
+      "system_resources": {
+        "host_rss_mb": 4399.0,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "3840x2160_5tracks_30fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 25.81,
+      "target_scene_occupancy": 5,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0
+      },
+      "actual_active_tracks": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0,
+        "min": 5,
+        "max": 5
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 11.622,
+      "effective_processed_fps": 25.81,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 28.24,
+        "p50": 24.27,
+        "p90": 44.05,
+        "p95": 48.26,
+        "p99": 68.99,
+        "max": 242.5
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 28.24,
+      "capability_distribution": {
+        "posture_eligible_mean": 5.0,
+        "headpose_eligible_mean": 5.0,
+        "posture_batch_mean": 5.0,
+        "headpose_batch_mean": 5.0
+      },
+      "system_resources": {
+        "host_rss_mb": 4399.0,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "3840x2160_10tracks_15fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 15.0,
+      "actual_input_arrival_fps": 14.82,
+      "target_scene_occupancy": 10,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0
+      },
+      "actual_active_tracks": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0,
+        "min": 10,
+        "max": 10
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 20.239,
+      "effective_processed_fps": 14.82,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 29.71,
+        "p50": 24.39,
+        "p90": 49.74,
+        "p95": 52.74,
+        "p99": 58.56,
+        "max": 176.06
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 29.71,
+      "capability_distribution": {
+        "posture_eligible_mean": 10.0,
+        "headpose_eligible_mean": 10.0,
+        "posture_batch_mean": 10.0,
+        "headpose_batch_mean": 10.0
+      },
+      "system_resources": {
+        "host_rss_mb": 4399.1,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "3840x2160_10tracks_20fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 20.0,
+      "actual_input_arrival_fps": 19.2,
+      "target_scene_occupancy": 10,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0
+      },
+      "actual_active_tracks": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0,
+        "min": 10,
+        "max": 10
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 15.626,
+      "effective_processed_fps": 19.2,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 28.01,
+        "p50": 22.83,
+        "p90": 50.64,
+        "p95": 52.61,
+        "p99": 54.68,
+        "max": 173.16
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 28.01,
+      "capability_distribution": {
+        "posture_eligible_mean": 10.0,
+        "headpose_eligible_mean": 10.0,
+        "posture_batch_mean": 10.0,
+        "headpose_batch_mean": 10.0
+      },
+      "system_resources": {
+        "host_rss_mb": 4399.1,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "3840x2160_10tracks_25fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 25.0,
+      "actual_input_arrival_fps": 23.01,
+      "target_scene_occupancy": 10,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0
+      },
+      "actual_active_tracks": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0,
+        "min": 10,
+        "max": 10
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 13.04,
+      "effective_processed_fps": 23.01,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 27.0,
+        "p50": 20.94,
+        "p90": 46.19,
+        "p95": 51.69,
+        "p99": 59.37,
+        "max": 201.01
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 27.0,
+      "capability_distribution": {
+        "posture_eligible_mean": 10.0,
+        "headpose_eligible_mean": 10.0,
+        "posture_batch_mean": 10.0,
+        "headpose_batch_mean": 10.0
+      },
+      "system_resources": {
+        "host_rss_mb": 4399.0,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "3840x2160_10tracks_30fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 26.26,
+      "target_scene_occupancy": 10,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0
+      },
+      "actual_active_tracks": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0,
+        "min": 10,
+        "max": 10
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 11.422,
+      "effective_processed_fps": 26.26,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 26.82,
+        "p50": 21.25,
+        "p90": 44.19,
+        "p95": 50.38,
+        "p99": 61.16,
+        "max": 234.33
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 26.82,
+      "capability_distribution": {
+        "posture_eligible_mean": 10.0,
+        "headpose_eligible_mean": 10.0,
+        "posture_batch_mean": 10.0,
+        "headpose_batch_mean": 10.0
+      },
+      "system_resources": {
+        "host_rss_mb": 4399.0,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "3840x2160_15tracks_15fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 15.0,
+      "actual_input_arrival_fps": 14.68,
+      "target_scene_occupancy": 15,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 16.0,
+        "p05": 16.0,
+        "median": 16.0,
+        "p95": 16.0
+      },
+      "actual_active_tracks": {
+        "mean": 16.0,
+        "p05": 16.0,
+        "median": 16.0,
+        "p95": 16.0,
+        "min": 16,
+        "max": 16
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 20.429,
+      "effective_processed_fps": 14.68,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 36.71,
+        "p50": 30.94,
+        "p90": 65.13,
+        "p95": 69.23,
+        "p99": 75.77,
+        "max": 143.45
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 36.71,
+      "capability_distribution": {
+        "posture_eligible_mean": 16.0,
+        "headpose_eligible_mean": 16.0,
+        "posture_batch_mean": 16.0,
+        "headpose_batch_mean": 16.0
+      },
+      "system_resources": {
+        "host_rss_mb": 4399.5,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "3840x2160_15tracks_20fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 20.0,
+      "actual_input_arrival_fps": 18.04,
+      "target_scene_occupancy": 15,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 16.0,
+        "p05": 16.0,
+        "median": 16.0,
+        "p95": 16.0
+      },
+      "actual_active_tracks": {
+        "mean": 16.0,
+        "p05": 16.0,
+        "median": 16.0,
+        "p95": 16.0,
+        "min": 16,
+        "max": 16
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 16.633,
+      "effective_processed_fps": 18.04,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 33.09,
+        "p50": 26.1,
+        "p90": 63.96,
+        "p95": 67.09,
+        "p99": 72.95,
+        "max": 182.68
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 33.09,
+      "capability_distribution": {
+        "posture_eligible_mean": 16.0,
+        "headpose_eligible_mean": 16.0,
+        "posture_batch_mean": 16.0,
+        "headpose_batch_mean": 16.0
+      },
+      "system_resources": {
+        "host_rss_mb": 4399.6,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "3840x2160_15tracks_25fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 25.0,
+      "actual_input_arrival_fps": 21.87,
+      "target_scene_occupancy": 15,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 16.0,
+        "p05": 16.0,
+        "median": 16.0,
+        "p95": 16.0
+      },
+      "actual_active_tracks": {
+        "mean": 16.0,
+        "p05": 16.0,
+        "median": 16.0,
+        "p95": 16.0,
+        "min": 16,
+        "max": 16
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 13.718,
+      "effective_processed_fps": 21.87,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 30.43,
+        "p50": 22.02,
+        "p90": 55.23,
+        "p95": 62.11,
+        "p99": 73.08,
+        "max": 200.02
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 30.43,
+      "capability_distribution": {
+        "posture_eligible_mean": 16.0,
+        "headpose_eligible_mean": 16.0,
+        "posture_batch_mean": 16.0,
+        "headpose_batch_mean": 16.0
+      },
+      "system_resources": {
+        "host_rss_mb": 4400.6,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "3840x2160_15tracks_30fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 23.84,
+      "target_scene_occupancy": 15,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 16.0,
+        "p05": 16.0,
+        "median": 16.0,
+        "p95": 16.0
+      },
+      "actual_active_tracks": {
+        "mean": 16.0,
+        "p05": 16.0,
+        "median": 16.0,
+        "p95": 16.0,
+        "min": 16,
+        "max": 16
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 12.582,
+      "effective_processed_fps": 23.84,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 31.83,
+        "p50": 23.8,
+        "p90": 57.79,
+        "p95": 64.46,
+        "p99": 76.46,
+        "max": 236.51
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 31.83,
+      "capability_distribution": {
+        "posture_eligible_mean": 16.0,
+        "headpose_eligible_mean": 16.0,
+        "posture_batch_mean": 16.0,
+        "headpose_batch_mean": 16.0
+      },
+      "system_resources": {
+        "host_rss_mb": 4400.7,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 664.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    }
+  ],
+  "DENSE_STRESS_SCENARIOS": 12,
+  "dense_stress_results": [
+    {
+      "scenario_id": "1920x1080_20tracks_15fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 15.0,
+      "actual_input_arrival_fps": 14.76,
+      "target_scene_occupancy": 20,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0
+      },
+      "actual_active_tracks": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0,
+        "min": 20,
+        "max": 20
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 20.331,
+      "effective_processed_fps": 14.76,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 36.12,
+        "p50": 30.59,
+        "p90": 66.73,
+        "p95": 70.91,
+        "p99": 78.17,
+        "max": 81.87
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 36.12,
+      "capability_distribution": {
+        "posture_eligible_mean": 20.0,
+        "headpose_eligible_mean": 20.0,
+        "posture_batch_mean": 20.0,
+        "headpose_batch_mean": 20.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2597.9,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 726.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "1920x1080_20tracks_20fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 20.0,
+      "actual_input_arrival_fps": 17.89,
+      "target_scene_occupancy": 20,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0
+      },
+      "actual_active_tracks": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0,
+        "min": 20,
+        "max": 20
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 16.767,
+      "effective_processed_fps": 17.89,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 33.0,
+        "p50": 26.04,
+        "p90": 69.4,
+        "p95": 74.67,
+        "p99": 81.79,
+        "max": 139.99
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 33.0,
+      "capability_distribution": {
+        "posture_eligible_mean": 20.0,
+        "headpose_eligible_mean": 20.0,
+        "posture_batch_mean": 20.0,
+        "headpose_batch_mean": 20.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2598.0,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 726.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "1920x1080_20tracks_25fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 25.0,
+      "actual_input_arrival_fps": 22.14,
+      "target_scene_occupancy": 20,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0
+      },
+      "actual_active_tracks": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0,
+        "min": 20,
+        "max": 20
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 13.551,
+      "effective_processed_fps": 22.14,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 28.5,
+        "p50": 19.73,
+        "p90": 56.27,
+        "p95": 63.87,
+        "p99": 77.72,
+        "max": 160.78
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 28.5,
+      "capability_distribution": {
+        "posture_eligible_mean": 20.0,
+        "headpose_eligible_mean": 20.0,
+        "posture_batch_mean": 20.0,
+        "headpose_batch_mean": 20.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2598.5,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 726.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "1920x1080_20tracks_30fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 25.05,
+      "target_scene_occupancy": 20,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0
+      },
+      "actual_active_tracks": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0,
+        "min": 20,
+        "max": 20
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 11.975,
+      "effective_processed_fps": 25.05,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 28.73,
+        "p50": 18.8,
+        "p90": 54.78,
+        "p95": 65.31,
+        "p99": 77.98,
+        "max": 187.01
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 28.73,
+      "capability_distribution": {
+        "posture_eligible_mean": 20.0,
+        "headpose_eligible_mean": 20.0,
+        "posture_batch_mean": 20.0,
+        "headpose_batch_mean": 20.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2599.1,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 726.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "2560x1440_20tracks_15fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 15.0,
+      "actual_input_arrival_fps": 14.48,
+      "target_scene_occupancy": 20,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0
+      },
+      "actual_active_tracks": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0,
+        "min": 20,
+        "max": 20
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 20.725,
+      "effective_processed_fps": 14.48,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 39.74,
+        "p50": 33.73,
+        "p90": 73.06,
+        "p95": 79.4,
+        "p99": 84.83,
+        "max": 108.72
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 39.74,
+      "capability_distribution": {
+        "posture_eligible_mean": 20.0,
+        "headpose_eligible_mean": 20.0,
+        "posture_batch_mean": 20.0,
+        "headpose_batch_mean": 20.0
+      },
+      "system_resources": {
+        "host_rss_mb": 3070.1,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 726.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "2560x1440_20tracks_20fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 20.0,
+      "actual_input_arrival_fps": 17.41,
+      "target_scene_occupancy": 20,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0
+      },
+      "actual_active_tracks": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0,
+        "min": 20,
+        "max": 20
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 17.236,
+      "effective_processed_fps": 17.41,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 35.3,
+        "p50": 27.0,
+        "p90": 71.51,
+        "p95": 76.04,
+        "p99": 91.52,
+        "max": 230.11
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 35.3,
+      "capability_distribution": {
+        "posture_eligible_mean": 20.0,
+        "headpose_eligible_mean": 20.0,
+        "posture_batch_mean": 20.0,
+        "headpose_batch_mean": 20.0
+      },
+      "system_resources": {
+        "host_rss_mb": 3072.6,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 726.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "2560x1440_20tracks_25fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 25.0,
+      "actual_input_arrival_fps": 20.88,
+      "target_scene_occupancy": 20,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0
+      },
+      "actual_active_tracks": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0,
+        "min": 20,
+        "max": 20
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 14.371,
+      "effective_processed_fps": 20.88,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 33.89,
+        "p50": 27.82,
+        "p90": 65.12,
+        "p95": 72.63,
+        "p99": 83.34,
+        "max": 278.36
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 33.89,
+      "capability_distribution": {
+        "posture_eligible_mean": 20.0,
+        "headpose_eligible_mean": 20.0,
+        "posture_batch_mean": 20.0,
+        "headpose_batch_mean": 20.0
+      },
+      "system_resources": {
+        "host_rss_mb": 3072.8,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 726.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "2560x1440_20tracks_30fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 19.7,
+      "target_scene_occupancy": 20,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0
+      },
+      "actual_active_tracks": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0,
+        "min": 20,
+        "max": 20
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 15.226,
+      "effective_processed_fps": 19.7,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 42.92,
+        "p50": 36.4,
+        "p90": 79.17,
+        "p95": 89.86,
+        "p99": 114.05,
+        "max": 355.03
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 42.92,
+      "capability_distribution": {
+        "posture_eligible_mean": 20.0,
+        "headpose_eligible_mean": 20.0,
+        "posture_batch_mean": 20.0,
+        "headpose_batch_mean": 20.0
+      },
+      "system_resources": {
+        "host_rss_mb": 3072.8,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 726.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "3840x2160_20tracks_15fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 15.0,
+      "actual_input_arrival_fps": 12.75,
+      "target_scene_occupancy": 20,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 21.0,
+        "p05": 21.0,
+        "median": 21.0,
+        "p95": 21.0
+      },
+      "actual_active_tracks": {
+        "mean": 21.0,
+        "p05": 21.0,
+        "median": 21.0,
+        "p95": 21.0,
+        "min": 21,
+        "max": 21
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 23.523,
+      "effective_processed_fps": 12.75,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 53.37,
+        "p50": 46.08,
+        "p90": 94.12,
+        "p95": 114.94,
+        "p99": 167.32,
+        "max": 233.36
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 53.37,
+      "capability_distribution": {
+        "posture_eligible_mean": 21.0,
+        "headpose_eligible_mean": 21.0,
+        "posture_batch_mean": 21.0,
+        "headpose_batch_mean": 21.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2701.4,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 792.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "3840x2160_20tracks_20fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 20.0,
+      "actual_input_arrival_fps": 12.39,
+      "target_scene_occupancy": 20,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 21.0,
+        "p05": 21.0,
+        "median": 21.0,
+        "p95": 21.0
+      },
+      "actual_active_tracks": {
+        "mean": 21.0,
+        "p05": 21.0,
+        "median": 21.0,
+        "p95": 21.0,
+        "min": 21,
+        "max": 21
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 24.223,
+      "effective_processed_fps": 12.39,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 62.59,
+        "p50": 41.66,
+        "p90": 112.94,
+        "p95": 158.42,
+        "p99": 272.07,
+        "max": 1400.88
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 62.59,
+      "capability_distribution": {
+        "posture_eligible_mean": 21.0,
+        "headpose_eligible_mean": 21.0,
+        "posture_batch_mean": 21.0,
+        "headpose_batch_mean": 21.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2680.0,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 792.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "3840x2160_20tracks_25fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 25.0,
+      "actual_input_arrival_fps": 16.24,
+      "target_scene_occupancy": 20,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 21.0,
+        "p05": 21.0,
+        "median": 21.0,
+        "p95": 21.0
+      },
+      "actual_active_tracks": {
+        "mean": 21.0,
+        "p05": 21.0,
+        "median": 21.0,
+        "p95": 21.0,
+        "min": 21,
+        "max": 21
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 18.477,
+      "effective_processed_fps": 16.24,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 48.6,
+        "p50": 38.43,
+        "p90": 83.84,
+        "p95": 97.8,
+        "p99": 186.9,
+        "max": 711.49
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 48.6,
+      "capability_distribution": {
+        "posture_eligible_mean": 21.0,
+        "headpose_eligible_mean": 21.0,
+        "posture_batch_mean": 21.0,
+        "headpose_batch_mean": 21.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2593.6,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 792.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    },
+    {
+      "scenario_id": "3840x2160_20tracks_30fps_full_pipeline_scene",
+      "benchmark_mode": "PACED_SOURCE_LINE_RATE",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 15.45,
+      "target_scene_occupancy": 20,
+      "test_mode": "FULL_PIPELINE_SCENE",
+      "actual_detected_person_count": {
+        "mean": 21.0,
+        "p05": 21.0,
+        "median": 21.0,
+        "p95": 21.0
+      },
+      "actual_active_tracks": {
+        "mean": 21.0,
+        "p05": 21.0,
+        "median": 21.0,
+        "p95": 21.0,
+        "min": 21,
+        "max": 21
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 19.418,
+      "effective_processed_fps": 15.45,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 54.73,
+        "p50": 40.05,
+        "p90": 91.37,
+        "p95": 112.57,
+        "p99": 361.08,
+        "max": 711.83
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 54.73,
+      "capability_distribution": {
+        "posture_eligible_mean": 21.0,
+        "headpose_eligible_mean": 21.0,
+        "posture_batch_mean": 21.0,
+        "headpose_batch_mean": 21.0
+      },
+      "system_resources": {
+        "host_rss_mb": 6924.5,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 792.0
+      },
+      "stability_classification": "STABLE_WITH_BOUNDED_DROPS",
+      "limiting_factor": "CADENCE_BOUNDED_DROPS"
+    }
+  ],
+  "DOWNSTREAM_EXACT_LOAD_SCENARIOS": 12,
+  "downstream_exact_load_results": [
+    {
+      "scenario_id": "1920x1080_5tracks_30fps_exact_track_downstream_load",
+      "benchmark_mode": "CONTROLLED_EXACT_TRACK_DOWNSTREAM_LOAD",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 95.76,
+      "target_scene_occupancy": 5,
+      "test_mode": "EXACT_TRACK_DOWNSTREAM_LOAD",
+      "actual_detected_person_count": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0
+      },
+      "actual_active_tracks": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0,
+        "min": 5,
+        "max": 5
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 3.133,
+      "effective_processed_fps": 95.76,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 9.19,
+        "p50": 2.09,
+        "p90": 22.4,
+        "p95": 27.16,
+        "p99": 38.04,
+        "max": 186.84
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 9.19,
+      "capability_distribution": {
+        "posture_eligible_mean": 5.0,
+        "headpose_eligible_mean": 5.0,
+        "posture_batch_mean": 5.0,
+        "headpose_batch_mean": 5.0
+      },
+      "system_resources": {
+        "host_rss_mb": 1571.7,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 792.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "1920x1080_10tracks_30fps_exact_track_downstream_load",
+      "benchmark_mode": "CONTROLLED_EXACT_TRACK_DOWNSTREAM_LOAD",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 92.01,
+      "target_scene_occupancy": 10,
+      "test_mode": "EXACT_TRACK_DOWNSTREAM_LOAD",
+      "actual_detected_person_count": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0
+      },
+      "actual_active_tracks": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0,
+        "min": 10,
+        "max": 10
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 3.261,
+      "effective_processed_fps": 92.01,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 9.46,
+        "p50": 1.89,
+        "p90": 26.76,
+        "p95": 32.62,
+        "p99": 36.41,
+        "max": 42.89
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 9.46,
+      "capability_distribution": {
+        "posture_eligible_mean": 10.0,
+        "headpose_eligible_mean": 10.0,
+        "posture_batch_mean": 10.0,
+        "headpose_batch_mean": 10.0
+      },
+      "system_resources": {
+        "host_rss_mb": 736.6,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 792.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "1920x1080_15tracks_30fps_exact_track_downstream_load",
+      "benchmark_mode": "CONTROLLED_EXACT_TRACK_DOWNSTREAM_LOAD",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 74.34,
+      "target_scene_occupancy": 15,
+      "test_mode": "EXACT_TRACK_DOWNSTREAM_LOAD",
+      "actual_detected_person_count": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0
+      },
+      "actual_active_tracks": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0,
+        "min": 15,
+        "max": 15
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 4.035,
+      "effective_processed_fps": 74.34,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 11.73,
+        "p50": 2.09,
+        "p90": 32.72,
+        "p95": 40.42,
+        "p99": 46.79,
+        "max": 69.92
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 11.73,
+      "capability_distribution": {
+        "posture_eligible_mean": 15.0,
+        "headpose_eligible_mean": 15.0,
+        "posture_batch_mean": 15.0,
+        "headpose_batch_mean": 15.0
+      },
+      "system_resources": {
+        "host_rss_mb": 734.8,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 792.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "1920x1080_20tracks_30fps_exact_track_downstream_load",
+      "benchmark_mode": "CONTROLLED_EXACT_TRACK_DOWNSTREAM_LOAD",
+      "source_resolution": "1920x1080",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 55.47,
+      "target_scene_occupancy": 20,
+      "test_mode": "EXACT_TRACK_DOWNSTREAM_LOAD",
+      "actual_detected_person_count": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0
+      },
+      "actual_active_tracks": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0,
+        "min": 20,
+        "max": 20
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 5.409,
+      "effective_processed_fps": 55.47,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 15.95,
+        "p50": 4.12,
+        "p90": 43.52,
+        "p95": 53.86,
+        "p99": 70.38,
+        "max": 118.81
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 15.95,
+      "capability_distribution": {
+        "posture_eligible_mean": 20.0,
+        "headpose_eligible_mean": 20.0,
+        "posture_batch_mean": 20.0,
+        "headpose_batch_mean": 20.0
+      },
+      "system_resources": {
+        "host_rss_mb": 751.3,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 792.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "2560x1440_5tracks_30fps_exact_track_downstream_load",
+      "benchmark_mode": "CONTROLLED_EXACT_TRACK_DOWNSTREAM_LOAD",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 92.93,
+      "target_scene_occupancy": 5,
+      "test_mode": "EXACT_TRACK_DOWNSTREAM_LOAD",
+      "actual_detected_person_count": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0
+      },
+      "actual_active_tracks": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0,
+        "min": 5,
+        "max": 5
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 3.228,
+      "effective_processed_fps": 92.93,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 8.88,
+        "p50": 2.85,
+        "p90": 23.44,
+        "p95": 28.38,
+        "p99": 33.8,
+        "max": 59.3
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 8.88,
+      "capability_distribution": {
+        "posture_eligible_mean": 5.0,
+        "headpose_eligible_mean": 5.0,
+        "posture_batch_mean": 5.0,
+        "headpose_batch_mean": 5.0
+      },
+      "system_resources": {
+        "host_rss_mb": 1223.6,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 792.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "2560x1440_10tracks_30fps_exact_track_downstream_load",
+      "benchmark_mode": "CONTROLLED_EXACT_TRACK_DOWNSTREAM_LOAD",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 74.71,
+      "target_scene_occupancy": 10,
+      "test_mode": "EXACT_TRACK_DOWNSTREAM_LOAD",
+      "actual_detected_person_count": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0
+      },
+      "actual_active_tracks": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0,
+        "min": 10,
+        "max": 10
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 4.016,
+      "effective_processed_fps": 74.71,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 11.12,
+        "p50": 3.1,
+        "p90": 29.37,
+        "p95": 36.65,
+        "p99": 44.24,
+        "max": 72.96
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 11.12,
+      "capability_distribution": {
+        "posture_eligible_mean": 10.0,
+        "headpose_eligible_mean": 10.0,
+        "posture_batch_mean": 10.0,
+        "headpose_batch_mean": 10.0
+      },
+      "system_resources": {
+        "host_rss_mb": 1234.2,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 792.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "2560x1440_15tracks_30fps_exact_track_downstream_load",
+      "benchmark_mode": "CONTROLLED_EXACT_TRACK_DOWNSTREAM_LOAD",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 61.05,
+      "target_scene_occupancy": 15,
+      "test_mode": "EXACT_TRACK_DOWNSTREAM_LOAD",
+      "actual_detected_person_count": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0
+      },
+      "actual_active_tracks": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0,
+        "min": 15,
+        "max": 15
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 4.914,
+      "effective_processed_fps": 61.05,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 13.67,
+        "p50": 3.32,
+        "p90": 37.27,
+        "p95": 46.73,
+        "p99": 51.55,
+        "max": 65.73
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 13.67,
+      "capability_distribution": {
+        "posture_eligible_mean": 15.0,
+        "headpose_eligible_mean": 15.0,
+        "posture_batch_mean": 15.0,
+        "headpose_batch_mean": 15.0
+      },
+      "system_resources": {
+        "host_rss_mb": 1234.5,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 792.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "2560x1440_20tracks_30fps_exact_track_downstream_load",
+      "benchmark_mode": "CONTROLLED_EXACT_TRACK_DOWNSTREAM_LOAD",
+      "source_resolution": "2560x1440",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 45.54,
+      "target_scene_occupancy": 20,
+      "test_mode": "EXACT_TRACK_DOWNSTREAM_LOAD",
+      "actual_detected_person_count": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0
+      },
+      "actual_active_tracks": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0,
+        "min": 20,
+        "max": 20
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 6.588,
+      "effective_processed_fps": 45.54,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 18.67,
+        "p50": 6.92,
+        "p90": 47.46,
+        "p95": 59.13,
+        "p99": 68.37,
+        "max": 213.51
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 18.67,
+      "capability_distribution": {
+        "posture_eligible_mean": 20.0,
+        "headpose_eligible_mean": 20.0,
+        "posture_batch_mean": 20.0,
+        "headpose_batch_mean": 20.0
+      },
+      "system_resources": {
+        "host_rss_mb": 1224.1,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 792.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "3840x2160_5tracks_30fps_exact_track_downstream_load",
+      "benchmark_mode": "CONTROLLED_EXACT_TRACK_DOWNSTREAM_LOAD",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 65.2,
+      "target_scene_occupancy": 5,
+      "test_mode": "EXACT_TRACK_DOWNSTREAM_LOAD",
+      "actual_detected_person_count": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0
+      },
+      "actual_active_tracks": {
+        "mean": 5.0,
+        "p05": 5.0,
+        "median": 5.0,
+        "p95": 5.0,
+        "min": 5,
+        "max": 5
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 4.601,
+      "effective_processed_fps": 65.2,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 11.48,
+        "p50": 6.09,
+        "p90": 26.53,
+        "p95": 31.14,
+        "p99": 35.02,
+        "max": 126.75
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 11.48,
+      "capability_distribution": {
+        "posture_eligible_mean": 5.0,
+        "headpose_eligible_mean": 5.0,
+        "posture_batch_mean": 5.0,
+        "headpose_batch_mean": 5.0
+      },
+      "system_resources": {
+        "host_rss_mb": 5923.4,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 792.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "3840x2160_10tracks_30fps_exact_track_downstream_load",
+      "benchmark_mode": "CONTROLLED_EXACT_TRACK_DOWNSTREAM_LOAD",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 50.67,
+      "target_scene_occupancy": 10,
+      "test_mode": "EXACT_TRACK_DOWNSTREAM_LOAD",
+      "actual_detected_person_count": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0
+      },
+      "actual_active_tracks": {
+        "mean": 10.0,
+        "p05": 10.0,
+        "median": 10.0,
+        "p95": 10.0,
+        "min": 10,
+        "max": 10
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 5.921,
+      "effective_processed_fps": 50.67,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 15.09,
+        "p50": 6.36,
+        "p90": 33.58,
+        "p95": 40.74,
+        "p99": 53.91,
+        "max": 271.26
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 15.09,
+      "capability_distribution": {
+        "posture_eligible_mean": 10.0,
+        "headpose_eligible_mean": 10.0,
+        "posture_batch_mean": 10.0,
+        "headpose_batch_mean": 10.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2710.9,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 792.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "3840x2160_15tracks_30fps_exact_track_downstream_load",
+      "benchmark_mode": "CONTROLLED_EXACT_TRACK_DOWNSTREAM_LOAD",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 45.11,
+      "target_scene_occupancy": 15,
+      "test_mode": "EXACT_TRACK_DOWNSTREAM_LOAD",
+      "actual_detected_person_count": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0
+      },
+      "actual_active_tracks": {
+        "mean": 15.0,
+        "p05": 15.0,
+        "median": 15.0,
+        "p95": 15.0,
+        "min": 15,
+        "max": 15
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 6.651,
+      "effective_processed_fps": 45.11,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 16.84,
+        "p50": 6.26,
+        "p90": 40.93,
+        "p95": 50.43,
+        "p99": 56.52,
+        "max": 139.1
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 16.84,
+      "capability_distribution": {
+        "posture_eligible_mean": 15.0,
+        "headpose_eligible_mean": 15.0,
+        "posture_batch_mean": 15.0,
+        "headpose_batch_mean": 15.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2718.3,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 792.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    },
+    {
+      "scenario_id": "3840x2160_20tracks_30fps_exact_track_downstream_load",
+      "benchmark_mode": "CONTROLLED_EXACT_TRACK_DOWNSTREAM_LOAD",
+      "source_resolution": "3840x2160",
+      "requested_source_fps": 30.0,
+      "actual_input_arrival_fps": 36.17,
+      "target_scene_occupancy": 20,
+      "test_mode": "EXACT_TRACK_DOWNSTREAM_LOAD",
+      "actual_detected_person_count": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0
+      },
+      "actual_active_tracks": {
+        "mean": 20.0,
+        "p05": 20.0,
+        "median": 20.0,
+        "p95": 20.0,
+        "min": 20,
+        "max": 20
+      },
+      "occupancy_validity_gate": {
+        "passed": true,
+        "reason": "PASSED_STRICT_GATE"
+      },
+      "frames_warmup": 30,
+      "frames_measured": 300,
+      "total_wall_seconds": 8.294,
+      "effective_processed_fps": 36.17,
+      "queue_depth": {
+        "mean": 0.0,
+        "p95": 0.0,
+        "max": 0
+      },
+      "drops": {
+        "count": 0,
+        "percentage": 0.0
+      },
+      "capture_to_result_latency_ms": {
+        "mean": 21.11,
+        "p50": 8.97,
+        "p90": 50.86,
+        "p95": 63.07,
+        "p99": 70.3,
+        "max": 232.5
+      },
+      "queue_wait_ms_mean": 0.0,
+      "post_decode_pipeline_ms_mean": 21.11,
+      "capability_distribution": {
+        "posture_eligible_mean": 20.0,
+        "headpose_eligible_mean": 20.0,
+        "posture_batch_mean": 20.0,
+        "headpose_batch_mean": 20.0
+      },
+      "system_resources": {
+        "host_rss_mb": 2711.0,
+        "gpu_allocated_vram_mb": 289.3,
+        "gpu_reserved_vram_mb": 792.0
+      },
+      "stability_classification": "STABLE_LINE_RATE",
+      "limiting_factor": "NONE"
+    }
+  ]
+}

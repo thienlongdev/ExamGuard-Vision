@@ -1,0 +1,55 @@
+# Pilot Defaults Configuration
+# Version: 1.0.0-pilot
+# Phase: Target CCTV Pilot Preparation
+
+version: "1.0.0-pilot"
+date: "2026-10-03"
+
+# References to authoritative baseline configurations (DO NOT OVERWRITE)
+base_pipeline_config: "configs/stage2_pipeline.yaml"
+base_fusion_config: "configs/v4d_fusion.yaml"
+
+# Pilot site global defaults
+pilot_environment:
+  site_id: "site_pilot_default"
+  pilot_name: "Controlled Target CCTV Exam Hall Pilot"
+  deployment_mode: "PILOT_PREPARATION" # Must NOT be PRODUCTION
+  allow_model_retraining: false
+  allow_external_rtsp: false # Safe offline/local default
+  allow_cloud_sync: false
+
+# Runtime resource safeguards
+safeguards:
+  max_active_cameras: 4
+  max_tracks_per_camera: 25
+  bounded_queue_maxsize: 5
+  drop_policy: "DROP_STALE_ON_BACKPRESSURE"
+  max_frame_latency_ms: 100.0
+  reconnect_delay_sec: 1.0
+  max_reconnect_attempts: 10
+
+# Default camera ingestion presets
+ingestion_presets:
+  standard_1080p:
+    width: 1920
+    height: 1080
+    recommended_fps: 25.0
+    general_detector_imgsz: 640
+    macro_detector_imgsz: 768
+  qhd_1440p:
+    width: 2560
+    height: 1440
+    recommended_fps: 20.0
+    general_detector_imgsz: 640
+    macro_detector_imgsz: 768
+  uhd_4k:
+    width: 3840
+    height: 2160
+    recommended_fps: 15.0
+    general_detector_imgsz: 640
+    macro_detector_imgsz: 768
+
+# Provenance tracking
+provenance:
+  config_type: "PILOT_DEFAULTS"
+  source_level: "DEFAULT"

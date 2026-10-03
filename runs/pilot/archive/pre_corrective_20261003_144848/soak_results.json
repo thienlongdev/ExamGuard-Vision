@@ -1,0 +1,298 @@
+{
+  "1080p_10_students": {
+    "frames_processed": 2500,
+    "rss_start_mb": 4407.6,
+    "rss_end_mb": 2660.0,
+    "rss_growth_mb": -1747.6,
+    "cuda_alloc_mb": 289.3,
+    "samples": [
+      {
+        "frame_idx": 0,
+        "rss_mb": 4395.4,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 0,
+        "temporal_buffer_tracks": 0,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 500,
+        "rss_mb": 2660.3,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 7,
+        "temporal_buffer_tracks": 312,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 1000,
+        "rss_mb": 2660.2,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 6,
+        "temporal_buffer_tracks": 305,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 1500,
+        "rss_mb": 2660.2,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 7,
+        "temporal_buffer_tracks": 295,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 2000,
+        "rss_mb": 2660.1,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 6,
+        "temporal_buffer_tracks": 311,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 2499,
+        "rss_mb": 2660.0,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 6,
+        "temporal_buffer_tracks": 304,
+        "active_events": 0
+      }
+    ],
+    "MEMORY_PLATEAU_REACHED": true,
+    "QUEUE_STABLE": true,
+    "NO_TRACK_STATE_LEAK": false,
+    "NO_EVENT_STATE_LEAK": true,
+    "NO_EVIDENCE_BUFFER_LEAK": true
+  },
+  "1080p_15_students": {
+    "frames_processed": 2500,
+    "rss_start_mb": 2660.0,
+    "rss_end_mb": 2660.2,
+    "rss_growth_mb": 0.2,
+    "cuda_alloc_mb": 289.3,
+    "samples": [
+      {
+        "frame_idx": 0,
+        "rss_mb": 2660.0,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 6,
+        "temporal_buffer_tracks": 306,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 500,
+        "rss_mb": 2660.2,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 5,
+        "temporal_buffer_tracks": 625,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 1000,
+        "rss_mb": 2660.2,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 5,
+        "temporal_buffer_tracks": 620,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 1500,
+        "rss_mb": 2660.2,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 5,
+        "temporal_buffer_tracks": 609,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 2000,
+        "rss_mb": 2660.2,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 5,
+        "temporal_buffer_tracks": 625,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 2499,
+        "rss_mb": 2660.2,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 5,
+        "temporal_buffer_tracks": 617,
+        "active_events": 0
+      }
+    ],
+    "MEMORY_PLATEAU_REACHED": true,
+    "QUEUE_STABLE": true,
+    "NO_TRACK_STATE_LEAK": false,
+    "NO_EVENT_STATE_LEAK": true,
+    "NO_EVIDENCE_BUFFER_LEAK": true
+  },
+  "1440p_10_students": {
+    "frames_processed": 2500,
+    "rss_start_mb": 2660.2,
+    "rss_end_mb": 3126.4,
+    "rss_growth_mb": 466.2,
+    "cuda_alloc_mb": 289.3,
+    "samples": [
+      {
+        "frame_idx": 0,
+        "rss_mb": 2669.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 1,
+        "temporal_buffer_tracks": 617,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 500,
+        "rss_mb": 3126.4,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 6,
+        "temporal_buffer_tracks": 996,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 1000,
+        "rss_mb": 3126.4,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 6,
+        "temporal_buffer_tracks": 988,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 1500,
+        "rss_mb": 3126.4,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 6,
+        "temporal_buffer_tracks": 977,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 2000,
+        "rss_mb": 3126.4,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 6,
+        "temporal_buffer_tracks": 996,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 2499,
+        "rss_mb": 3126.4,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 5,
+        "temporal_buffer_tracks": 985,
+        "active_events": 0
+      }
+    ],
+    "MEMORY_PLATEAU_REACHED": false,
+    "QUEUE_STABLE": true,
+    "NO_TRACK_STATE_LEAK": false,
+    "NO_EVENT_STATE_LEAK": true,
+    "NO_EVIDENCE_BUFFER_LEAK": true
+  },
+  "4K_10_students": {
+    "frames_processed": 2500,
+    "rss_start_mb": 3126.4,
+    "rss_end_mb": 4458.7,
+    "rss_growth_mb": 1332.3,
+    "cuda_alloc_mb": 289.3,
+    "samples": [
+      {
+        "frame_idx": 0,
+        "rss_mb": 3152.8,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 0,
+        "temporal_buffer_tracks": 985,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 500,
+        "rss_mb": 4458.7,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 8,
+        "temporal_buffer_tracks": 1398,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 1000,
+        "rss_mb": 4458.7,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 8,
+        "temporal_buffer_tracks": 1389,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 1500,
+        "rss_mb": 4458.7,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 8,
+        "temporal_buffer_tracks": 1375,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 2000,
+        "rss_mb": 4458.7,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 8,
+        "temporal_buffer_tracks": 1397,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 2499,
+        "rss_mb": 4458.7,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 664.0,
+        "queue_depth": 0,
+        "active_tracks": 5,
+        "temporal_buffer_tracks": 1386,
+        "active_events": 0
+      }
+    ],
+    "MEMORY_PLATEAU_REACHED": false,
+    "QUEUE_STABLE": true,
+    "NO_TRACK_STATE_LEAK": false,
+    "NO_EVENT_STATE_LEAK": true,
+    "NO_EVIDENCE_BUFFER_LEAK": true
+  }
+}

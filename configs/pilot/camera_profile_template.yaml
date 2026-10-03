@@ -1,0 +1,54 @@
+# Camera Profile Template
+# Version: 1.0.0-pilot
+# Purpose: Configuration template for physical examination room cameras
+
+camera_id: "cam_room_101_front"
+name: "Room 101 Front Oblique Camera"
+source_type: "video_file" # "video_file", "webcam", "rtsp"
+source_uri: "samples/sample_exam.mp4"
+
+# Source Stream Properties
+resolution:
+  width: 1920
+  height: 1080
+nominal_fps: 25.0
+expected_student_count: 15
+room_id: "hall_101"
+
+# Camera Viewpoint & Mounting Geometry (Never require unavailable fields)
+viewpoint_profile: "FRONT_OBLIQUE" # CEILING_HIGH, FRONT_OBLIQUE, REAR_OBLIQUE, SIDE_OBLIQUE, DESK_LEVEL, UNKNOWN
+camera_height_m: 2.8 # optional (float or null)
+camera_pitch_deg: -25.0 # optional (downward pitch in degrees or null)
+camera_roll_deg: 0.0 # optional (degrees or null)
+horizontal_fov_deg: 85.0 # optional (degrees or null)
+
+# Examination ROI Polygon (Normalized coordinates [[x,y],...] or pixel [[x,y],...]; null if entire frame)
+roi_polygon: null # e.g. [[100, 150], [1820, 150], [1820, 1000], [100, 1000]]
+
+# Optional Seat / Desk Zones for Spatial Grouping (Anonymous IDs, no facial identity)
+seat_zones: []
+# Example seat zone entry:
+# - zone_id: "desk_row1_seat1"
+#   desk_polygon: [[150, 400], [350, 400], [350, 600], [150, 600]]
+#   seat_polygon: [[180, 550], [320, 550], [320, 750], [180, 750]]
+
+# Runtime Model Resolution & Activation Controls
+general_detector_imgsz: 640
+macro_detector_imgsz: 768
+
+posture_enabled: true
+headpose_enabled: true # Automatically gated if viewpoint is CEILING_HIGH or faces unresolvable
+phone_enabled: true
+evidence_enabled: true
+
+# Camera-specific Privacy Settings
+privacy:
+  anonymize_tracks: true
+  enable_face_recognition: false # STRICTLY FORBIDDEN
+  store_full_room_stream: false
+
+# Provenance of Camera Settings
+provenance:
+  source_level: "DEFAULT" # "DEFAULT", "CALIBRATED_FROM_VISIBILITY", "ENGINEERING_HEURISTIC", "PHYSICALLY_VALIDATED"
+  calibrated_at: null
+  calibration_session_id: null

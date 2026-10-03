@@ -1,0 +1,1083 @@
+{
+  "1080p_10_students": {
+    "workload_name": "1080p_10_students",
+    "frames_processed": 10000,
+    "rss_start_mb": 297.4,
+    "rss_end_mb": 894.4,
+    "rss_growth_mb": 597.0,
+    "rss_peak_mb": 894.4,
+    "warmup_adjusted_slope_mb_per_k": 0.2116,
+    "second_half_slope_mb_per_k": 0.5454,
+    "last_quarter_slope_mb_per_k": 1.6856,
+    "cuda_alloc_mb": 289.3,
+    "max_temporal_buffer_tracks": 9,
+    "final_temporal_buffer_tracks": 9,
+    "MEMORY_PLATEAU_REACHED": true,
+    "QUEUE_STABLE": true,
+    "NO_TRACK_STATE_LEAK": true,
+    "NO_EVENT_STATE_LEAK": true,
+    "NO_EVIDENCE_BUFFER_LEAK": true,
+    "samples": [
+      {
+        "frame_idx": 0,
+        "rss_mb": 319.3,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 500,
+        "rss_mb": 888.1,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 1000,
+        "rss_mb": 888.1,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 1500,
+        "rss_mb": 888.4,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 2000,
+        "rss_mb": 888.4,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 2500,
+        "rss_mb": 888.4,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 3000,
+        "rss_mb": 888.4,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 3500,
+        "rss_mb": 888.4,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 4000,
+        "rss_mb": 888.4,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 4500,
+        "rss_mb": 888.4,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 5000,
+        "rss_mb": 888.4,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 5500,
+        "rss_mb": 888.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 6000,
+        "rss_mb": 888.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 6500,
+        "rss_mb": 888.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 7000,
+        "rss_mb": 888.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 7500,
+        "rss_mb": 888.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 8000,
+        "rss_mb": 888.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 8500,
+        "rss_mb": 888.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 9000,
+        "rss_mb": 888.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 9500,
+        "rss_mb": 888.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 9999,
+        "rss_mb": 894.4,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 9,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      }
+    ]
+  },
+  "1080p_15_students": {
+    "workload_name": "1080p_15_students",
+    "frames_processed": 10000,
+    "rss_start_mb": 301.3,
+    "rss_end_mb": 912.4,
+    "rss_growth_mb": 611.1,
+    "rss_peak_mb": 912.4,
+    "warmup_adjusted_slope_mb_per_k": -0.1604,
+    "second_half_slope_mb_per_k": -0.2347,
+    "last_quarter_slope_mb_per_k": 0.868,
+    "cuda_alloc_mb": 289.3,
+    "max_temporal_buffer_tracks": 15,
+    "final_temporal_buffer_tracks": 15,
+    "MEMORY_PLATEAU_REACHED": true,
+    "QUEUE_STABLE": true,
+    "NO_TRACK_STATE_LEAK": true,
+    "NO_EVENT_STATE_LEAK": true,
+    "NO_EVIDENCE_BUFFER_LEAK": true,
+    "samples": [
+      {
+        "frame_idx": 0,
+        "rss_mb": 307.6,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 500,
+        "rss_mb": 909.3,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 1000,
+        "rss_mb": 909.3,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 1500,
+        "rss_mb": 909.3,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 2000,
+        "rss_mb": 909.3,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 2500,
+        "rss_mb": 909.3,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 3000,
+        "rss_mb": 909.3,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 3500,
+        "rss_mb": 909.3,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 4000,
+        "rss_mb": 909.3,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 4500,
+        "rss_mb": 909.3,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 5000,
+        "rss_mb": 909.3,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 5500,
+        "rss_mb": 909.3,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 6000,
+        "rss_mb": 909.3,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 6500,
+        "rss_mb": 909.3,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 7000,
+        "rss_mb": 909.3,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 7500,
+        "rss_mb": 909.3,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 8000,
+        "rss_mb": 906.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 8500,
+        "rss_mb": 906.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 9000,
+        "rss_mb": 906.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 9500,
+        "rss_mb": 906.4,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 9999,
+        "rss_mb": 912.4,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 15,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      }
+    ]
+  },
+  "1440p_10_students": {
+    "workload_name": "1440p_10_students",
+    "frames_processed": 10000,
+    "rss_start_mb": 319.0,
+    "rss_end_mb": 1390.1,
+    "rss_growth_mb": 1071.1,
+    "rss_peak_mb": 1390.1,
+    "warmup_adjusted_slope_mb_per_k": 0.3347,
+    "second_half_slope_mb_per_k": 0.9635,
+    "last_quarter_slope_mb_per_k": 3.0283,
+    "cuda_alloc_mb": 289.3,
+    "max_temporal_buffer_tracks": 10,
+    "final_temporal_buffer_tracks": 10,
+    "MEMORY_PLATEAU_REACHED": true,
+    "QUEUE_STABLE": true,
+    "NO_TRACK_STATE_LEAK": true,
+    "NO_EVENT_STATE_LEAK": true,
+    "NO_EVIDENCE_BUFFER_LEAK": true,
+    "samples": [
+      {
+        "frame_idx": 0,
+        "rss_mb": 328.3,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 500,
+        "rss_mb": 1379.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 1000,
+        "rss_mb": 1379.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 1500,
+        "rss_mb": 1379.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 2000,
+        "rss_mb": 1379.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 2500,
+        "rss_mb": 1379.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 3000,
+        "rss_mb": 1379.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 3500,
+        "rss_mb": 1379.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 4000,
+        "rss_mb": 1379.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 4500,
+        "rss_mb": 1379.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 5000,
+        "rss_mb": 1379.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 5500,
+        "rss_mb": 1379.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 6000,
+        "rss_mb": 1379.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 6500,
+        "rss_mb": 1379.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 7000,
+        "rss_mb": 1379.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 7500,
+        "rss_mb": 1379.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 8000,
+        "rss_mb": 1379.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 8500,
+        "rss_mb": 1379.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 9000,
+        "rss_mb": 1379.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 9500,
+        "rss_mb": 1379.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 9999,
+        "rss_mb": 1390.1,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      }
+    ]
+  },
+  "4K_10_students": {
+    "workload_name": "4K_10_students",
+    "frames_processed": 10000,
+    "rss_start_mb": 335.0,
+    "rss_end_mb": 2736.3,
+    "rss_growth_mb": 2401.3,
+    "rss_peak_mb": 2736.3,
+    "warmup_adjusted_slope_mb_per_k": 0.7515,
+    "second_half_slope_mb_per_k": 2.1632,
+    "last_quarter_slope_mb_per_k": 6.7994,
+    "cuda_alloc_mb": 289.3,
+    "max_temporal_buffer_tracks": 10,
+    "final_temporal_buffer_tracks": 10,
+    "MEMORY_PLATEAU_REACHED": true,
+    "QUEUE_STABLE": true,
+    "NO_TRACK_STATE_LEAK": true,
+    "NO_EVENT_STATE_LEAK": true,
+    "NO_EVIDENCE_BUFFER_LEAK": true,
+    "samples": [
+      {
+        "frame_idx": 0,
+        "rss_mb": 361.4,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 0
+      },
+      {
+        "frame_idx": 500,
+        "rss_mb": 2712.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 1000,
+        "rss_mb": 2712.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 1500,
+        "rss_mb": 2712.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 2000,
+        "rss_mb": 2712.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 2500,
+        "rss_mb": 2712.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 3000,
+        "rss_mb": 2712.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 3500,
+        "rss_mb": 2712.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 4000,
+        "rss_mb": 2712.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 4500,
+        "rss_mb": 2712.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 5000,
+        "rss_mb": 2712.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 5500,
+        "rss_mb": 2712.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 6000,
+        "rss_mb": 2712.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 6500,
+        "rss_mb": 2712.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 7000,
+        "rss_mb": 2712.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 7500,
+        "rss_mb": 2712.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 8000,
+        "rss_mb": 2712.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 8500,
+        "rss_mb": 2712.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 9000,
+        "rss_mb": 2712.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 9500,
+        "rss_mb": 2712.5,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "frame_idx": 9999,
+        "rss_mb": 2736.3,
+        "cuda_alloc_mb": 289.3,
+        "cuda_res_mb": 792.0,
+        "queue_depth": 0,
+        "active_tracks": 10,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      }
+    ]
+  },
+  "sequential_session_soak": {
+    "sessions_evaluated": [
+      "1080p_10_students",
+      "1080p_15_students",
+      "1440p_10_students",
+      "4K_10_students"
+    ],
+    "total_frames_processed": 10000,
+    "rss_start_mb": 2736.3,
+    "rss_end_mb": 2691.1,
+    "slope_mb_per_k": 202.6313,
+    "final_temporal_buffer_tracks_after_cleanup": 0,
+    "SEQUENTIAL_SESSION_MEMORY_PLATEAU": false,
+    "SESSION_CLEANUP_VERIFIED": true,
+    "samples": [
+      {
+        "session": "1080p_10_students",
+        "frame_idx": 0,
+        "rss_mb": 327.2,
+        "temporal_buffer_tracks": 9,
+        "active_events": 0
+      },
+      {
+        "session": "1080p_10_students",
+        "frame_idx": 500,
+        "rss_mb": 914.8,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "session": "1080p_10_students",
+        "frame_idx": 1000,
+        "rss_mb": 914.8,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "session": "1080p_10_students",
+        "frame_idx": 1500,
+        "rss_mb": 914.8,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "session": "1080p_10_students",
+        "frame_idx": 2000,
+        "rss_mb": 914.8,
+        "temporal_buffer_tracks": 9,
+        "active_events": 2
+      },
+      {
+        "session": "1080p_15_students",
+        "frame_idx": 2500,
+        "rss_mb": 327.4,
+        "temporal_buffer_tracks": 15,
+        "active_events": 0
+      },
+      {
+        "session": "1080p_15_students",
+        "frame_idx": 3000,
+        "rss_mb": 914.8,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "session": "1080p_15_students",
+        "frame_idx": 3500,
+        "rss_mb": 914.8,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "session": "1080p_15_students",
+        "frame_idx": 4000,
+        "rss_mb": 914.8,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "session": "1080p_15_students",
+        "frame_idx": 4500,
+        "rss_mb": 914.8,
+        "temporal_buffer_tracks": 15,
+        "active_events": 2
+      },
+      {
+        "session": "1440p_10_students",
+        "frame_idx": 5000,
+        "rss_mb": 336.6,
+        "temporal_buffer_tracks": 10,
+        "active_events": 0
+      },
+      {
+        "session": "1440p_10_students",
+        "frame_idx": 5500,
+        "rss_mb": 1383.2,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "session": "1440p_10_students",
+        "frame_idx": 6000,
+        "rss_mb": 1383.2,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "session": "1440p_10_students",
+        "frame_idx": 6500,
+        "rss_mb": 1383.2,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "session": "1440p_10_students",
+        "frame_idx": 7000,
+        "rss_mb": 1383.2,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "session": "4K_10_students",
+        "frame_idx": 7500,
+        "rss_mb": 365.0,
+        "temporal_buffer_tracks": 10,
+        "active_events": 0
+      },
+      {
+        "session": "4K_10_students",
+        "frame_idx": 8000,
+        "rss_mb": 2691.1,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "session": "4K_10_students",
+        "frame_idx": 8500,
+        "rss_mb": 2691.1,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "session": "4K_10_students",
+        "frame_idx": 9000,
+        "rss_mb": 2691.1,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      },
+      {
+        "session": "4K_10_students",
+        "frame_idx": 9500,
+        "rss_mb": 2691.1,
+        "temporal_buffer_tracks": 10,
+        "active_events": 2
+      }
+    ]
+  }
+}

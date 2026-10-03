@@ -1,0 +1,208 @@
+# Candidate Dataset Class Mapping Configuration V3
+# Strictly based on physically downloaded files, actual local class IDs, and visual verification.
+
+canonical_taxonomy:
+  0: normal
+  1: head_down
+  2: turn_head
+  3: discuss
+  4: stand
+
+canonical_classes:
+  - normal      # 0
+  - head_down   # 1
+  - turn_head   # 2
+  - discuss     # 3
+  - stand       # 4
+
+omitted_classes:
+  use_phone:
+    reason: "Audits show existing datasets box phone devices or hands on desks rather than whole student posture. Section 29 fallback architecture active: handled via COCO cell phone detector + ByteTrack spatial association + temporal rules."
+    status: OMITTED_FROM_BEHAVIOR_MODEL
+  lean:
+    reason: "No clean, visually verified physical annotations exist in downloaded datasets. Excluded to prevent label corruption."
+    status: OMITTED_FROM_BEHAVIOR_MODEL
+
+mappings:
+  # Primary Source 1: Full SCB-Dataset5 (scb_dataset5_full)
+  - dataset: scb_dataset5_full
+    subset: SCB5-Handrise-Read-write-2024-9-17
+    source_class_id: 1
+    source_class_name: read
+    canonical_target: normal
+    status: approved
+    reason: "Visual verification confirms standard seated student exam reading posture at desk."
+    visual_evidence_path: reports/scb_dataset5_full/class_samples/read.jpg
+
+  - dataset: scb_dataset5_full
+    subset: SCB5-Handrise-Read-write-2024-9-17
+    source_class_id: 2
+    source_class_name: write
+    canonical_target: normal
+    status: approved
+    reason: "Visual verification confirms seated student writing on paper at desk."
+    visual_evidence_path: reports/scb_dataset5_full/class_samples/write.jpg
+
+  - dataset: scb_dataset5_full
+    subset: SCB5-Handrise-Read-write-2024-9-17
+    source_class_id: 0
+    source_class_name: hand-raising
+    canonical_target: null
+    status: ignored
+    reason: "Normal classroom question gesture, non-suspicious in exam invigilation."
+    visual_evidence_path: reports/scb_dataset5_full/class_samples/hand-raising.jpg
+
+  - dataset: scb_dataset5_full
+    subset: SCB5-Stand-2024-9-17
+    source_class_id: 0
+    source_class_name: stand
+    canonical_target: stand
+    status: approved
+    reason: "Visual verification confirms person in clear upright standing posture in classroom/exam setting."
+    visual_evidence_path: reports/scb_dataset5_full/class_samples/stand.jpg
+
+  - dataset: scb_dataset5_full
+    subset: SCB5-Discuss-2024-9-17
+    source_class_id: 0
+    source_class_name: discuss
+    canonical_target: discuss
+    status: approved
+    reason: "Visual verification confirms 2+ students turning toward each other in active communication."
+    visual_evidence_path: reports/scb_dataset5_full/class_samples/discuss.jpg
+
+  - dataset: scb_dataset5_full
+    subset: SCB5-Talk-2024-9-17
+    source_class_id: 0
+    source_class_name: talk
+    canonical_target: null
+    status: ignored
+    reason: "Individual speaking gesture; ambiguous compared to multi-student peer discussion."
+    visual_evidence_path: reports/scb_dataset5_full/class_samples/talk.jpg
+
+  - dataset: scb_dataset5_full
+    subset: SCB5-Teacher-2024-9-17
+    source_class_id: 0
+    source_class_name: teacher
+    canonical_target: null
+    status: ignored
+    reason: "Instructor/proctor entity, not student examinee behavior."
+    visual_evidence_path: reports/scb_dataset5_full/class_samples/teacher.jpg
+
+  - dataset: scb_dataset5_full
+    subset: SCB5-Teacher-Behavior-2024-9-17
+    source_class_id: 0
+    source_class_name: guide
+    canonical_target: null
+    status: ignored
+    reason: "Teacher instructional guidance behavior."
+    visual_evidence_path: reports/scb_dataset5_full/class_samples/guide.jpg
+
+  - dataset: scb_dataset5_full
+    subset: SCB5-Teacher-Behavior-2024-9-17
+    source_class_id: 1
+    source_class_name: answer
+    canonical_target: null
+    status: ignored
+    reason: "Student answering teacher question in lecture setting."
+    visual_evidence_path: reports/scb_dataset5_full/class_samples/answer.jpg
+
+  - dataset: scb_dataset5_full
+    subset: SCB5-Teacher-Behavior-2024-9-17
+    source_class_id: 2
+    source_class_name: On-stage interaction
+    canonical_target: null
+    status: ignored
+    reason: "Podium/stage presentation activity, out of exam scope."
+    visual_evidence_path: reports/scb_dataset5_full/class_samples/On-stage_interaction.jpg
+
+  - dataset: scb_dataset5_full
+    subset: SCB5-Teacher-Behavior-2024-9-17
+    source_class_id: 3
+    source_class_name: blackboard-writing
+    canonical_target: null
+    status: ignored
+    reason: "Writing on blackboard by instructor or student."
+    visual_evidence_path: reports/scb_dataset5_full/class_samples/blackboard-writing.jpg
+
+  - dataset: scb_dataset5_full
+    subset: SCB5-BlackBoard-Screen
+    source_class_id: 0
+    source_class_name: blackBoard
+    canonical_target: null
+    status: ignored
+    reason: "Classroom furniture/object, not a student behavior."
+    visual_evidence_path: reports/scb_dataset5_full/class_samples/blackBoard.jpg
+
+  - dataset: scb_dataset5_full
+    subset: SCB5-BlackBoard-Screen
+    source_class_id: 1
+    source_class_name: screen
+    canonical_target: null
+    status: ignored
+    reason: "Classroom equipment/object, not a student behavior."
+    visual_evidence_path: reports/scb_dataset5_full/class_samples/screen.jpg
+
+  # Primary Source 2: SCBehavior BowTurnHead (scbehavior)
+  - dataset: scbehavior
+    subset: SCB_BowTurnHead_20250509
+    source_class_id: 0
+    source_class_name: BowHead
+    canonical_target: head_down
+    status: approved
+    reason: "Visual verification confirms student forehead resting on or bowed deeply toward desk."
+    visual_evidence_path: reports/class_samples_verified/scbehavior_bow_turn_BowHead.jpg
+
+  - dataset: scbehavior
+    subset: SCB_BowTurnHead_20250509
+    source_class_id: 1
+    source_class_name: TurnHead
+    canonical_target: turn_head
+    status: approved
+    reason: "Visual verification confirms 45-90 degree lateral head orientation away from desk/work."
+    visual_evidence_path: reports/class_samples_verified/scbehavior_bow_turn_TurnHead.jpg
+
+  # Excluded / Supervised Unusable Datasets
+  - dataset: phone_candidate_student_behaviour
+    subset: Student Behaviour Detection.v5i.yolov8
+    source_class_id: 0
+    source_class_name: Using_phone
+    canonical_target: null
+    status: rejected
+    reason: "Bounding boxes tightly enclose mobile phones or hands on desks rather than whole student posture. Supervised use would corrupt person-level behavior detection."
+    visual_evidence_path: reports/acquisition_v2/class_samples/phone_candidate_student_behaviour_0_1.jpg
+
+  - dataset: exam_cheating_roboflow_3k8
+    subset: candidate_export
+    source_class_id: 0
+    source_class_name: No cheating
+    canonical_target: null
+    status: rejected
+    reason: "Subjective single-frame cheating label prohibited by Section 17."
+    visual_evidence_path: reports/exam_cheating_roboflow_3k8/no_cheating.jpg
+
+  - dataset: exam_cheating_roboflow_3k8
+    subset: candidate_export
+    source_class_id: 1
+    source_class_name: Looking around
+    canonical_target: null
+    status: rejected
+    reason: "Subjective label with inconsistent head vs scene bounding boxes."
+    visual_evidence_path: reports/exam_cheating_roboflow_3k8/looking_around.jpg
+
+  - dataset: exam_cheating_roboflow_3k8
+    subset: candidate_export
+    source_class_id: 2
+    source_class_name: Phone use
+    canonical_target: null
+    status: rejected
+    reason: "Object-level device box rather than person posture."
+    visual_evidence_path: reports/exam_cheating_roboflow_3k8/phone_use.jpg
+
+  - dataset: cctv_exam_monitor
+    subset: unlabelled_pool
+    source_class_id: -1
+    source_class_name: unlabelled
+    canonical_target: null
+    status: ignored
+    reason: "Unlabeled surveillance domain reference. Prohibited from supervised training per Section 1.D & 30."
+    visual_evidence_path: reports/cctv_exam_monitor/class_samples/sample_cctv_domain_1.jpg

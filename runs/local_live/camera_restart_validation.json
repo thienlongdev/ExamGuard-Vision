@@ -1,0 +1,9 @@
+{
+  "validation_scope": "RUNTIME_STATE_RESET_ONLY",
+  "physical_camera_restart_executed": false,
+  "camera_restart_pass": null,
+  "camera_restart_status": "DEFERRED_NO_CAMERA_HARDWARE",
+  "runtime_state_reset_pass": true,
+  "models_unloaded": false,
+  "weights_untouched": true
+}

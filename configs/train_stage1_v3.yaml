@@ -1,0 +1,53 @@
+# Stage 1 Training Configuration: Foundation Behavior Detector V3
+# Grounded strictly on verified physical datasets with conflict-aware fusion and grouped splitting.
+# Hardware: NVIDIA GeForce RTX 5070 (11.94 GB VRAM)
+# Architecture: yolo26m.pt, imgsz 768, batch 8, AMP enabled
+
+# Model Selection
+model: "yolo26m.pt"
+task: "detect"
+pretrained: true
+
+# Dataset & Output Paths
+data: "datasets/processed_v3/dataset.yaml"
+project: "runs/stage1_v3"
+name: "full_foundation"
+save_dir: "models/trained"
+
+# Hardware & Engine
+device: 0                    # NVIDIA GeForce RTX 5070 (cuda:0)
+workers: 4
+amp: true                    # Mixed precision for sm_120 Blackwell architecture
+
+# Training Hyperparameters
+epochs: 80                   # Standard Stage 1 schedule
+batch: 8                     # Calibrated safe batch size (VRAM headroom ~5.3 GB)
+imgsz: 768                   # 768px for small/distant student resolution
+patience: 15                 # Early stopping patience
+optimizer: "AdamW"
+lr0: 0.001
+lrf: 0.01
+weight_decay: 0.0005
+warmup_epochs: 3.0
+close_mosaic: 10             # Deactivate mosaic in last 10 epochs
+seed: 42                     # Deterministic seed
+deterministic: true
+save_period: 10              # Periodic recovery checkpoint every 10 epochs
+
+# Conservative Surveillance-Safe Augmentation Policy
+# CRITICAL: fliplr and flipud MUST BE 0.0
+fliplr: 0.0
+flipud: 0.0
+
+# CCTV Photometric & Spatial Transforms
+degrees: 0.0                 # Surveillance cameras are wall-mounted fixed
+translate: 0.05              # Mild translation
+scale: 0.2                   # Scale variation (preserves small objects)
+shear: 0.0
+perspective: 0.0002          # Subtle perspective change
+hsv_h: 0.015                 # Mild hue jitter
+hsv_s: 0.4                   # Room lighting / white balance variation
+hsv_v: 0.4                   # Brightness / shadow variation
+mosaic: 0.5                  # Controlled mosaic
+mixup: 0.0                   # Keep disabled to prevent ghosting
+copy_paste: 0.0              # Keep disabled

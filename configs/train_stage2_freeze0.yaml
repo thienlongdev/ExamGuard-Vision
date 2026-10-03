@@ -1,0 +1,46 @@
+# Stage 2 Experiment A: Full-Network Adaptation (freeze: 0)
+# Adapts all layers with low learning rate to high-angle surveillance domain
+
+model: "models/trained/stage1_best.pt"
+task: "detect"
+pretrained: true
+
+# Dataset & Paths
+data: "datasets/processed/dataset_stage2.yaml"
+project: "runs/stage2"
+name: "exp_cctv_adaptation_freeze0"
+save_dir: "models/trained"
+
+# Hardware & Engine
+device: 0
+workers: 4
+amp: true
+
+# Domain Adaptation Hyperparameters
+epochs: 30
+batch: 8                     # Calibrated batch for RTX 5070
+imgsz: 768
+patience: 10
+optimizer: "AdamW"
+lr0: 0.0001                  # Conservative learning rate
+lrf: 0.05
+weight_decay: 0.001
+warmup_epochs: 1.0
+close_mosaic: 5
+freeze: 0                    # Full network unfreezed
+
+# Strict Direction-Sensitive Augmentation Policy
+fliplr: 0.0                  # MUST REMAIN 0.0
+flipud: 0.0                  # MUST REMAIN 0.0
+
+# Surveillance Environment Fine-Tuning Augmentation
+degrees: 0.0
+translate: 0.03
+scale: 0.15
+perspective: 0.0001
+hsv_h: 0.01
+hsv_s: 0.3
+hsv_v: 0.3
+mosaic: 0.2
+mixup: 0.0
+copy_paste: 0.0

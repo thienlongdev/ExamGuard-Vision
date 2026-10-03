@@ -1,0 +1,15 @@
+# Camera and Video Ingestion Configuration
+camera:
+  id: "cam-room-101"
+  name: "Exam Hall Camera 1"
+  # Source type: 'webcam', 'video', or 'rtsp'
+  type: "webcam"
+  # For webcam: device index (integer like 0, 1)
+  # For video: file path (e.g. "samples/exam_room.mp4")
+  # For rtsp: URL (e.g. "rtsp://admin:secret@192.168.1.100:554/stream1")
+  source: 0
+  width: 1280
+  height: 720
+  fps: 30.0
+  reconnect_attempts: 5
+  reconnect_delay_seconds: 2.0

@@ -1,0 +1,15 @@
+{
+  "simulated_tracks": 100,
+  "simulated_frames": 100,
+  "total_updates": 10000,
+  "total_duration_sec": 0.5679,
+  "frame_latency_mean_ms": 5.677,
+  "frame_latency_p50_ms": 5.625,
+  "frame_latency_p95_ms": 6.725,
+  "frame_latency_p99_ms": 8.657,
+  "per_track_update_latency_us": 56.77,
+  "throughput_updates_per_sec": 17610.0,
+  "peak_ram_mb": 9.4,
+  "30fps_frame_budget_ms": 33.33,
+  "cpu_frame_budget_fraction_pct": 17.03
+}

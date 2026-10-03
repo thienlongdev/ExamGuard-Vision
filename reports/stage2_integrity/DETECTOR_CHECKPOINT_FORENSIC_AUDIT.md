@@ -1,0 +1,98 @@
+# Detector Checkpoint Forensic Audit
+
+**Phase:** STAGE 2 INTEGRITY REPAIR  
+**Status:** COMPLETE — PHYSICAL EVIDENCE GROUNDED  
+**Date:** 2026-10-03  
+
+---
+
+## 1. Executive Summary & Forensic Findings
+
+Prior to this integrity repair, Stage 2 configuration and runtime assumptions asserted:
+```yaml
+detector:
+  model_path: "models/trained/stage1_best.pt"
+  target_classes:
+    0: "person"
+    67: "cell phone"
+```
+
+A direct inspection of the physical checkpoints using PyTorch and Ultralytics revealed that **both `stage1_best.pt` and `stage1_5_best.pt` are NOT COCO object detectors.**
+
+### Physical Evidence Summary
+
+| Checkpoint Path | SHA-256 Digest | Task | Params | Model YAML | Actual `model.names` |
+|---|---|---|---|---|---|
+| `models/trained/stage1_best.pt` | `6d713808f0bc670e8bf06e01b006fac73d8d6e5db7130584cec1658b003ce98a` | `detect` | 21,780,598 | `yolo26m.yaml` (5 cls) | `{0: 'normal', 1: 'head_down', 2: 'turn_head', 3: 'discuss', 4: 'stand'}` |
+| `models/trained/stage1_5_best.pt` | `68690cf82715dc6dad2eb35a08711531170e935eb7dbe1c30fafabae341e2c2c` | `detect` | 21,780,598 | `yolo26m.yaml` (5 cls) | `{0: 'normal', 1: 'head_down', 2: 'turn_head', 3: 'discuss', 4: 'stand'}` |
+| `yolo26m.pt` (Local Repo) | `401cea9ab23ad19246ff7744859816bc599f350e93c9dd30367b6f0a0745d0b7` | `detect` | 21,896,248 | `yolo26m.yaml` (80 cls) | 80 COCO classes (`0: 'person'`, `67: 'cell phone'`) |
+| `yolo11n.pt` (Local Repo) | `0ebbc80d4a7680d14987a577cd21342b65ecfd94632bd9a8da63ae6417644ee1` | `detect` | 2,624,080 | `yolo11n.yaml` (80 cls) | 80 COCO classes (`0: 'person'`, `67: 'cell phone'`) |
+
+---
+
+## 2. Checkpoint Details & Training Provenance
+
+### A. `models/trained/stage1_best.pt`
+- **Physical SHA-256:** `6d713808f0bc670e8bf06e01b006fac73d8d6e5db7130584cec1658b003ce98a`
+- **File Size:** 42.01 MB (44,050,443 bytes)
+- **Base Architecture Descriptor:** `yolo26m.yaml` (`scale: 'm'`, `nc: 5`, `end2end: True`, `reg_max: 1`, `C3k2`, `C2PSA`, `SPPF`)
+- **Parameter Count:** 21,780,598
+- **Stride:** 32
+- **Training Arguments Recovered:**
+  - `model`: `yolo26m.pt`
+  - `data`: `datasets\processed_v3\dataset.yaml`
+  - `epochs`: 80
+  - `batch`: 8
+  - `imgsz`: 768
+  - `device`: `0`
+- **Taxonomy Facts:** 5 classes. Index 0 is `'normal'`, NOT `'person'`. Class 67 does NOT exist.
+- **Classification:** Custom macro student behavior detector. Protected historical baseline.
+
+### B. `models/trained/stage1_5_best.pt`
+- **Physical SHA-256:** `68690cf82715dc6dad2eb35a08711531170e935eb7dbe1c30fafabae341e2c2c`
+- **File Size:** 42.00 MB (44,046,347 bytes)
+- **Base Architecture Descriptor:** `yolo26m.yaml` (`scale: 'm'`, `nc: 5`, `end2end: True`, `reg_max: 1`)
+- **Parameter Count:** 21,780,598
+- **Stride:** 32
+- **Training Arguments Recovered:**
+  - `model`: `C:\WorkingSpace Python\DETECTOR-YOLO\runs\stage1_5\v3_5_refinement\weights\last.pt`
+  - `data`: `C:\WorkingSpace Python\DETECTOR-YOLO\datasets\processed_v3_5\dataset.yaml`
+  - `epochs`: 20
+  - `batch`: 8
+  - `imgsz`: 768
+  - `device`: `0`
+- **Taxonomy Facts:** 5 classes (`normal`, `head_down`, `turn_head`, `discuss`, `stand`).
+- **Classification:** Custom macro student behavior detector (refinement stage). Supersedes Stage 1 for macro behavior evaluation.
+
+---
+
+## 3. General Object Detection & Phone Detection Role Resolution
+
+### A. General Object Detector Candidate Selection
+To detect human bodies (`person`) without reinterpreting behavioral boxes as COCO taxonomy, the local repository was searched for existing checkpoints.
+No external weights were downloaded.
+The search identified local checkpoint `yolo26m.pt` (SHA-256: `401cea9ab23ad19246ff7744859816bc599f350e93c9dd30367b6f0a0745d0b7`).
+- In `yolo26m.pt`, `model.names` contains:
+  - Class index 0: `'person'`
+  - Class index 67: `'cell phone'`
+- In `yolo11n.pt`, `model.names` also contains:
+  - Class index 0: `'person'`
+  - Class index 67: `'cell phone'`
+
+### B. Phone Detection Role Verdict
+- **PHYSICAL CHECKPOINT CONTAINS PHONE CLASS:** YES (`yolo26m.pt` class 67 and `yolo11n.pt` class 67).
+- **PHONE_OBJECT_DETECTION_AVAILABLE:** `YES`
+- **PHONE_ASSOCIATION_LOGIC_READY:** `YES`
+- **PHONE_END_TO_END_DETECTION_READY:** `YES`
+- The system derives `person` and `cell phone` indices dynamically from `model.names` at runtime. Hardcoding `0` or `67` without verifying `model.names` is strictly removed.
+
+---
+
+## 4. Governance & Role Assignment Decision
+
+1. **Role `GENERAL_OBJECT_DETECTOR`:** Configured to use physical local detector `yolo26m.pt` (or `yolo11n.pt`) with class indices dynamically resolved from `model.names`.
+2. **Role `MACRO_BEHAVIOR_DETECTOR`:** Assigned to `models/trained/stage1_5_best.pt`, restricted to its 5 behavioral outputs (`normal`, `head_down`, `turn_head`, `discuss`, `stand`).
+3. **Role of `models/trained/stage1_best.pt`:** Retained as a protected frozen historical baseline. It is superseded by `stage1_5_best.pt` in live runtime orchestration.
+
+---
+*Generated by Stage 2 Integrity Repair — Machine-readable audit source: `runs/stage2_integrity/detector_checkpoint_introspection.json`*

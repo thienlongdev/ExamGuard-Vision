@@ -1,0 +1,74 @@
+{
+  "loss_05pct": {
+    "target_loss_rate": 0.05,
+    "burst_prob": 0.0,
+    "delivered_frames": 86,
+    "dropped_frames": 4,
+    "actual_loss_percentage": 4.4,
+    "queue_depth": 0,
+    "queue_bounded": true,
+    "mean_step_latency_ms": 13.77,
+    "degradation_status": "STABLE_NORMAL",
+    "timestamp_continuity_valid": true
+  },
+  "loss_10pct": {
+    "target_loss_rate": 0.1,
+    "burst_prob": 0.0,
+    "delivered_frames": 84,
+    "dropped_frames": 6,
+    "actual_loss_percentage": 6.7,
+    "queue_depth": 0,
+    "queue_bounded": true,
+    "mean_step_latency_ms": 13.74,
+    "degradation_status": "STABLE_NORMAL",
+    "timestamp_continuity_valid": true
+  },
+  "loss_20pct": {
+    "target_loss_rate": 0.2,
+    "burst_prob": 0.0,
+    "delivered_frames": 68,
+    "dropped_frames": 22,
+    "actual_loss_percentage": 24.4,
+    "queue_depth": 0,
+    "queue_bounded": true,
+    "mean_step_latency_ms": 14.46,
+    "degradation_status": "STABLE_DEGRADED_CADENCE",
+    "timestamp_continuity_valid": true
+  },
+  "loss_30pct": {
+    "target_loss_rate": 0.3,
+    "burst_prob": 0.0,
+    "delivered_frames": 63,
+    "dropped_frames": 27,
+    "actual_loss_percentage": 30.0,
+    "queue_depth": 0,
+    "queue_bounded": true,
+    "mean_step_latency_ms": 14.68,
+    "degradation_status": "STABLE_DEGRADED_CADENCE",
+    "timestamp_continuity_valid": true
+  },
+  "loss_50pct": {
+    "target_loss_rate": 0.5,
+    "burst_prob": 0.0,
+    "delivered_frames": 53,
+    "dropped_frames": 37,
+    "actual_loss_percentage": 41.1,
+    "queue_depth": 0,
+    "queue_bounded": true,
+    "mean_step_latency_ms": 15.92,
+    "degradation_status": "HEAVILY_DEGRADED",
+    "timestamp_continuity_valid": true
+  },
+  "loss_bursty": {
+    "target_loss_rate": 0.0,
+    "burst_prob": 0.08,
+    "delivered_frames": 55,
+    "dropped_frames": 35,
+    "actual_loss_percentage": 38.9,
+    "queue_depth": 0,
+    "queue_bounded": true,
+    "mean_step_latency_ms": 14.11,
+    "degradation_status": "STABLE_DEGRADED_CADENCE",
+    "timestamp_continuity_valid": true
+  }
+}

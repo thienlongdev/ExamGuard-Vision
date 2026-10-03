@@ -1,0 +1,20 @@
+{
+  "supported_review_states": [
+    "NEW",
+    "REVIEWED",
+    "CONFIRMED_EVENT",
+    "DISMISSED"
+  ],
+  "confirmed_event_meaning": "Observable physical behavior verified by human invigilator (DOES NOT MEAN GUILTY/CHEATING).",
+  "warning_states_configured": [
+    "LOW_PERSON_RESOLUTION",
+    "HEADPOSE_UNAVAILABLE",
+    "HIGH_FRAME_DROP_RATE",
+    "RTSP_RECONNECTING",
+    "PHONE_VISIBILITY_LIMITED",
+    "DENSE_LOAD_DEGRADED",
+    "EVIDENCE_STORAGE_LOW"
+  ],
+  "camera_health_panel_wired": true,
+  "websocket_broadcast_verified": true
+}

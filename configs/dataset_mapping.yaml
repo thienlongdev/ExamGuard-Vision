@@ -1,0 +1,122 @@
+# Ground-Truth Dataset Class Mapping Configuration
+# Mappings derived STRICTLY from verified local source datasets and visual inspection.
+#
+# Status semantics:
+#   approved: Visually verified and approved for inclusion in canonical manifests.
+#   needs_review: Visual ambiguity or pending download; excluded from training by default.
+#   ignored: Benign out-of-scope behavior (e.g. hand-raising); safely excluded.
+#   rejected: Violates core design principles (e.g. single-frame "cheating"); strictly prohibited.
+
+canonical_classes:
+  - normal      # 0
+  - head_down   # 1
+  - lean        # 2 (Active once verified source data is staged)
+  - turn_head   # 3
+  - use_phone   # 4 (Active once verified source data is staged)
+  - discuss     # 5
+  - stand       # 6 (Active once verified source data is staged)
+
+future_classes:
+  - left_move
+  - right_move
+
+# Canonical status tracker for V1 training availability
+canonical_class_status:
+  normal: "AVAILABLE (sources: read, write)"
+  head_down: "AVAILABLE (source: BowHead)"
+  lean: "NO VERIFIED TRAINING SOURCE CURRENTLY AVAILABLE"
+  turn_head: "AVAILABLE (source: TurnHead)"
+  use_phone: "NO VERIFIED TRAINING SOURCE CURRENTLY AVAILABLE"
+  discuss: "AVAILABLE (source: discuss)"
+  stand: "NO VERIFIED TRAINING SOURCE CURRENTLY AVAILABLE"
+
+# Verified local datasets
+datasets:
+  scb_discuss:
+    description: "SCB5-Discuss-2024-9-17 subset from HuggingFace (wintonYF)"
+    local_path: "datasets/raw/scb_dataset3/SCB5-Discuss-2024-9-17"
+    source_classes:
+      "discuss":
+        target: discuss
+        status: approved
+        reason: "Visual contact sheet confirms 2+ students turning toward each other in conversation."
+        visual_sample_reference: "reports/class_samples_verified/scb_discuss_discuss.jpg"
+
+  scb_handrise_read_write:
+    description: "SCB5-Handrise-Read-write-2024-9-17 subset from HuggingFace (wintonYF)"
+    local_path: "datasets/raw/scb_dataset3/SCB5-Handrise-Read-write-2024-9-17"
+    source_classes:
+      "hand-raising":
+        target: null
+        status: ignored
+        reason: "Normal classroom gesture, not suspicious in exam invigilation."
+        visual_sample_reference: "reports/class_samples_verified/scb_handrise_read_write_hand_raising.jpg"
+      "read":
+        target: normal
+        status: approved
+        reason: "Visual inspection confirms standard seated exam reading activity at desk."
+        visual_sample_reference: "reports/class_samples_verified/scb_handrise_read_write_read.jpg"
+      "write":
+        target: normal
+        status: approved
+        reason: "Visual inspection confirms standard seated exam writing activity at desk."
+        visual_sample_reference: "reports/class_samples_verified/scb_handrise_read_write_write.jpg"
+
+  scbehavior_bow_turn:
+    description: "SCB_BowTurnHead_20250509 subset from HuggingFace (wintonYF)"
+    local_path: "datasets/raw/scbehavior/SCB_BowTurnHead_20250509"
+    source_classes:
+      "BowHead":
+        target: head_down
+        status: approved
+        reason: "Visual inspection confirms student forehead resting on or bowed deeply to desk."
+        visual_sample_reference: "reports/class_samples_verified/scbehavior_bow_turn_BowHead.jpg"
+      "TurnHead":
+        target: turn_head
+        status: approved
+        reason: "Visual inspection confirms 45-90 degree lateral head orientation away from desk."
+        visual_sample_reference: "reports/class_samples_verified/scbehavior_bow_turn_TurnHead.jpg"
+
+# Candidate datasets pending physical download (all mappings marked needs_review or rejected)
+pending_datasets:
+  cctv_exam_monitor:
+    description: "CCTV Exam Monitor Dataset from Kaggle (surveillance angle, CC0)"
+    status: "PENDING_PHYSICAL_DOWNLOAD"
+    source_classes:
+      "Correct Posture":
+        target: normal
+        status: approved
+        reason: "Seated candidate baseline."
+      "LeftSideMove":
+        target: null
+        status: needs_review
+        reason: "Lateral body shift; requires visual review before mapping."
+      "RightSideMove":
+        target: null
+        status: needs_review
+        reason: "Lateral body shift; requires visual review before mapping."
+      "ForwardMove":
+        target: lean
+        status: needs_review
+        reason: "Leaning forward vs. ordinary writing posture; requires visual review."
+      "BackwardMove":
+        target: normal
+        status: needs_review
+        reason: "Reclining in chair; requires visual review."
+      "Stand":
+        target: stand
+        status: approved
+        reason: "Standing up in exam hall."
+
+  exam_cheating_kaggle:
+    description: "Kaggle Exam Cheating detection datasets"
+    status: "PENDING_PHYSICAL_DOWNLOAD"
+    source_classes:
+      "cheating":
+        target: null
+        status: rejected
+        reason: "REJECTED: Single-frame subjective 'cheating' label violates system architecture."
+      "no cheating":
+        target: normal
+        status: approved
+        reason: "Standard exam seated activity."

@@ -1,0 +1,63 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Environments
+.venv/
+env/
+venv/
+ENV/
+build/
+dist/
+*.egg-info/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE & OS files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Sensitive & Local Configuration
+.env
+*.env
+*.pem
+*.key
+*.token
+
+# Datasets, Raw Imagery, and Storage
+datasets/
+storage/
+training/
+scratch/
+
+# Temporary video outputs and camera recordings
+recordings/
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# Large intermediate runs artifacts: ignore heavy training images, logs, intermediate checkpoints
+runs/**/weights/
+runs/**/*.png
+runs/**/*.jpg
+runs/**/*.jpeg
+runs/**/*.csv
+runs/**/*.log
+runs/**/*.pt
+!runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt
+!runs/v4c/headpose_resnet18_yaw/best_model.pt
+
+# Intermediate weights outside models/trained
+weights/
+yolo11n.pt

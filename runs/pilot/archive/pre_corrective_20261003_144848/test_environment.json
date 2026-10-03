@@ -1,0 +1,13 @@
+{
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python_version": "3.13.9 (tags/v3.13.9:8183fa5, Oct 14 2025, 14:09:13) [MSC v.1944 64 bit (AMD64)]",
+  "torch_version": "2.14.1+cu130",
+  "cuda_available": true,
+  "cuda_version": "13.0",
+  "gpu_name": "NVIDIA GeForce RTX 5070",
+  "cpu_count_physical": 16,
+  "cpu_count_logical": 32,
+  "total_ram_gb": 31.15,
+  "timestamp": 1791011497.574337,
+  "timestamp_iso": "2026-10-03 14:11:37"
+}

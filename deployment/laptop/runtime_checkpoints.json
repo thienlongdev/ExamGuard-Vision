@@ -1,0 +1,104 @@
+{
+  "checkpoint_registry_version": "2.0.0-certified",
+  "total_checkpoints_audited": 7,
+  "checkpoints": [
+    {
+      "file_path": "yolo26m.pt",
+      "sha256": "401cea9ab23ad19246ff7744859816bc599f350e93c9dd30367b6f0a0745d0b7",
+      "classification": "REQUIRED_FOR_RUNTIME",
+      "runtime_role": "GENERAL_OBJECT_DETECTOR",
+      "architecture": "YOLO26m (DetectionModel)",
+      "input_resolution": [640, 640],
+      "parameter_count": 21896248,
+      "size_bytes": 44255705,
+      "size_mb": 42.21,
+      "resolved_classes": {
+        "0": "person",
+        "67": "cell phone"
+      },
+      "source_derivation": "ModelRegistry.initialize_models -> self.detector"
+    },
+    {
+      "file_path": "models/trained/stage1_5_best.pt",
+      "sha256": "68690cf82715dc6dad2eb35a08711531170e935eb7dbe1c30fafabae341e2c2c",
+      "classification": "REQUIRED_FOR_RUNTIME",
+      "runtime_role": "MACRO_BEHAVIOR_DETECTOR",
+      "architecture": "YOLO26m (DetectionModel)",
+      "input_resolution": [768, 768],
+      "parameter_count": 21780598,
+      "size_bytes": 44038169,
+      "size_mb": 42.00,
+      "classes": [
+        "normal",
+        "head_down",
+        "turn_head",
+        "discuss",
+        "stand"
+      ],
+      "source_derivation": "ModelRegistry.initialize_models -> self.macro_detector"
+    },
+    {
+      "file_path": "models/trained/v4_posture_best.pt",
+      "sha256": "529a23f96ebec6051ad29279fba3cd5279e7aa8fe2e46292ab4bb9c9523ca180",
+      "classification": "REQUIRED_FOR_RUNTIME",
+      "runtime_role": "SPECIALIZED_POSTURE_CLASSIFIER",
+      "architecture": "MobileNetV3-Small",
+      "input_resolution": [224, 224],
+      "parameter_count": 1521956,
+      "size_bytes": 18518447,
+      "size_mb": 17.66,
+      "classes": [
+        "NORMAL_UPRIGHT",
+        "NORMAL_READ_WRITE",
+        "HEAD_REST_SLEEP",
+        "TURN_HEAD_CLEAR"
+      ],
+      "source_derivation": "ModelRegistry.initialize_models -> self.posture_model"
+    },
+    {
+      "file_path": "models/trained/v4_headpose_yaw_best.pt",
+      "sha256": "5d15eec5941cfc8d2468d09c27bff8eca2014e62bb12fc9a95c0c6239fbbca55",
+      "classification": "REQUIRED_FOR_RUNTIME",
+      "runtime_role": "SPECIALIZED_HEADPOSE_ESTIMATOR",
+      "architecture": "HopeNetYaw",
+      "input_resolution": [224, 224],
+      "parameter_count": 23643266,
+      "size_bytes": 284178037,
+      "size_mb": 271.01,
+      "native_range_deg": [-99.0, 99.0],
+      "source_derivation": "ModelRegistry.initialize_models -> self.headpose_model"
+    },
+    {
+      "file_path": "runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt",
+      "sha256": "070a2e328a161b1c957576ec13647d65846a073f9dd35488c7c6edc847f0f4cf",
+      "classification": "OPTIONAL_FALLBACK",
+      "runtime_role": "POSTURE_OPTIONAL_320_CANDIDATE",
+      "architecture": "MobileNetV3-Small",
+      "input_resolution": [320, 320],
+      "size_bytes": 18518447,
+      "size_mb": 17.66,
+      "source_derivation": "configs/local_live_camera.yaml -> models.posture.alternative_checkpoint"
+    },
+    {
+      "file_path": "runs/v4c/headpose_resnet18_yaw/best_model.pt",
+      "sha256": "bc31d46cfea007ebddfb6a8d5845641a32fd1cc018a831c4c8ae8b61e579a7d9",
+      "classification": "OPTIONAL_FALLBACK",
+      "runtime_role": "HEADPOSE_CIRCULAR_FALLBACK",
+      "architecture": "ResNet18 Yaw",
+      "input_resolution": [224, 224],
+      "size_bytes": 134264773,
+      "size_mb": 128.04,
+      "source_derivation": "configs/local_live_camera.yaml -> models.headpose.fallback_checkpoint"
+    },
+    {
+      "file_path": "models/trained/stage1_best.pt",
+      "sha256": "6d713808f0bc670e8bf06e01b006fac73d8d6e5db7130584cec1658b003ce98a",
+      "classification": "HISTORICAL_ONLY",
+      "runtime_role": "STAGE1_HISTORICAL_BASELINE",
+      "architecture": "YOLO26m",
+      "size_bytes": 44048089,
+      "size_mb": 42.01,
+      "source_derivation": "Scientific holdout baseline evaluation"
+    }
+  ]
+}

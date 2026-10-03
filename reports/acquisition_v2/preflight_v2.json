@@ -1,0 +1,105 @@
+{
+  "status": "FAIL",
+  "dataset_scope": "preserved legacy dataset; not a rebuilt V2 candidate",
+  "checks": {
+    "dataset_nonempty": true,
+    "all_classes_have_verified_source": false,
+    "canonical_matches_mapping": true,
+    "no_invalid_bbox": true,
+    "image_label_pairing": true,
+    "no_missing_manifest_images": true,
+    "labels_match_manifest": true,
+    "approved_only": true,
+    "physical_source_classes_only": true,
+    "source_provenance_preserved": true,
+    "no_duplicate_leakage": true,
+    "no_group_leakage": true,
+    "train_has_every_intended_class": false,
+    "cctv_annotations_exist": false,
+    "cctv_in_validation": false,
+    "cctv_in_test": false,
+    "final_v2_rebuild_complete": false,
+    "real_sequence_grouping_verified": false
+  },
+  "split_statistics": {
+    "train": {
+      "images": 5665,
+      "boxes": 38293,
+      "class_boxes": {
+        "discuss": 4130,
+        "turn_head": 7159,
+        "head_down": 3349,
+        "normal": 23655
+      },
+      "class_images": {
+        "discuss": 651,
+        "turn_head": 1475,
+        "head_down": 772,
+        "normal": 2880
+      },
+      "sources": {
+        "scb_discuss": 651,
+        "scb_handrise_read_write": 4720,
+        "scbehavior_bow_turn": 1723
+      },
+      "cctv_images": 0,
+      "phone_images": 0
+    },
+    "val": {
+      "images": 1218,
+      "boxes": 6077,
+      "class_boxes": {
+        "normal": 4714,
+        "discuss": 446,
+        "turn_head": 775,
+        "head_down": 142
+      },
+      "class_images": {
+        "normal": 610,
+        "discuss": 120,
+        "turn_head": 248,
+        "head_down": 89
+      },
+      "sources": {
+        "scb_handrise_read_write": 1126,
+        "scb_discuss": 120,
+        "scbehavior_bow_turn": 270
+      },
+      "cctv_images": 0,
+      "phone_images": 0
+    },
+    "test": {
+      "images": 1233,
+      "boxes": 7787,
+      "class_boxes": {
+        "discuss": 530,
+        "normal": 4024,
+        "turn_head": 2627,
+        "head_down": 606
+      },
+      "class_images": {
+        "discuss": 93,
+        "normal": 580,
+        "turn_head": 375,
+        "head_down": 140
+      },
+      "sources": {
+        "scb_discuss": 93,
+        "scb_handrise_read_write": 1017,
+        "scbehavior_bow_turn": 417
+      },
+      "cctv_images": 0,
+      "phone_images": 0
+    }
+  },
+  "duplicate_leakage": {
+    "train_val": 0,
+    "train_test": 0,
+    "val_test": 0
+  },
+  "group_id_leakage": {
+    "train_val": 0,
+    "train_test": 0,
+    "val_test": 0
+  }
+}

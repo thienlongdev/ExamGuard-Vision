@@ -1,0 +1,373 @@
+# V4 Behavior Semantic Ontology Specification
+# Version: 4.0-Alpha
+# Date: 2026-10-02
+# Description: Fine-grained observable behavioral ontology decoupled from training class indices.
+# Purpose: Prevents semantic corruption (e.g. normal reading/writing collapsed into head_down).
+
+version: "4.0"
+date: "2026-10-02"
+
+# ---------------------------------------------------------------------
+# 1. ATOMIC OBSERVABLE SEMANTIC CONCEPTS (Physical observable states)
+# ---------------------------------------------------------------------
+observable_concepts:
+  # Upright & Normal Attention States
+  NORMAL_UPRIGHT:
+    description: "Student sitting upright, gaze forward or towards blackboard/teacher, torso aligned with desk."
+    gaze_target: "BLACKBOARD_OR_TEACHER"
+    head_pitch_deg: "[-15, 15]"
+    head_yaw_deg: "[-20, 20]"
+    torso_yaw_deg: "[-15, 15]"
+    hands_state: "RESTING_OR_TYPING"
+    canonical_target: "normal"
+
+  NORMAL_READING:
+    description: "Student looking at textbook/paper on desk; head tilted moderately down (15-35 deg); upright posture."
+    gaze_target: "DESK_MATERIAL"
+    head_pitch_deg: "[15, 35]"
+    head_yaw_deg: "[-20, 20]"
+    torso_yaw_deg: "[-15, 15]"
+    hands_state: "HOLDING_PAGE_OR_RESTING"
+    canonical_target: "normal"  # CRITICAL HARD NEGATIVE against head_down
+
+  NORMAL_WRITING:
+    description: "Student holding pen/pencil writing on paper; head tilted down (15-35 deg); hand in active motion."
+    gaze_target: "DESK_MATERIAL"
+    head_pitch_deg: "[15, 35]"
+    head_yaw_deg: "[-20, 20]"
+    torso_yaw_deg: "[-15, 15]"
+    hands_state: "HOLDING_PEN_WRITING"
+    canonical_target: "normal"  # CRITICAL HARD NEGATIVE against head_down
+
+  # Downward Head Posture Spectrum
+  LOOKING_DOWN_LIGHT:
+    description: "Light downward gaze/tilt (15-30 deg) without clear material or pen interaction; ambiguous boundary."
+    gaze_target: "LAP_OR_EMPTY_DESK"
+    head_pitch_deg: "[20, 35]"
+    head_yaw_deg: "[-25, 25]"
+    torso_yaw_deg: "[-20, 20]"
+    hands_state: "UNKNOWN_OR_OCCLUDED"
+    canonical_target: "UNDECIDED"  # Must remain ambiguous or resolved by temporal duration
+
+  HEAD_DOWN_DEEP:
+    description: "Pronounced downward head tilt (>40 deg pitch), crown of head visible from front/side camera, face hidden."
+    gaze_target: "LAP_FLOOR_OR_CONCEALED"
+    head_pitch_deg: "[40, 75]"
+    head_yaw_deg: "[-30, 30]"
+    torso_yaw_deg: "[-25, 25]"
+    hands_state: "UNDER_DESK_OR_CONCEALED"
+    canonical_target: "head_down"
+
+  HEAD_RESTING_ON_DESK:
+    description: "Forehead, cheek, or side of head resting directly on desk surface or arms crossed on desk."
+    gaze_target: "SURFACE_OCCLUDED"
+    head_pitch_deg: "[60, 90]"
+    head_yaw_deg: "[-90, 90]"
+    torso_yaw_deg: "SLUMPED"
+    hands_state: "SUPPORTING_HEAD_OR_CROSSED"
+    canonical_target: "head_down"
+
+  SLEEPING:
+    description: "Sustained resting on desk, head slumped or supported by hands, eyes closed, inactive motion."
+    gaze_target: "NONE"
+    head_pitch_deg: "[45, 90]"
+    head_yaw_deg: "[-90, 90]"
+    torso_yaw_deg: "SLUMPED_FORWARD"
+    hands_state: "PASSIVE"
+    canonical_target: "head_down"
+
+  # Lateral Head Posture Spectrum
+  TURN_HEAD_SUBTLE:
+    description: "Small lateral gaze or slight head turn (15-30 deg yaw); possible natural shifting."
+    gaze_target: "OFF_AXIS_NEARBY"
+    head_pitch_deg: "[-20, 25]"
+    head_yaw_deg: "[15, 30]"
+    torso_yaw_deg: "[-15, 15]"
+    hands_state: "ANY"
+    canonical_target: "UNDECIDED"  # Do not force into turn_head unless sustained
+
+  TURN_HEAD_CLEAR:
+    description: "Clear lateral head rotation (35-75 deg yaw), profile of face clearly visible, gazing away from own desk."
+    gaze_target: "PEER_OR_SIDE_WALL"
+    head_pitch_deg: "[-25, 25]"
+    head_yaw_deg: "[35, 75]"
+    torso_yaw_deg: "[-25, 25]"
+    hands_state: "ANY"
+    canonical_target: "turn_head"
+
+  TURN_BODY:
+    description: "Significant torso and shoulder rotation (>30 deg) accompanying head turn towards neighbor or rear."
+    gaze_target: "NEIGHBOR_OR_REAR"
+    head_pitch_deg: "[-25, 25]"
+    head_yaw_deg: "[45, 120]"
+    torso_yaw_deg: "[30, 90]"
+    hands_state: "ANY"
+    canonical_target: "turn_head"  # Can also signal discussion if peer is mirrored
+
+  TURNING_AROUND:
+    description: "Full rotation towards the student behind (>90 deg yaw)."
+    gaze_target: "REAR_PEER"
+    head_pitch_deg: "[-20, 20]"
+    head_yaw_deg: "[90, 160]"
+    torso_yaw_deg: "[60, 120]"
+    hands_state: "RESTING_ON_BACKREST"
+    canonical_target: "turn_head"
+
+  # Interaction & Social States
+  TALKING_SINGLE:
+    description: "Single student showing persistent mouth opening/articulation directed laterally or forward."
+    gaze_target: "NEIGHBOR"
+    head_pitch_deg: "[-20, 20]"
+    head_yaw_deg: "[20, 60]"
+    torso_yaw_deg: "[-20, 30]"
+    hands_state: "GESTURING_OR_RESTING"
+    canonical_target: "discuss"  # or multi-cue interaction
+
+  DISCUSS_PAIR:
+    description: "Two or more adjacent students with converging yaw angles, mutual orientation, and conversational dynamics."
+    gaze_target: "MUTUAL_PEER"
+    head_pitch_deg: "[-20, 20]"
+    head_yaw_deg: "MUTUAL_CONVERGING"
+    torso_yaw_deg: "MUTUAL_CONVERGING"
+    hands_state: "GESTURING"
+    canonical_target: "discuss"
+
+  # Macro Postural States
+  STAND:
+    description: "Student standing upright or rising from chair; full or 3/4 torso extended above seated desk line."
+    gaze_target: "ANY"
+    head_pitch_deg: "ANY"
+    head_yaw_deg: "ANY"
+    torso_yaw_deg: "ANY"
+    hands_state: "AT_SIDES_OR_ON_DESK"
+    canonical_target: "stand"
+
+  WALK:
+    description: "Student ambulating through aisles or towards front/rear of classroom."
+    gaze_target: "PATH"
+    head_pitch_deg: "ANY"
+    head_yaw_deg: "ANY"
+    torso_yaw_deg: "LOCOMOTION"
+    hands_state: "SWINGING"
+    canonical_target: "stand"  # Macro mobility state
+
+  # Phone & Object Specific
+  PHONE_OBJECT:
+    description: "Physical smartphone/device detected in frame (bounding box class 'phone' from COCO/secondary detector)."
+    gaze_target: "N/A"
+    canonical_target: "OBJECT_DETECTION_ONLY"  # Never directly mapped to student behavior class
+
+  PHONE_INTERACTION:
+    description: "Student holding or manipulating phone in hands or concealing phone below desk."
+    gaze_target: "PHONE_LOCATION"
+    head_pitch_deg: "[25, 60]"
+    head_yaw_deg: "[-25, 25]"
+    hands_state: "HOLDING_DEVICE"
+    canonical_target: "OBJECT_ASSOCIATION_RULE"  # Managed by ByteTrack + association engine
+
+# ---------------------------------------------------------------------
+# 2. SOURCE-TO-CONCEPT AUDIT MAPPING (Explicit provenance tracing)
+# ---------------------------------------------------------------------
+source_mappings:
+  # SCB Dataset 5 (Historical source with semantic corruption)
+  "SCB5/BowHead":
+    source_dataset: "SCB5-Turn-Bow-Head"
+    original_label: "BowHead"
+    mapped_concept: "AMBIGUOUS" # Confuses reading, writing, and deep head down
+    canonical_target: "UNDECIDED"
+    quarantine: true
+    reason: "Historical audit proved 68% of BowHead boxes are normal reading/writing."
+
+  "SCB5/TurnHead":
+    source_dataset: "SCB5-Turn-Bow-Head"
+    original_label: "TurnHead"
+    mapped_concept: "TURN_HEAD_CLEAR"
+    canonical_target: "turn_head"
+    quarantine: false
+
+  "SCB5/BlackBoard":
+    source_dataset: "SCB5-BlackBoard-Screen"
+    original_label: "BlackBoard"
+    mapped_concept: "NORMAL_UPRIGHT"
+    canonical_target: "normal"
+    quarantine: false
+
+  "SCB5/Talk":
+    source_dataset: "SCB5-Talk"
+    original_label: "Talk"
+    mapped_concept: "DISCUSS_PAIR"
+    canonical_target: "discuss"
+    quarantine: false
+
+  "SCB5/Stand":
+    source_dataset: "SCB5-Stand"
+    original_label: "Stand"
+    mapped_concept: "STAND"
+    canonical_target: "stand"
+    quarantine: false
+
+  # SCBehavior High-Resolution Dataset (20191864136)
+  "SCBehavior_HighRes/read":
+    source_dataset: "SCBehavior-Dataset-20191864136"
+    original_label: "read"
+    mapped_concept: "NORMAL_READING"
+    canonical_target: "normal" # Strong hard negative against head_down
+    quarantine: false
+
+  "SCBehavior_HighRes/write":
+    source_dataset: "SCBehavior-Dataset-20191864136"
+    original_label: "write"
+    mapped_concept: "NORMAL_WRITING"
+    canonical_target: "normal" # Strong hard negative against head_down
+    quarantine: false
+
+  "SCBehavior_HighRes/lookup":
+    source_dataset: "SCBehavior-Dataset-20191864136"
+    original_label: "lookup"
+    mapped_concept: "NORMAL_UPRIGHT"
+    canonical_target: "normal"
+    quarantine: false
+
+  "SCBehavior_HighRes/turn_head":
+    source_dataset: "SCBehavior-Dataset-20191864136"
+    original_label: "turn_head"
+    mapped_concept: "TURN_HEAD_CLEAR"
+    canonical_target: "turn_head"
+    quarantine: false
+
+  "SCBehavior_HighRes/discuss":
+    source_dataset: "SCBehavior-Dataset-20191864136"
+    original_label: "discuss"
+    mapped_concept: "DISCUSS_PAIR"
+    canonical_target: "discuss"
+    quarantine: false
+
+  "SCBehavior_HighRes/stand":
+    source_dataset: "SCBehavior-Dataset-20191864136"
+    original_label: "stand"
+    mapped_concept: "STAND"
+    canonical_target: "stand"
+    quarantine: false
+
+  "SCBehavior_HighRes/raise_hand":
+    source_dataset: "SCBehavior-Dataset-20191864136"
+    original_label: "raise_hand"
+    mapped_concept: "NORMAL_UPRIGHT"
+    canonical_target: "normal" # Normal classroom participation behavior
+    quarantine: false
+
+  # EduAction College Student Behavior (hhhhha-ops)
+  "EduAction/sleeping":
+    source_dataset: "EduAction"
+    original_label: "sleeping"
+    mapped_concept: "SLEEPING"
+    canonical_target: "head_down" # Strong, verified deep head down / desk resting
+    quarantine: false
+
+  "EduAction/writing":
+    source_dataset: "EduAction"
+    original_label: "writing"
+    mapped_concept: "NORMAL_WRITING"
+    canonical_target: "normal" # Hard negative
+    quarantine: false
+
+  "EduAction/lecture":
+    source_dataset: "EduAction"
+    original_label: "lecture"
+    mapped_concept: "NORMAL_UPRIGHT"
+    canonical_target: "normal"
+    quarantine: false
+
+  "EduAction/talking":
+    source_dataset: "EduAction"
+    original_label: "talking"
+    mapped_concept: "TALKING_SINGLE"
+    canonical_target: "discuss"
+    quarantine: false
+
+  "EduAction/play_phone":
+    source_dataset: "EduAction"
+    original_label: "play_phone"
+    mapped_concept: "PHONE_INTERACTION"
+    canonical_target: "OBJECT_ASSOCIATION_RULE"
+    quarantine: false
+
+  # Smart Classroom Student Behavior (master-weixiao) - If accessible in future
+  "SmartClassroom/dx":
+    source_dataset: "Smart-Classroom"
+    original_label: "dx (低头写字)"
+    mapped_concept: "NORMAL_WRITING"
+    canonical_target: "normal" # Hard negative
+    quarantine: false
+
+  "SmartClassroom/dk":
+    source_dataset: "Smart-Classroom"
+    original_label: "dk (低头看书)"
+    mapped_concept: "NORMAL_READING"
+    canonical_target: "normal" # Hard negative
+    quarantine: false
+
+  "SmartClassroom/zt":
+    source_dataset: "Smart-Classroom"
+    original_label: "zt (转头)"
+    mapped_concept: "TURN_HEAD_CLEAR"
+    canonical_target: "turn_head"
+    quarantine: false
+
+  "SmartClassroom/tt":
+    source_dataset: "Smart-Classroom"
+    original_label: "tt (抬头听课)"
+    mapped_concept: "NORMAL_UPRIGHT"
+    canonical_target: "normal"
+    quarantine: false
+
+  "SmartClassroom/xt":
+    source_dataset: "Smart-Classroom"
+    original_label: "xt (小组讨论)"
+    mapped_concept: "DISCUSS_PAIR"
+    canonical_target: "discuss"
+    quarantine: false
+
+  "SmartClassroom/zl":
+    source_dataset: "Smart-Classroom"
+    original_label: "zl (站立)"
+    mapped_concept: "STAND"
+    canonical_target: "stand"
+    quarantine: false
+
+  # CStudentAct (HUST) - If accessible via manual commitment form
+  "CStudentAct/sleeping":
+    source_dataset: "CStudentAct"
+    original_label: "sleeping"
+    mapped_concept: "SLEEPING"
+    canonical_target: "head_down"
+    quarantine: false
+
+  "CStudentAct/standing":
+    source_dataset: "CStudentAct"
+    original_label: "standing"
+    mapped_concept: "STAND"
+    canonical_target: "stand"
+    quarantine: false
+
+  "CStudentAct/using_phone":
+    source_dataset: "CStudentAct"
+    original_label: "using_phone"
+    mapped_concept: "PHONE_INTERACTION"
+    canonical_target: "OBJECT_ASSOCIATION_RULE"
+    quarantine: false
+
+  # AFLW2000-3D Head Pose Benchmark
+  "AFLW2000/yaw_gt_45":
+    source_dataset: "AFLW2000-3D"
+    original_label: "abs(yaw) > 45 deg"
+    mapped_concept: "TURN_HEAD_CLEAR"
+    canonical_target: "turn_head"
+    role: "HEAD_POSE_BRANCH_PRETRAINING"
+
+  "AFLW2000/yaw_lt_15":
+    source_dataset: "AFLW2000-3D"
+    original_label: "abs(yaw) < 15 deg"
+    mapped_concept: "NORMAL_UPRIGHT"
+    canonical_target: "normal"
+    role: "HEAD_POSE_BRANCH_PRETRAINING"

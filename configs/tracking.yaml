@@ -1,0 +1,14 @@
+# Multi-Object Tracking & Spatial Association Configuration
+tracking:
+  tracker_type: "bytetrack"
+  track_thresh: 0.45       # High detection threshold for 1st round ByteTrack matching
+  match_thresh: 0.80       # IoU matching threshold
+  track_buffer: 30         # Frames to keep lost tracks before deleting ID
+  frame_rate: 30           # Nominal video FPS for tracker motion model
+
+association:
+  # Association between secondary detected objects (e.g. phone) and student track
+  # Method: overlap within expanded student bbox, or IoU, or normalized distance
+  expand_student_bbox_ratio: 0.15 # Expand person bbox horizontally/vertically to capture lap/hands
+  max_center_distance_ratio: 0.50 # Maximum relative distance from person center
+  min_iou_overlap: 0.05

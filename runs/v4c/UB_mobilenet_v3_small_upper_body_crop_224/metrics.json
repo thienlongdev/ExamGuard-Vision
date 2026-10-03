@@ -1,0 +1,640 @@
+{
+  "experiment_id": "mobilenet_v3_small_upper_body_crop_224",
+  "model_name": "mobilenet_v3_small",
+  "representation": "UPPER_BODY_CROP",
+  "resolution": 224,
+  "best_epoch": 13,
+  "total_epochs": 18,
+  "training_duration_seconds": 235.92,
+  "checkpoint_path": "runs/v4c/UB_mobilenet_v3_small_upper_body_crop_224/best_model.pt",
+  "same_domain_val": {
+    "count": 1346,
+    "accuracy": 0.8923,
+    "balanced_accuracy": 0.8725,
+    "macro_precision": 0.8734,
+    "macro_recall": 0.8725,
+    "macro_f1": 0.8723,
+    "per_class": {
+      "NORMAL_UPRIGHT": {
+        "precision": 0.9082,
+        "recall": 0.9278,
+        "f1": 0.9179,
+        "support": 789
+      },
+      "NORMAL_READ_WRITE": {
+        "precision": 0.9281,
+        "recall": 0.8503,
+        "f1": 0.8875,
+        "support": 334
+      },
+      "HEAD_REST_SLEEP": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 91
+      },
+      "TURN_HEAD_CLEAR": {
+        "precision": 0.6573,
+        "recall": 0.7121,
+        "f1": 0.6836,
+        "support": 132
+      }
+    },
+    "confusion_matrix": [
+      [
+        732,
+        17,
+        0,
+        40
+      ],
+      [
+        41,
+        284,
+        0,
+        9
+      ],
+      [
+        0,
+        0,
+        91,
+        0
+      ],
+      [
+        33,
+        5,
+        0,
+        94
+      ]
+    ],
+    "supported_classes": [
+      "NORMAL_UPRIGHT",
+      "NORMAL_READ_WRITE",
+      "HEAD_REST_SLEEP",
+      "TURN_HEAD_CLEAR"
+    ]
+  },
+  "high_angle_holdout": {
+    "count": 799,
+    "accuracy": 0.8999,
+    "balanced_accuracy": 0.7965,
+    "macro_precision": 0.8364,
+    "macro_recall": 0.7965,
+    "macro_f1": 0.8129,
+    "per_class": {
+      "NORMAL_UPRIGHT": {
+        "precision": 0.9287,
+        "recall": 0.9528,
+        "f1": 0.9406,
+        "support": 615
+      },
+      "NORMAL_READ_WRITE": {
+        "precision": 0.7826,
+        "recall": 0.6136,
+        "f1": 0.6879,
+        "support": 88
+      },
+      "TURN_HEAD_CLEAR": {
+        "precision": 0.798,
+        "recall": 0.8229,
+        "f1": 0.8103,
+        "support": 96
+      }
+    },
+    "confusion_matrix": [
+      [
+        586,
+        12,
+        0,
+        17
+      ],
+      [
+        31,
+        54,
+        0,
+        3
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        14,
+        3,
+        0,
+        79
+      ]
+    ],
+    "supported_classes": [
+      "NORMAL_UPRIGHT",
+      "NORMAL_READ_WRITE",
+      "TURN_HEAD_CLEAR"
+    ]
+  },
+  "cross_source_holdout": {
+    "count": 238,
+    "accuracy": 0.8109,
+    "balanced_accuracy": 0.8043,
+    "macro_precision": 0.8586,
+    "macro_recall": 0.8043,
+    "macro_f1": 0.8023,
+    "per_class": {
+      "NORMAL_UPRIGHT": {
+        "precision": 0.7474,
+        "recall": 0.8987,
+        "f1": 0.8161,
+        "support": 79
+      },
+      "NORMAL_READ_WRITE": {
+        "precision": 0.8283,
+        "recall": 0.988,
+        "f1": 0.9011,
+        "support": 83
+      },
+      "HEAD_REST_SLEEP": {
+        "precision": 1.0,
+        "recall": 0.5263,
+        "f1": 0.6897,
+        "support": 76
+      }
+    },
+    "confusion_matrix": [
+      [
+        71,
+        4,
+        0,
+        4
+      ],
+      [
+        1,
+        82,
+        0,
+        0
+      ],
+      [
+        23,
+        13,
+        40,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0
+      ]
+    ],
+    "supported_classes": [
+      "NORMAL_UPRIGHT",
+      "NORMAL_READ_WRITE",
+      "HEAD_REST_SLEEP"
+    ]
+  },
+  "temporal_holdout": {
+    "frame_level": {
+      "count": 232,
+      "accuracy": 0.9224,
+      "balanced_accuracy": 0.9217,
+      "macro_precision": 0.9551,
+      "macro_recall": 0.9217,
+      "macro_f1": 0.9339,
+      "per_class": {
+        "NORMAL_UPRIGHT": {
+          "precision": 1.0,
+          "recall": 0.925,
+          "f1": 0.961,
+          "support": 80
+        },
+        "NORMAL_READ_WRITE": {
+          "precision": 0.8652,
+          "recall": 1.0,
+          "f1": 0.9277,
+          "support": 77
+        },
+        "HEAD_REST_SLEEP": {
+          "precision": 1.0,
+          "recall": 0.84,
+          "f1": 0.913,
+          "support": 75
+        }
+      },
+      "confusion_matrix": [
+        [
+          74,
+          0,
+          0,
+          6
+        ],
+        [
+          0,
+          77,
+          0,
+          0
+        ],
+        [
+          0,
+          12,
+          63,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "supported_classes": [
+        "NORMAL_UPRIGHT",
+        "NORMAL_READ_WRITE",
+        "HEAD_REST_SLEEP"
+      ]
+    },
+    "clip_count": 18,
+    "clip_majority_accuracy": 0.9444,
+    "clip_prob_mean_accuracy": 0.9444,
+    "prediction_flicker_rate": 0.0187,
+    "total_transitions": 214,
+    "total_flickers": 4
+  },
+  "scale_slices": {
+    "PERSON_LARGE": {
+      "count": 541,
+      "accuracy": 0.8299,
+      "balanced_accuracy": 0.7522,
+      "macro_precision": 0.76,
+      "macro_recall": 0.7522,
+      "macro_f1": 0.7519,
+      "per_class": {
+        "NORMAL_UPRIGHT": {
+          "precision": 0.893,
+          "recall": 0.8789,
+          "f1": 0.8859,
+          "support": 380
+        },
+        "NORMAL_READ_WRITE": {
+          "precision": 0.7059,
+          "recall": 0.5714,
+          "f1": 0.6316,
+          "support": 63
+        },
+        "TURN_HEAD_CLEAR": {
+          "precision": 0.681,
+          "recall": 0.8061,
+          "f1": 0.7383,
+          "support": 98
+        }
+      },
+      "confusion_matrix": [
+        [
+          334,
+          13,
+          0,
+          33
+        ],
+        [
+          23,
+          36,
+          0,
+          4
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          17,
+          2,
+          0,
+          79
+        ]
+      ],
+      "supported_classes": [
+        "NORMAL_UPRIGHT",
+        "NORMAL_READ_WRITE",
+        "TURN_HEAD_CLEAR"
+      ]
+    },
+    "PERSON_MEDIUM": {
+      "count": 1384,
+      "accuracy": 0.9198,
+      "balanced_accuracy": 0.8728,
+      "macro_precision": 0.8929,
+      "macro_recall": 0.8728,
+      "macro_f1": 0.8817,
+      "per_class": {
+        "NORMAL_UPRIGHT": {
+          "precision": 0.9345,
+          "recall": 0.9626,
+          "f1": 0.9483,
+          "support": 963
+        },
+        "NORMAL_READ_WRITE": {
+          "precision": 0.9091,
+          "recall": 0.786,
+          "f1": 0.8431,
+          "support": 229
+        },
+        "HEAD_REST_SLEEP": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 91
+        },
+        "TURN_HEAD_CLEAR": {
+          "precision": 0.7282,
+          "recall": 0.7426,
+          "f1": 0.7353,
+          "support": 101
+        }
+      },
+      "confusion_matrix": [
+        [
+          927,
+          13,
+          0,
+          23
+        ],
+        [
+          44,
+          180,
+          0,
+          5
+        ],
+        [
+          0,
+          0,
+          91,
+          0
+        ],
+        [
+          21,
+          5,
+          0,
+          75
+        ]
+      ],
+      "supported_classes": [
+        "NORMAL_UPRIGHT",
+        "NORMAL_READ_WRITE",
+        "HEAD_REST_SLEEP",
+        "TURN_HEAD_CLEAR"
+      ]
+    },
+    "PERSON_SMALL": {
+      "count": 179,
+      "accuracy": 0.8994,
+      "balanced_accuracy": 0.8431,
+      "macro_precision": 0.8752,
+      "macro_recall": 0.8431,
+      "macro_f1": 0.8535,
+      "per_class": {
+        "NORMAL_UPRIGHT": {
+          "precision": 0.8143,
+          "recall": 0.95,
+          "f1": 0.8769,
+          "support": 60
+        },
+        "NORMAL_READ_WRITE": {
+          "precision": 0.978,
+          "recall": 0.9271,
+          "f1": 0.9519,
+          "support": 96
+        },
+        "TURN_HEAD_CLEAR": {
+          "precision": 0.8333,
+          "recall": 0.6522,
+          "f1": 0.7317,
+          "support": 23
+        }
+      },
+      "confusion_matrix": [
+        [
+          57,
+          2,
+          0,
+          1
+        ],
+        [
+          5,
+          89,
+          0,
+          2
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          8,
+          0,
+          0,
+          15
+        ]
+      ],
+      "supported_classes": [
+        "NORMAL_UPRIGHT",
+        "NORMAL_READ_WRITE",
+        "TURN_HEAD_CLEAR"
+      ]
+    },
+    "PERSON_VERY_SMALL": {
+      "count": 41,
+      "accuracy": 0.9024,
+      "balanced_accuracy": 0.5458,
+      "macro_precision": 0.581,
+      "macro_recall": 0.5458,
+      "macro_f1": 0.5613,
+      "per_class": {
+        "NORMAL_UPRIGHT": {
+          "precision": 0.0,
+          "recall": 0.0,
+          "f1": 0.0,
+          "support": 1
+        },
+        "NORMAL_READ_WRITE": {
+          "precision": 0.9429,
+          "recall": 0.9706,
+          "f1": 0.9565,
+          "support": 34
+        },
+        "TURN_HEAD_CLEAR": {
+          "precision": 0.8,
+          "recall": 0.6667,
+          "f1": 0.7273,
+          "support": 6
+        }
+      },
+      "confusion_matrix": [
+        [
+          0,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          33,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          1,
+          0,
+          4
+        ]
+      ],
+      "supported_classes": [
+        "NORMAL_UPRIGHT",
+        "NORMAL_READ_WRITE",
+        "TURN_HEAD_CLEAR"
+      ]
+    }
+  },
+  "blur_slices": {
+    "GOOD": {
+      "count": 588,
+      "accuracy": 0.9286,
+      "balanced_accuracy": 0.9036,
+      "macro_precision": 0.8961,
+      "macro_recall": 0.9036,
+      "macro_f1": 0.8995,
+      "per_class": {
+        "NORMAL_UPRIGHT": {
+          "precision": 0.8959,
+          "recall": 0.9429,
+          "f1": 0.9188,
+          "support": 210
+        },
+        "NORMAL_READ_WRITE": {
+          "precision": 0.9803,
+          "recall": 0.9326,
+          "f1": 0.9559,
+          "support": 267
+        },
+        "HEAD_REST_SLEEP": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 65
+        },
+        "TURN_HEAD_CLEAR": {
+          "precision": 0.7083,
+          "recall": 0.7391,
+          "f1": 0.7234,
+          "support": 46
+        }
+      },
+      "confusion_matrix": [
+        [
+          198,
+          3,
+          0,
+          9
+        ],
+        [
+          13,
+          249,
+          0,
+          5
+        ],
+        [
+          0,
+          0,
+          65,
+          0
+        ],
+        [
+          10,
+          2,
+          0,
+          34
+        ]
+      ],
+      "supported_classes": [
+        "NORMAL_UPRIGHT",
+        "NORMAL_READ_WRITE",
+        "HEAD_REST_SLEEP",
+        "TURN_HEAD_CLEAR"
+      ]
+    },
+    "BLURRY": {
+      "count": 1557,
+      "accuracy": 0.8825,
+      "balanced_accuracy": 0.819,
+      "macro_precision": 0.8433,
+      "macro_recall": 0.819,
+      "macro_f1": 0.8284,
+      "per_class": {
+        "NORMAL_UPRIGHT": {
+          "precision": 0.9211,
+          "recall": 0.938,
+          "f1": 0.9295,
+          "support": 1194
+        },
+        "NORMAL_READ_WRITE": {
+          "precision": 0.7355,
+          "recall": 0.5742,
+          "f1": 0.6449,
+          "support": 155
+        },
+        "HEAD_REST_SLEEP": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 26
+        },
+        "TURN_HEAD_CLEAR": {
+          "precision": 0.7165,
+          "recall": 0.7637,
+          "f1": 0.7394,
+          "support": 182
+        }
+      },
+      "confusion_matrix": [
+        [
+          1120,
+          26,
+          0,
+          48
+        ],
+        [
+          59,
+          89,
+          0,
+          7
+        ],
+        [
+          0,
+          0,
+          26,
+          0
+        ],
+        [
+          37,
+          6,
+          0,
+          139
+        ]
+      ],
+      "supported_classes": [
+        "NORMAL_UPRIGHT",
+        "NORMAL_READ_WRITE",
+        "HEAD_REST_SLEEP",
+        "TURN_HEAD_CLEAR"
+      ]
+    }
+  }
+}

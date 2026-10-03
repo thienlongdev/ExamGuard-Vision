@@ -1,0 +1,12 @@
+{
+  "total_writing_clips": 20,
+  "total_writing_frames": 264,
+  "raw_frame_false_positive_frames": 3,
+  "raw_frame_affected_clips": 1,
+  "raw_frame_clip_error_rate": 0.05,
+  "prob_smoothing_false_clips": 1,
+  "v4d_fusion_false_events": 0,
+  "v4d_fusion_clip_error_rate": 0.0,
+  "active_rw_veto_suppressions": 4,
+  "false_positive_suppression_pct": 100.0
+}

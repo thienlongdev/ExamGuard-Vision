@@ -1,0 +1,41 @@
+# Object & Behavior Taxonomies and Class Mappings
+
+# V1 Primary Object Detector Classes (COCO compatible)
+objects:
+  target_classes:
+    - name: "person"
+      coco_id: 0
+    - name: "cell phone"
+      coco_id: 67
+
+# Canonical Target Behavior Taxonomy
+behaviors:
+  canonical:
+    - "normal"
+    - "head_down"
+    - "lean"
+    - "turn_head"
+    - "use_phone"
+    - "discuss"
+    - "stand"
+
+  # Dataset source mappings to canonical behaviors
+  # Unsafe mappings (e.g. LeftSideMove -> turn_head) are explicitly separated
+  dataset_mappings:
+    scb_dataset:
+      "bowing head": "head_down"
+      "using phone": "use_phone"
+      "leaning over table": "lean"
+      "normal": "normal"
+    scbehavior:
+      "discuss": "discuss"
+      "stand": "stand"
+      "turn_head": "turn_head"
+      "lookup": "normal"
+    cctv_exam_monitor:
+      "Stand": "stand"
+      # Directional movements must NOT be naively mapped without orientation confirmation
+      "LeftSideMove": "unmapped_directional"
+      "RightSideMove": "unmapped_directional"
+      "ForwardMove": "unmapped_directional"
+      "BackwardMove": "unmapped_directional"

@@ -1,0 +1,153 @@
+# Local Live Camera Validation Configuration
+# ============================================
+# Phase: LOCAL LIVE CAMERA VALIDATION (Laptop Webcam + FastAPI + WebSocket + Dashboard)
+# Strictly local execution - NO external network exposure (bind 127.0.0.1).
+
+version: "2.1.0-local-live"
+date: "2026-10-03"
+
+# 1. VIDEO SOURCE (Local Webcam)
+video_source:
+  default_type: "webcam"
+  default_path: 0
+  camera_id: "laptop_webcam_0"
+  target_fps: 30.0
+  width: 1280
+  height: 720
+  reconnect_delay_sec: 2.0
+  max_reconnect_attempts: 5
+
+camera:
+  source_type: "webcam"
+  camera_index: 0
+  camera_id: "laptop_webcam_0"
+  name: "Laptop / USB Live Webcam 0"
+  requested_resolution: [1280, 720]
+  requested_fps: 30.0
+  reconnect_enabled: true
+  reconnect_delay_sec: 2.0
+
+# 2. MODELS & CHECKPOINTS
+models:
+  general_object_detector:
+    model_path: "yolo26m.pt"
+    confidence: 0.35
+    iou_threshold: 0.45
+    image_size: 640
+    device: "cuda:0"
+    target_classes:
+      - "person"
+      - "cell phone"
+
+  detector:
+    model_path: "yolo26m.pt"
+    confidence: 0.35
+    iou_threshold: 0.45
+    image_size: 640
+    device: "cuda:0"
+    target_classes:
+      - "person"
+      - "cell phone"
+
+  macro_behavior_detector:
+    model_path: "models/trained/stage1_5_best.pt"
+    confidence: 0.40
+    image_size: 768
+    device: "cuda:0"
+    allow_fallback: true
+
+  posture:
+    primary_checkpoint: "models/trained/v4_posture_best.pt"
+    primary_resolution: 224
+    architecture: "mobilenet_v3_small"
+    alternative_checkpoint: "runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt"
+    alternative_resolution: 320
+    use_adaptive_resolution: false
+    device: "cuda:0"
+    precision_mode: "fp32"
+
+  headpose:
+    primary_checkpoint: "models/trained/v4_headpose_yaw_best.pt"
+    architecture: "hopenet_yaw"
+    primary_range_deg: [-99.0, 99.0]
+    fallback_checkpoint: "runs/v4c/headpose_resnet18_yaw/best_model.pt"
+    fallback_architecture: "resnet18_yaw"
+    enable_circular_fallback: true
+    device: "cuda:0"
+    precision_mode: "fp32"
+
+# 3. TRACKING (ByteTrack)
+tracking:
+  tracker_type: "bytetrack"
+  track_high_thresh: 0.45
+  track_low_thresh: 0.10
+  new_track_thresh: 0.50
+  track_buffer: 30
+  match_thresh: 0.80
+  frame_rate: 30
+
+# 4. SCHEDULER & CADENCE
+cadence:
+  detector_hz: 30.0
+  posture_hz: 10.0
+  headpose_hz: 6.0
+  phone_hz: 6.0
+  macro_hz: 6.0
+
+# 5. BATCHING LIMITS & SCALE GATING
+batching:
+  max_posture_batch_size: 32
+  max_headpose_batch_size: 32
+  crop_padding_ratio: 0.05
+  min_person_height_px: 120.0
+  posture_low_resolution_min_height_px: 60.0
+  min_head_dimension_px: 25.0
+
+# 6. PHONE SPATIAL ASSOCIATION
+phone_association:
+  expand_student_bbox_ratio: 0.20
+  max_center_distance_ratio: 0.65
+  min_iou_overlap: 0.04
+  ambiguity_margin: 0.15
+
+# 7. BACKPRESSURE & BOUNDED QUEUE MANAGEMENT
+backpressure:
+  max_decode_queue_depth: 5
+  drop_policy: "DROP_STALE_ON_BACKPRESSURE"
+  max_frame_latency_ms: 100.0
+
+# 8. FUSION ENGINE
+fusion:
+  config_path: "configs/v4d_fusion.yaml"
+  track_continuity_tolerance_sec: 2.0
+  eviction_inactive_seconds: 15.0
+
+# 9. EVIDENCE LIFECYCLE
+evidence:
+  enabled: true
+  output_dir: "evidence/local_validation"
+  snapshot_on_open: true
+  max_snapshots_per_event: 3
+  clip_pre_event_sec: 3.0
+  clip_post_event_sec: 3.0
+  max_active_recordings: 5
+
+# 10. LOCAL-ONLY API & WEBSOCKET SERVER
+api:
+  host: "127.0.0.1" # Strictly localhost
+  port: 8000
+  websocket_broadcast_lifecycle: true
+
+server:
+  host: "127.0.0.1" # Strictly localhost
+  port: 8000
+  enable_fastapi: true
+  enable_websocket: true
+  websocket_broadcast_hz: 15.0
+  debug_overlay: true
+
+# 11. STORAGE METADATA
+storage:
+  evidence_dir: "evidence/local_validation"
+  safe_local_mode: true
+  auto_cleanup_days: 7

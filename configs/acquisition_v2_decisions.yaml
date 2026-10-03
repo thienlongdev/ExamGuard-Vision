@@ -1,0 +1,29 @@
+phase_status: blocked_missing_cctv_annotations
+final_dataset_rebuilt: false
+sanity_training_allowed: false
+phone_strategy: coco_object_association_temporal
+phone_behavior_omitted_reason: "Downloaded Using_phone annotations bound devices/hands, not student behavior boxes. No automatic box expansion or relabeling."
+lean_enabled: false
+stand_enabled: false
+supported_behavior_classes: [normal, head_down, turn_head, discuss]
+desired_after_cctv_annotation_review: [normal, head_down, turn_head, discuss, stand]
+dataset_decisions:
+  cctv_exam_monitor:
+    status: needs_review
+    reason: "8156 images, zero annotation files; no physical source class definitions. Do not ingest as background negatives."
+    source_classes: {}
+  phone_candidate_student_behaviour:
+    status: needs_review
+    source_classes:
+      Using_phone: {target: null, status: rejected, reason: "Rejected as person-level behavior supervision: device/hand boxes. May be reconsidered separately for object/contact detection."}
+      phone: {target: null, status: ignored, reason: "Object-only; includes phones on desks. Existing COCO detector retained."}
+      bend: {target: null, status: needs_review}
+      book: {target: null, status: ignored}
+      bow_head: {target: null, status: needs_review}
+      hand-raising: {target: null, status: ignored}
+      raise_head: {target: null, status: needs_review}
+      reading: {target: null, status: needs_review}
+      sleep: {target: null, status: needs_review}
+      turn_head: {target: null, status: needs_review}
+      upright: {target: null, status: needs_review}
+      writing: {target: null, status: needs_review}

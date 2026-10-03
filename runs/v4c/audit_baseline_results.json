@@ -1,0 +1,156 @@
+{
+  "protected_stage1": {
+    "path": "C:\\WorkingSpace Python\\DETECTOR-YOLO\\models\\trained\\stage1_best.pt",
+    "exists": true,
+    "hash": "6d713808f0bc670e8bf06e01b006fac73d8d6e5db7130584cec1658b003ce98a",
+    "expected": "6d713808f0bc670e8bf06e01b006fac73d8d6e5db7130584cec1658b003ce98a",
+    "match": true
+  },
+  "protected_stage1_5": {
+    "path": "C:\\WorkingSpace Python\\DETECTOR-YOLO\\models\\trained\\stage1_5_best.pt",
+    "exists": true,
+    "hash": "68690cf82715dc6dad2eb35a08711531170e935eb7dbe1c30fafabae341e2c2c",
+    "expected": "68690cf82715dc6dad2eb35a08711531170e935eb7dbe1c30fafabae341e2c2c",
+    "match": true
+  },
+  "crop_splits": {
+    "manifest.jsonl": {
+      "count": 20490,
+      "expected": 20490,
+      "match": true
+    },
+    "train.jsonl": {
+      "count": 14821,
+      "expected": 14821,
+      "match": true
+    },
+    "same_domain_val.jsonl": {
+      "count": 2973,
+      "expected": 2973,
+      "match": true
+    },
+    "high_angle_holdout.jsonl": {
+      "count": 1618,
+      "expected": 1618,
+      "match": true
+    },
+    "cross_source_holdout.jsonl": {
+      "count": 543,
+      "expected": 543,
+      "match": true
+    },
+    "temporal_holdout.jsonl": {
+      "count": 535,
+      "expected": 535,
+      "match": true
+    }
+  },
+  "head_pose_splits": {
+    "manifest.jsonl": {
+      "count": 23080,
+      "expected": 23080,
+      "match": true
+    },
+    "train.jsonl": {
+      "count": 16218,
+      "expected": 16218,
+      "match": true
+    },
+    "val.jsonl": {
+      "count": 2862,
+      "expected": 2862,
+      "match": true
+    },
+    "test.jsonl": {
+      "count": 2000,
+      "expected": 2000,
+      "match": true
+    }
+  },
+  "a1_checkpoint": {
+    "path": "C:\\WorkingSpace Python\\DETECTOR-YOLO\\runs\\v4c\\A1_resnet18_cbam_tight_person_crop_224\\best_model.pt",
+    "sha256": "75b1bb76ee703aef77d4f4a83144c95199c2ff1b28ee0d6d64c0f7b50a03226b",
+    "epoch": 22,
+    "best_epoch": 22,
+    "metrics": {
+      "count": 1346,
+      "accuracy": 0.9056,
+      "balanced_accuracy": 0.8886,
+      "macro_precision": 0.8816,
+      "macro_recall": 0.8886,
+      "macro_f1": 0.8847,
+      "per_class": {
+        "NORMAL_UPRIGHT": {
+          "precision": 0.9303,
+          "recall": 0.9303,
+          "f1": 0.9303,
+          "support": 789
+        },
+        "NORMAL_READ_WRITE": {
+          "precision": 0.9224,
+          "recall": 0.8892,
+          "f1": 0.9055,
+          "support": 334
+        },
+        "HEAD_REST_SLEEP": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 91
+        },
+        "TURN_HEAD_CLEAR": {
+          "precision": 0.6736,
+          "recall": 0.7348,
+          "f1": 0.7029,
+          "support": 132
+        }
+      },
+      "confusion_matrix": [
+        [
+          734,
+          17,
+          0,
+          38
+        ],
+        [
+          28,
+          297,
+          0,
+          9
+        ],
+        [
+          0,
+          0,
+          91,
+          0
+        ],
+        [
+          27,
+          8,
+          0,
+          97
+        ]
+      ],
+      "supported_classes": [
+        "NORMAL_UPRIGHT",
+        "NORMAL_READ_WRITE",
+        "HEAD_REST_SLEEP",
+        "TURN_HEAD_CLEAR"
+      ]
+    },
+    "classes": [
+      "NORMAL_UPRIGHT",
+      "NORMAL_READ_WRITE",
+      "HEAD_REST_SLEEP",
+      "TURN_HEAD_CLEAR"
+    ],
+    "num_classes": 4,
+    "has_optimizer": true,
+    "has_scheduler": false,
+    "smoke_test_finite": true,
+    "output_shape": [
+      1,
+      4
+    ]
+  }
+}

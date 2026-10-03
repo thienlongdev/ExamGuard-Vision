@@ -1,0 +1,48 @@
+# Stage 2 Training Configuration: CCTV Domain Adaptation & Fine-Tuning
+# Adapts Stage 1 checkpoint to specific high-angle wall-mounted exam room CCTV cameras
+# Target production environment: Wall-mounted IP CCTV (1080p, RTSP stream)
+
+# Model Selection: Resume from Stage 1 best weights
+model: "models/trained/stage1_best.pt"
+task: "detect"
+pretrained: true
+
+# Dataset & Paths
+data: "datasets/processed/dataset_stage2.yaml"
+project: "runs/stage2"
+name: "exp_cctv_adaptation"
+save_dir: "models/trained"
+
+# Hardware & Engine
+device: 0
+workers: 4
+amp: true
+
+# Domain Adaptation Hyperparameters (Lower Learning Rate, Fewer Epochs)
+epochs: 30                   # 25-40 epochs fine-tuning
+batch: 16
+imgsz: 768
+patience: 10
+optimizer: "AdamW"
+lr0: 0.0001                  # 10x lower learning rate than Stage 1 to preserve features
+lrf: 0.05
+weight_decay: 0.001
+warmup_epochs: 1.0
+close_mosaic: 5
+freeze: 10                   # Freeze early backbone feature extractors, train heads
+
+# Strict Direction-Sensitive Augmentation Policy
+fliplr: 0.0                  # MUST REMAIN 0.0
+flipud: 0.0                  # MUST REMAIN 0.0
+
+# Surveillance Environment Fine-Tuning Augmentation
+degrees: 0.0
+translate: 0.03
+scale: 0.15
+perspective: 0.0001
+hsv_h: 0.01
+hsv_s: 0.3
+hsv_v: 0.3
+mosaic: 0.2                  # Low mosaic for high-fidelity room adaptation
+mixup: 0.0
+copy_paste: 0.0

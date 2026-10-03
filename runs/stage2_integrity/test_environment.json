@@ -1,0 +1,38 @@
+{
+  "timestamp": "2026-10-03T05:30:37Z",
+  "python": {
+    "executable": "C:\\WorkingSpace Python\\DETECTOR-YOLO\\.venv\\Scripts\\python.exe",
+    "version": "3.13.9",
+    "build": [
+      "tags/v3.13.9:8183fa5",
+      "Oct 14 2025 14:09:13"
+    ],
+    "compiler": "MSC v.1944 64 bit (AMD64)"
+  },
+  "os": {
+    "system": "Windows",
+    "release": "11",
+    "version": "10.0.26200",
+    "machine": "AMD64",
+    "processor": "AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD"
+  },
+  "hardware": {
+    "cpu_count_physical": 16,
+    "cpu_count_logical": 32,
+    "system_ram_total_gb": 31.15,
+    "cuda_available": true,
+    "gpu_count": 1,
+    "gpu_name": "NVIDIA GeForce RTX 5070",
+    "gpu_vram_total_gb": 11.94
+  },
+  "frameworks": {
+    "torch": "2.14.1+cu130",
+    "cuda_runtime": "13.0",
+    "cudnn": 92400,
+    "ultralytics": "8.4.171",
+    "opencv": "5.0.0",
+    "fastapi": "0.142.2",
+    "psutil": "7.2.2",
+    "pytest": "9.1.1"
+  }
+}

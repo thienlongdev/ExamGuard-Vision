@@ -1,0 +1,137 @@
+# Stage 2 Full End-to-End Pipeline Configuration
+# Version: 2.0.0-orchestration
+# Phase: Stage 2 Integration & Physical Benchmarking
+
+version: "2.0.0-orchestration"
+date: "2026-10-03"
+
+# 1. VIDEO SOURCE
+video_source:
+  default_type: "video_file" # "webcam", "video_file", "rtsp"
+  default_path: "samples/sample_exam.mp4"
+  camera_id: "cam_exam_hall_01"
+  target_fps: 30.0
+  width: 1280
+  height: 720
+  reconnect_delay_sec: 2.0
+  max_reconnect_attempts: 5
+
+# 2. MODELS & CHECKPOINTS
+models:
+  # General Object Detector (for Person & Phone bodies)
+  general_object_detector:
+    model_path: "yolo26m.pt"
+    confidence: 0.35
+    iou_threshold: 0.45
+    image_size: 640
+    device: "cuda:0"
+    target_classes:
+      - "person"
+      - "cell phone"
+
+  # Backward compatibility alias
+  detector:
+    model_path: "yolo26m.pt"
+    confidence: 0.35
+    iou_threshold: 0.45
+    image_size: 640
+    device: "cuda:0"
+    target_classes:
+      - "person"
+      - "cell phone"
+
+  # Macro Behavior Detector (5-class student macro behaviors: normal, head_down, turn_head, discuss, stand)
+  macro_behavior_detector:
+    model_path: "models/trained/stage1_5_best.pt"
+    confidence: 0.40
+    image_size: 768 # Certified training resolution (768)
+    device: "cuda:0"
+    allow_fallback: true
+
+  posture:
+    primary_checkpoint: "models/trained/v4_posture_best.pt"
+    primary_resolution: 224
+    architecture: "mobilenet_v3_small"
+    alternative_checkpoint: "runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt"
+    alternative_resolution: 320
+    use_adaptive_resolution: false # Gated default: policy requires explicit config
+    device: "cuda:0"
+    precision_mode: "fp32" # Safe execution mode
+
+  headpose:
+    primary_checkpoint: "models/trained/v4_headpose_yaw_best.pt"
+    architecture: "hopenet_yaw"
+    primary_range_deg: [-99.0, 99.0]
+    fallback_checkpoint: "runs/v4c/headpose_resnet18_yaw/best_model.pt"
+    fallback_architecture: "resnet18_yaw"
+    enable_circular_fallback: true
+    device: "cuda:0"
+    precision_mode: "fp32"
+
+# 3. TRACKING (ByteTrack)
+tracking:
+  tracker_type: "bytetrack"
+  track_high_thresh: 0.45
+  track_low_thresh: 0.10
+  new_track_thresh: 0.50
+  track_buffer: 30
+  match_thresh: 0.80
+  frame_rate: 30
+
+# 4. SCHEDULER & CADENCE
+cadence:
+  detector_hz: 30.0 # Full detector evaluated up to 30 Hz
+  posture_hz: 10.0  # Posture inference scheduled at 10 Hz per track
+  headpose_hz: 6.0  # Head-pose inference scheduled at 6 Hz per track
+  phone_hz: 6.0     # Phone association evaluated at 6 Hz per track
+  macro_hz: 6.0     # Macro behavior evaluated at 6 Hz per track
+
+# 5. BATCHING LIMITS & SCALE GATING
+batching:
+  max_posture_batch_size: 32
+  max_headpose_batch_size: 32
+  crop_padding_ratio: 0.05
+  min_person_height_px: 120.0 # Full confidence 224 posture eligible
+  posture_low_resolution_min_height_px: 60.0 # Reduced reliability range [60, 120)
+  min_head_dimension_px: 25.0 # Head-pose eligible dimension >= 25x25 px
+
+# 6. PHONE SPATIAL ASSOCIATION
+phone_association:
+  expand_student_bbox_ratio: 0.20
+  max_center_distance_ratio: 0.65
+  min_iou_overlap: 0.04
+  ambiguity_margin: 0.15 # If two tracks have scores within this margin, mark AMBIGUOUS
+
+# 7. BACKPRESSURE & BOUNDED QUEUE MANAGEMENT
+backpressure:
+  max_decode_queue_depth: 5 # Bounded low-latency queue (consistent with drop policy)
+  drop_policy: "DROP_STALE_ON_BACKPRESSURE" # Drop oldest video frame if pipeline lags
+  max_frame_latency_ms: 100.0
+
+# 8. FUSION ENGINE
+fusion:
+  config_path: "configs/v4d_fusion.yaml"
+  track_continuity_tolerance_sec: 2.0
+  eviction_inactive_seconds: 15.0
+
+# 9. EVIDENCE LIFECYCLE
+evidence:
+  enabled: true
+  output_dir: "storage/evidence"
+  snapshot_on_open: true
+  max_snapshots_per_event: 3
+  clip_pre_event_sec: 3.0
+  clip_post_event_sec: 3.0
+  max_active_recordings: 5
+
+# 10. API & WEBSOCKET
+api:
+  host: "0.0.0.0"
+  port: 8000
+  websocket_broadcast_lifecycle: true # Broadcast OPEN, UPDATE, CLOSE
+
+# 11. BENCHMARK SETTINGS
+benchmark:
+  warmup_frames: 30
+  benchmark_frames: 150
+  profile_cuda: true

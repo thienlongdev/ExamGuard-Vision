@@ -1,0 +1,232 @@
+[
+  {
+    "class_name": "read",
+    "annotations": 24078,
+    "images": 3878,
+    "percentage": 21.5028,
+    "sources": [
+      {
+        "subdataset": "SCB5-Handrise-Read-write-2024-9-17",
+        "source_class_id": 1,
+        "annotations": 24078,
+        "images": 3878
+      }
+    ]
+  },
+  {
+    "class_name": "hand-raising",
+    "annotations": 13453,
+    "images": 4064,
+    "percentage": 12.0142,
+    "sources": [
+      {
+        "subdataset": "SCB5-Handrise-Read-write-2024-9-17",
+        "source_class_id": 0,
+        "annotations": 13453,
+        "images": 4064
+      }
+    ]
+  },
+  {
+    "class_name": "stand",
+    "annotations": 12969,
+    "images": 7602,
+    "percentage": 11.5819,
+    "sources": [
+      {
+        "subdataset": "SCB5-Stand-2024-9-17",
+        "source_class_id": 0,
+        "annotations": 12969,
+        "images": 7602
+      }
+    ]
+  },
+  {
+    "class_name": "teacher",
+    "annotations": 11738,
+    "images": 11163,
+    "percentage": 10.4826,
+    "sources": [
+      {
+        "subdataset": "SCB5-BlackBoard-Sreen-Teacher",
+        "source_class_id": 2,
+        "annotations": 4011,
+        "images": 3735
+      },
+      {
+        "subdataset": "SCB5-Teacher-2024-9-17",
+        "source_class_id": 0,
+        "annotations": 7727,
+        "images": 7428
+      }
+    ]
+  },
+  {
+    "class_name": "talk",
+    "annotations": 11012,
+    "images": 9078,
+    "percentage": 9.8343,
+    "sources": [
+      {
+        "subdataset": "SCB5-Talk-2024-9-17",
+        "source_class_id": 0,
+        "annotations": 5506,
+        "images": 4539
+      },
+      {
+        "subdataset": "SCB5-Talk-Teacher-Behavior-2024-9-17",
+        "source_class_id": 0,
+        "annotations": 5506,
+        "images": 4539
+      }
+    ]
+  },
+  {
+    "class_name": "write",
+    "annotations": 9841,
+    "images": 1721,
+    "percentage": 8.7885,
+    "sources": [
+      {
+        "subdataset": "SCB5-Handrise-Read-write-2024-9-17",
+        "source_class_id": 2,
+        "annotations": 9841,
+        "images": 1721
+      }
+    ]
+  },
+  {
+    "class_name": "screen",
+    "annotations": 6961,
+    "images": 4709,
+    "percentage": 6.2165,
+    "sources": [
+      {
+        "subdataset": "SCB5-BlackBoard-Screen",
+        "source_class_id": 1,
+        "annotations": 3480,
+        "images": 2354
+      },
+      {
+        "subdataset": "SCB5-BlackBoard-Sreen-Teacher",
+        "source_class_id": 1,
+        "annotations": 3481,
+        "images": 2355
+      }
+    ]
+  },
+  {
+    "class_name": "answer",
+    "annotations": 6484,
+    "images": 6350,
+    "percentage": 5.7905,
+    "sources": [
+      {
+        "subdataset": "SCB5-Talk-Teacher-Behavior-2024-9-17",
+        "source_class_id": 2,
+        "annotations": 3242,
+        "images": 3175
+      },
+      {
+        "subdataset": "SCB5-Teacher-Behavior-2024-9-17",
+        "source_class_id": 1,
+        "annotations": 3242,
+        "images": 3175
+      }
+    ]
+  },
+  {
+    "class_name": "discuss",
+    "annotations": 5392,
+    "images": 864,
+    "percentage": 4.8153,
+    "sources": [
+      {
+        "subdataset": "SCB5-Discuss-2024-9-17",
+        "source_class_id": 0,
+        "annotations": 5392,
+        "images": 864
+      }
+    ]
+  },
+  {
+    "class_name": "blackBoard",
+    "annotations": 4160,
+    "images": 3988,
+    "percentage": 3.7151,
+    "sources": [
+      {
+        "subdataset": "SCB5-BlackBoard-Screen",
+        "source_class_id": 0,
+        "annotations": 2080,
+        "images": 1994
+      },
+      {
+        "subdataset": "SCB5-BlackBoard-Sreen-Teacher",
+        "source_class_id": 0,
+        "annotations": 2080,
+        "images": 1994
+      }
+    ]
+  },
+  {
+    "class_name": "guide",
+    "annotations": 2864,
+    "images": 2690,
+    "percentage": 2.5577,
+    "sources": [
+      {
+        "subdataset": "SCB5-Talk-Teacher-Behavior-2024-9-17",
+        "source_class_id": 1,
+        "annotations": 1432,
+        "images": 1345
+      },
+      {
+        "subdataset": "SCB5-Teacher-Behavior-2024-9-17",
+        "source_class_id": 0,
+        "annotations": 1432,
+        "images": 1345
+      }
+    ]
+  },
+  {
+    "class_name": "blackboard-writing",
+    "annotations": 1868,
+    "images": 1796,
+    "percentage": 1.6682,
+    "sources": [
+      {
+        "subdataset": "SCB5-Talk-Teacher-Behavior-2024-9-17",
+        "source_class_id": 4,
+        "annotations": 934,
+        "images": 898
+      },
+      {
+        "subdataset": "SCB5-Teacher-Behavior-2024-9-17",
+        "source_class_id": 3,
+        "annotations": 934,
+        "images": 898
+      }
+    ]
+  },
+  {
+    "class_name": "On-stage interaction",
+    "annotations": 1156,
+    "images": 1138,
+    "percentage": 1.0324,
+    "sources": [
+      {
+        "subdataset": "SCB5-Talk-Teacher-Behavior-2024-9-17",
+        "source_class_id": 3,
+        "annotations": 578,
+        "images": 569
+      },
+      {
+        "subdataset": "SCB5-Teacher-Behavior-2024-9-17",
+        "source_class_id": 2,
+        "annotations": 578,
+        "images": 569
+      }
+    ]
+  }
+]

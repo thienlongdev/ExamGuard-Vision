@@ -1,0 +1,16 @@
+{
+  "start_time": "2026-10-02T11:52:38.379520+00:00",
+  "config_file": "configs/train_stage1_v3.yaml",
+  "python_version": "3.13.9 (tags/v3.13.9:8183fa5, Oct 14 2025, 14:09:13) [MSC v.1944 64 bit (AMD64)]",
+  "torch_version": "2.14.1+cu130",
+  "cuda_version": "13.0",
+  "ultralytics_version": "8.4.171",
+  "gpu_name": "NVIDIA GeForce RTX 5070",
+  "gpu_total_memory_gb": 11.94000244140625,
+  "dataset_yaml": "datasets\\processed_v3\\dataset.yaml",
+  "manifest_v3_sha256": "91f86447fc466a63340d9e12aaeaddb75212b17b525c5012212cced45709c2ec",
+  "git_commit": "N/A (not a git repo)",
+  "model_init": "yolo26m.pt",
+  "end_time": "2026-10-02T13:44:50.489673+00:00",
+  "peak_vram_gb": 6.553
+}

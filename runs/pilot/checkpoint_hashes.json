@@ -1,0 +1,44 @@
+{
+  "yolo26m.pt": {
+    "sha256": "401cea9ab23ad19246ff7744859816bc599f350e93c9dd30367b6f0a0745d0b7",
+    "expected": "401cea9ab23ad19246ff7744859816bc599f350e93c9dd30367b6f0a0745d0b7",
+    "verified": true,
+    "size_bytes": 44255705
+  },
+  "models/trained/stage1_best.pt": {
+    "sha256": "6d713808f0bc670e8bf06e01b006fac73d8d6e5db7130584cec1658b003ce98a",
+    "expected": "6d713808f0bc670e8bf06e01b006fac73d8d6e5db7130584cec1658b003ce98a",
+    "verified": true,
+    "size_bytes": 44048089
+  },
+  "models/trained/stage1_5_best.pt": {
+    "sha256": "68690cf82715dc6dad2eb35a08711531170e935eb7dbe1c30fafabae341e2c2c",
+    "expected": "68690cf82715dc6dad2eb35a08711531170e935eb7dbe1c30fafabae341e2c2c",
+    "verified": true,
+    "size_bytes": 44038169
+  },
+  "models/trained/v4_posture_best.pt": {
+    "sha256": "529a23f96ebec6051ad29279fba3cd5279e7aa8fe2e46292ab4bb9c9523ca180",
+    "expected": "529a23f96ebec6051ad29279fba3cd5279e7aa8fe2e46292ab4bb9c9523ca180",
+    "verified": true,
+    "size_bytes": 18518447
+  },
+  "models/trained/v4_headpose_yaw_best.pt": {
+    "sha256": "5d15eec5941cfc8d2468d09c27bff8eca2014e62bb12fc9a95c0c6239fbbca55",
+    "expected": "5d15eec5941cfc8d2468d09c27bff8eca2014e62bb12fc9a95c0c6239fbbca55",
+    "verified": true,
+    "size_bytes": 284178037
+  },
+  "runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt": {
+    "sha256": "070a2e328a161b1c957576ec13647d65846a073f9dd35488c7c6edc847f0f4cf",
+    "expected": "070a2e328a161b1c957576ec13647d65846a073f9dd35488c7c6edc847f0f4cf",
+    "verified": true,
+    "size_bytes": 18518447
+  },
+  "runs/v4c/headpose_resnet18_yaw/best_model.pt": {
+    "sha256": "bc31d46cfea007ebddfb6a8d5845641a32fd1cc018a831c4c8ae8b61e579a7d9",
+    "expected": "bc31d46cfea007ebddfb6a8d5845641a32fd1cc018a831c4c8ae8b61e579a7d9",
+    "verified": true,
+    "size_bytes": 134264773
+  }
+}

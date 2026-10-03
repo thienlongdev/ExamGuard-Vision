@@ -1,0 +1,64 @@
+{
+  "target_machine": {
+    "role": "PORTABLE_LIVE_DEMO_TARGET",
+    "manufacturer": "ASUS",
+    "product_family": "TUF Gaming A17",
+    "board_model_identifier": "FA707RC",
+    "os": "Windows 11 Home Single Language (64-bit)",
+    "cpu": {
+      "model": "AMD Ryzen 7 6800H with Radeon Graphics",
+      "physical_cores": 8,
+      "logical_threads": 16,
+      "base_clock_ghz": 3.20
+    },
+    "ram": {
+      "total_gb": 16,
+      "type": "DDR5",
+      "speed_mts": 4800,
+      "form_factor": "SODIMM",
+      "slots_occupied": "2/2"
+    },
+    "gpu": {
+      "discrete": {
+        "model": "NVIDIA GeForce RTX 3050 Laptop GPU",
+        "dedicated_vram_gb": 4.0,
+        "dedicated_vram_mb": 4096
+      },
+      "integrated": {
+        "model": "AMD Radeon Graphics"
+      }
+    },
+    "storage": {
+      "type": "NVMe SSD",
+      "class_gb": 512,
+      "usable_capacity_gb": 477
+    },
+    "camera": {
+      "type": "Integrated laptop webcam",
+      "expected_index": 0,
+      "expected_backend": "DirectShow / MediaFoundation",
+      "expected_resolution": "1280x720 (probed dynamically at preflight)"
+    }
+  },
+  "workload_profile_expectations": {
+    "primary_demo_occupancy": "1 person",
+    "secondary_demo_occupancy": "2 persons max",
+    "stress_testing_scope": "Demo target is NOT intended for 20-person 4K dense classroom stress (reserved for desktop workstation)",
+    "vram_budget_mb": 4096,
+    "model_static_vram_mb": 387.9,
+    "vram_headroom_mb": 3708.1,
+    "initial_bootstrap_profile": "BALANCED (1280x720 @ 30 FPS capture, 640x640 @ 12 Hz YOLO, ByteTrack every frame, posture @ 10 Hz, headpose @ 5 Hz, macro @ 4 Hz)"
+  },
+  "preflight_contract": {
+    "do_not_trust_hardcoded_constants": true,
+    "dynamic_queries_required": [
+      "Exact GPU model from torch.cuda and nvidia-smi",
+      "Dedicated VRAM and free VRAM before/after model load",
+      "Installed NVIDIA driver version",
+      "PyTorch CUDA compatibility",
+      "System RAM and disk free space",
+      "Integrated webcam discovery and actual resolution/FPS enumeration",
+      "Git LFS pointer resolution check"
+    ]
+  }
+}

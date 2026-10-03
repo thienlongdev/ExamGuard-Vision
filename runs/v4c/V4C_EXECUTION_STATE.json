@@ -1,0 +1,63 @@
+{
+  "updated_at": "2026-10-03T04:31:00+07:00",
+  "current_phase": "V4C_FINAL_FULL_VERIFICATION_COMPLETE",
+  "active_task": "FINAL_FULL_VERIFICATION_COMPLETE",
+  "status": "COMPLETED_STOP_BEFORE_V4D",
+  "completed_tasks": [
+    "Environment Audit",
+    "Dataset Verification",
+    "CBAM Implementation",
+    "Head-Pose Target Audit",
+    "Regression Tests Baseline",
+    "Task A1 Confirmed",
+    "Task A1 Recovered",
+    "Task A2",
+    "Task B1 Retrained & Verified",
+    "Task B2 Retrained & Verified",
+    "Task C1",
+    "Task C2",
+    "Upper-Body Crop Follow-Up",
+    "320x320 Resolution Follow-Up",
+    "Task HP_A HopeNet-Yaw",
+    "Task HP_B ResNet18-Yaw-Circular",
+    "Head-Pose Error Galleries",
+    "Full Classroom Yaw Bridge",
+    "Actual Winners Physical Runtime Benchmark",
+    "Posture Error Analysis 25 FP & 25 FN",
+    "Master Report Claim Traceability",
+    "Contradiction Register Resolved",
+    "Full Regression Test Suite Passed (93/93)",
+    "Final Checkpoint Hash Audit",
+    "All Individual Reports Regenerated",
+    "Master Report Regenerated"
+  ],
+  "posture_winner": {
+    "architecture": "mobilenet_v3_small",
+    "representation": "TIGHT_PERSON_CROP",
+    "resolution": 224,
+    "checkpoint": "models/trained/v4_posture_best.pt",
+    "sha256": "529a23f96ebec6051ad29279fba3cd5279e7aa8fe2e46292ab4bb9c9523ca180",
+    "same_domain_val_macro_f1": 0.8634,
+    "high_angle_macro_f1": 0.8182,
+    "cross_source_macro_f1": 0.8660,
+    "temporal_clip_majority_acc": 0.8889,
+    "sleep_recall": 0.9890,
+    "turn_recall": 0.7348
+  },
+  "headpose_winner": {
+    "architecture": "hopenet_yaw",
+    "backbone": "resnet50",
+    "native_support": "[-99.0, +99.0)",
+    "checkpoint": "models/trained/v4_headpose_yaw_best.pt",
+    "sha256": "5d15eec5941cfc8d2468d09c27bff8eca2014e62bb12fc9a95c0c6239fbbca55",
+    "aflw2000_3d_common_support_mae": 4.53,
+    "aflw2000_3d_test_median": 3.21,
+    "aflw2000_3d_test_p90": 9.63
+  },
+  "verdicts": {
+    "POSTURE_MODEL_READY": "YES",
+    "HEAD_POSE_READY": "YES",
+    "READY_FOR_V4D": "YES",
+    "PRODUCTION_READY": "NO (Perception Model Validation Phase Only - Stage 2 & V4D Not Started)"
+  }
+}

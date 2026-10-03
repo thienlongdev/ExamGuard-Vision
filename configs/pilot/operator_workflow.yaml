@@ -1,0 +1,99 @@
+# Pilot Operator Workflow & Dashboard Specification
+# Version: 1.0.0-pilot
+# Invariant: Human Invigilator retains sole disciplinary authority
+
+workflow:
+  workflow_version: "1.0.0-operator"
+  target_user: "EXAM_HALL_INVIGILATOR"
+
+  # Canonical Event Review States
+  review_states:
+    NEW:
+      description: "Newly opened or recently closed observable event pending review"
+      color: "#3b82f6" # Blue
+      action_required: true
+
+    REVIEWED:
+      description: "Invigilator has inspected the evidence snapshot/clip"
+      color: "#8b5cf6" # Purple
+      action_required: false
+
+    CONFIRMED_EVENT:
+      description: "Invigilator verified the physical observable event occurred as flagged (DOES NOT MEAN GUILTY/CHEATING)"
+      color: "#eab308" # Amber / Gold
+      action_required: false
+
+    DISMISSED:
+      description: "Invigilator evaluated and marked the event as normal exam behavior or benign artifact"
+      color: "#6b7280" # Slate Gray
+      action_required: false
+
+  # Mandatory Operator Warning Flags
+  operator_warnings:
+    LOW_PERSON_RESOLUTION:
+      trigger: "Mean student track height < 120 px"
+      action: "Advise zooming or repositioning camera closer to examination desks"
+      severity: "WARNING"
+
+    HEADPOSE_UNAVAILABLE:
+      trigger: "Head crops < 25x25 px or high ceiling pitch angle (> 45 deg)"
+      action: "Posture and macro behavior active; lateral head pose disabled"
+      severity: "INFO"
+
+    HIGH_FRAME_DROP_RATE:
+      trigger: "Frame drop percentage > 10.0% over rolling 30 seconds"
+      action: "Check network bandwidth or lower source ingestion FPS"
+      severity: "WARNING"
+
+    RTSP_RECONNECTING:
+      trigger: "RTSP stream disconnected or experiencing frame read timeouts"
+      action: "Automatic exponential backoff reconnecting in progress"
+      severity: "ALERT"
+
+    PHONE_VISIBILITY_LIMITED:
+      trigger: "Phone bounding boxes median < 20 px or viewpoint heavily occluded"
+      action: "Phone detection unreliably small; advise caution in interpreting phone cues"
+      severity: "INFO"
+
+    DENSE_LOAD_DEGRADED:
+      trigger: "Track count > 15 concurrently active with processing FPS < target FPS"
+      action: "Bounded queue dropping stale frames; tracking continuity preserved"
+      severity: "WARNING"
+
+    EVIDENCE_STORAGE_LOW:
+      trigger: "Evidence storage quota > 80% or host free space < 10 GB"
+      action: "Storage approaching limit; check retention policy or archive reviewed events"
+      severity: "WARNING"
+
+  # Camera Health Dashboard Metrics
+  health_panel_schema:
+    - field: "source_connected"
+      label: "Camera Stream Connection"
+      type: "boolean"
+    - field: "received_fps"
+      label: "Ingested FPS (Network/Decode)"
+      type: "float"
+    - field: "processed_fps"
+      label: "Processed FPS (Inference/Fusion)"
+      type: "float"
+    - field: "drop_percentage"
+      label: "Frame Drop Rate"
+      type: "percentage"
+    - field: "queue_depth"
+      label: "Ingestion Queue Depth"
+      type: "integer"
+    - field: "active_tracks"
+      label: "Active Student Tracks"
+      type: "integer"
+    - field: "posture_eligible_count"
+      label: "Posture Resolvable Tracks (H >= 120px)"
+      type: "integer"
+    - field: "headpose_eligible_count"
+      label: "Head-Pose Resolvable Tracks (>= 25x25px)"
+      type: "integer"
+    - field: "gpu_vram_allocated_mb"
+      label: "GPU VRAM Allocated"
+      type: "float"
+    - field: "evidence_storage_status"
+      label: "Storage Quota State"
+      type: "string"

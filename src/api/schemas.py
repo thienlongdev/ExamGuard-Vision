@@ -1,0 +1,112 @@
+"""Pydantic schemas for the FastAPI endpoints."""
+
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel, Field
+
+
+class HealthResponse(BaseModel):
+    status: str = "ok"
+    version: str = "0.1.0"
+    timestamp: float
+
+
+class CameraInfo(BaseModel):
+    camera_id: str
+    name: str
+    source_type: str
+    configured: bool = True
+    device_present: bool = False
+    connected: bool = False
+    streaming: bool = False
+    status: str = "NO_PHYSICAL_CAMERA"
+    configured_capture_fps: float = 30.0
+    configured_resolution: str = "1280x720"
+    observed_capture_fps: Optional[float] = None
+    observed_resolution: Optional[str] = None
+    # Backward compatibility fields
+    is_active: bool = False
+    fps: Optional[float] = None
+    resolution: str = "1280x720"
+
+
+class CameraCounts(BaseModel):
+    registered: int = 1
+    configured: int = 1
+    connected: int = 0
+    streaming: int = 0
+
+
+class RuntimeStreamStatus(BaseModel):
+    active: bool = False
+    source_type: str = "WEBCAM"
+    device_present: bool = False
+
+
+class ConfiguredRates(BaseModel):
+    capture_fps: float = 30.0
+    inference_fps: float = 12.0
+
+
+class ObservedRates(BaseModel):
+    capture_fps: Optional[float] = None
+    processed_fps: Optional[float] = None
+    inference_fps: Optional[float] = None
+
+
+class EvidenceInfo(BaseModel):
+    snapshot_path: Optional[str] = None
+    clip_path: Optional[str] = None
+
+
+class EventResponse(BaseModel):
+    event_id: str
+    track_id: int
+    camera_id: str
+    timestamp: float
+    start_time: float
+    end_time: float
+    event_type: str
+    risk_level: str
+    score: float
+    evidence: Dict[str, Any]
+    snapshot_path: Optional[str] = None
+    clip_path: Optional[str] = None
+    status: str
+    reviewer_notes: Optional[str] = None
+    configured_evidence_score: Optional[float] = None
+    lifecycle_action: Optional[str] = None
+    event_origin: Optional[str] = None
+
+
+class EventStatusUpdateRequest(BaseModel):
+    status: str = Field(..., description="Allowed: 'new', 'reviewed', 'confirmed', 'confirmed_event', 'dismissed'")
+    reviewer_notes: Optional[str] = None
+
+
+class SystemStatusResponse(BaseModel):
+    # Semantic camera and rate separation
+    camera_counts: Optional[CameraCounts] = None
+    runtime_stream: Optional[RuntimeStreamStatus] = None
+    configured_rates: Optional[ConfiguredRates] = None
+    observed_rates: Optional[ObservedRates] = None
+
+    # Backward compatibility fields
+    active_cameras: int = 0
+    active_students: int = 0
+    total_events: int = 0
+    new_events: int = 0
+    confirmed_events: int = 0
+    dismissed_events: int = 0
+    effective_fps: Optional[float] = None  # None when active_streams == 0
+    inference_fps: Optional[float] = None  # None when active_streams == 0
+    head_pose_enabled: bool = False
+    pipeline_version: Optional[str] = "2.0.0-orchestration"
+    model_registry: Optional[Dict[str, Any]] = None
+    drop_percentage: Optional[float] = None  # None when no camera frames captured
+    queue_depth: Optional[int] = 0
+    posture_eligible_count: Optional[int] = 0
+    headpose_eligible_count: Optional[int] = 0
+    gpu_vram_allocated_mb: Optional[float] = 0.0
+    evidence_storage_status: Optional[str] = "HEALTHY"
+    operator_warnings: Optional[List[str]] = None
+

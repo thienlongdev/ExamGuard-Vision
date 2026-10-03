@@ -1,0 +1,70 @@
+{
+  "person_size_buckets": {
+    "< 60 px": {
+      "posture_eligible": false,
+      "headpose_eligible": false,
+      "posture_reliability": "UNRELIABLE_SUB_RESOLUTION",
+      "headpose_availability": "UNAVAILABLE",
+      "tracking_stability": "LIMITED"
+    },
+    "60-89 px": {
+      "posture_eligible": true,
+      "headpose_eligible": false,
+      "posture_reliability": "REDUCED_LOW_RESOLUTION",
+      "headpose_availability": "UNAVAILABLE",
+      "tracking_stability": "SUPPORTED"
+    },
+    "90-119 px": {
+      "posture_eligible": true,
+      "headpose_eligible": false,
+      "posture_reliability": "REDUCED_LOW_RESOLUTION",
+      "headpose_availability": "UNAVAILABLE",
+      "tracking_stability": "SUPPORTED"
+    },
+    "120-179 px": {
+      "posture_eligible": true,
+      "headpose_eligible": true,
+      "posture_reliability": "FULL_PRIMARY_224",
+      "headpose_availability": "LIMITED_OR_ELIGIBLE",
+      "tracking_stability": "STABLE"
+    },
+    "180-299 px": {
+      "posture_eligible": true,
+      "headpose_eligible": true,
+      "posture_reliability": "FULL_PRIMARY_224",
+      "headpose_availability": "ELIGIBLE",
+      "tracking_stability": "STABLE"
+    },
+    ">= 300 px": {
+      "posture_eligible": true,
+      "headpose_eligible": true,
+      "posture_reliability": "FULL_PRIMARY_224",
+      "headpose_availability": "ELIGIBLE",
+      "tracking_stability": "HIGH_CONFIDENCE"
+    }
+  },
+  "head_size_buckets": {
+    "< 15 px": {
+      "status": "HEADPOSE_UNAVAILABLE",
+      "reason": "Face features unresolved; landmark extraction fails"
+    },
+    "15-24 px": {
+      "status": "HEADPOSE_LIMITED",
+      "reason": "Sub-threshold dimension (<25px); yaw continuous expectation unreliable"
+    },
+    "25-39 px": {
+      "status": "HEADPOSE_ELIGIBLE",
+      "reason": "Meets primary gating boundary (>=25px); HopeNet yaw valid"
+    },
+    "40-59 px": {
+      "status": "HEADPOSE_ELIGIBLE",
+      "reason": "Clear facial features; continuous yaw highly responsive"
+    },
+    ">= 60 px": {
+      "status": "HEADPOSE_ELIGIBLE",
+      "reason": "High-resolution facial crop; full yaw support [-99.0, +99.0)"
+    }
+  },
+  "provenance": "PHYSICALLY_VALIDATED_SCALE_GATING",
+  "scientific_integrity_note": "No universal behavioral accuracy claimed. Buckets define physical observation and model inference eligibility only."
+}

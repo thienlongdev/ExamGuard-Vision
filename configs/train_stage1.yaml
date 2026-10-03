@@ -1,0 +1,52 @@
+# Stage 1 Training Configuration: Foundation Behavior Detector
+# Pre-trains on multi-source classroom and exam behavior datasets
+# Target production environment: Wall-mounted CCTV / High diagonal angle
+# ACQUISITION V2 BLOCKED: CCTV archive has no labels. This is a hardware template,
+# not training approval. See reports/FINAL_DATASET_PREFLIGHT_V2.md.
+
+# Model Selection
+model: "yolo26m.pt"          # Verified Ultralytics checkpoint (fallback: yolo11m.pt)
+task: "detect"
+pretrained: true
+
+# Dataset & Output Paths
+data: "datasets/processed/dataset.yaml"
+project: "runs/stage1"
+name: "exp_foundation"
+save_dir: "models/trained"
+
+# Hardware & Engine
+device: 0                    # NVIDIA GeForce RTX 5070 (cuda:0)
+workers: 4
+amp: true                    # Mixed precision for sm_120 Blackwell architecture
+
+# Training Hyperparameters
+epochs: 80                   # 80-100 maximum
+batch: 8                     # Verified safe default: ~6.62 GB reserved at imgsz=768
+imgsz: 768                   # High resolution for small distant students
+patience: 15                 # Early stopping patience
+optimizer: "AdamW"
+lr0: 0.001
+lrf: 0.01
+weight_decay: 0.0005
+warmup_epochs: 3.0
+close_mosaic: 10             # Deactivate mosaic in last 10 epochs
+
+# Conservative Surveillance-Safe Augmentation Policy
+# CRITICAL: fliplr and flipud MUST BE 0.0!
+# Horizontal flip corrupts directional behavior semantics (left_move vs right_move).
+fliplr: 0.0
+flipud: 0.0
+
+# CCTV Photometric & Spatial Transforms
+degrees: 0.0                 # Surveillance cameras are wall-mounted fixed
+translate: 0.05              # Mild translation
+scale: 0.2                   # Scale variation (preserves small objects)
+shear: 0.0
+perspective: 0.0002          # Subtle perspective change
+hsv_h: 0.015                 # Mild hue jitter
+hsv_s: 0.4                   # Room lighting / white balance variation
+hsv_v: 0.4                   # Brightness / shadow variation
+mosaic: 0.5                  # Controlled mosaic
+mixup: 0.0                   # Keep disabled to prevent ghosting
+copy_paste: 0.0              # Keep disabled

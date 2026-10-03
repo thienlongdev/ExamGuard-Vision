@@ -1,0 +1,768 @@
+{
+  "false_positives": [
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_0086_0086_001227.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.698,
+      "iou": 0.0,
+      "pred_box": [
+        336.5874328613281,
+        225.43690490722656,
+        400.4078369140625,
+        301.7335205078125
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_0086_0086_001227.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.582,
+      "iou": 0.0,
+      "pred_box": [
+        23.38686752319336,
+        253.49171447753906,
+        115.12010955810547,
+        388.12310791015625
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_0086_0086_001227.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.454,
+      "iou": 0.0,
+      "pred_box": [
+        282.7004089355469,
+        284.1993713378906,
+        391.2956848144531,
+        386.3441467285156
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_16_16_001908.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.535,
+      "iou": 0.0,
+      "pred_box": [
+        548.4760131835938,
+        173.77410888671875,
+        589.75634765625,
+        244.6298828125
+      ]
+    },
+    {
+      "type": "misclassification",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_16_16_001908.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "normal",
+      "conf": 0.476,
+      "iou": 0.906000018119812,
+      "pred_box": [
+        115.32064819335938,
+        141.20797729492188,
+        185.00091552734375,
+        263.7893981933594
+      ],
+      "gt_box": [
+        114.5,
+        141.5,
+        190.5,
+        262.5
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_16_16_001908.jpg",
+      "pred_class": "discuss",
+      "gt_class": "background",
+      "conf": 0.392,
+      "iou": 0.0,
+      "pred_box": [
+        269.44305419921875,
+        98.80138397216797,
+        449.9193115234375,
+        341.4053955078125
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_16_16_001908.jpg",
+      "pred_class": "discuss",
+      "gt_class": "background",
+      "conf": 0.26,
+      "iou": 0.0,
+      "pred_box": [
+        66.728271484375,
+        104.47844696044922,
+        233.42054748535156,
+        266.7413330078125
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_0086_0086_002384.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.834,
+      "iou": 0.0,
+      "pred_box": [
+        82.74984741210938,
+        333.71746826171875,
+        223.40426635742188,
+        450.0
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_0086_0086_002384.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.418,
+      "iou": 0.0,
+      "pred_box": [
+        86.87165069580078,
+        229.31808471679688,
+        158.60630798339844,
+        339.2762451171875
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_21_21_001334.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.823,
+      "iou": 0.0,
+      "pred_box": [
+        19.89460563659668,
+        165.1791229248047,
+        124.73468017578125,
+        267.3388977050781
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_21_21_001334.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.774,
+      "iou": 0.0,
+      "pred_box": [
+        233.97158813476562,
+        176.39923095703125,
+        297.4237060546875,
+        249.3464813232422
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_21_21_001334.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.262,
+      "iou": 0.0,
+      "pred_box": [
+        587.760986328125,
+        160.2171630859375,
+        664.8892822265625,
+        330.3990478515625
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_16_16_000845.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.422,
+      "iou": 0.0,
+      "pred_box": [
+        117.1371078491211,
+        137.7407989501953,
+        180.75904846191406,
+        264.66839599609375
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_0086_0086_001194.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.907,
+      "iou": 0.0,
+      "pred_box": [
+        669.4517211914062,
+        228.89254760742188,
+        744.0082397460938,
+        349.9834289550781
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_0086_0086_001194.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.611,
+      "iou": 0.0,
+      "pred_box": [
+        454.1470031738281,
+        233.792724609375,
+        525.3489990234375,
+        297.357421875
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_0086_0086_001194.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.456,
+      "iou": 0.0,
+      "pred_box": [
+        445.47991943359375,
+        243.60110473632812,
+        528.87451171875,
+        350.5885925292969
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_0086_0086_001194.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.27,
+      "iou": 0.0,
+      "pred_box": [
+        715.1402587890625,
+        248.01846313476562,
+        799.835693359375,
+        428.678955078125
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_0086_0086_001194.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.267,
+      "iou": 0.0,
+      "pred_box": [
+        613.8831787109375,
+        337.89373779296875,
+        737.219482421875,
+        450.0
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_3000_3000024.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.301,
+      "iou": 0.0,
+      "pred_box": [
+        1303.8240966796875,
+        383.8019104003906,
+        1439.0439453125,
+        591.0819702148438
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_24_24_000270.jpg",
+      "pred_class": "head_down",
+      "gt_class": "background",
+      "conf": 0.563,
+      "iou": 0.0,
+      "pred_box": [
+        167.787353515625,
+        100.33734130859375,
+        201.56419372558594,
+        133.52102661132812
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_0086_0086_001358.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.853,
+      "iou": 0.0,
+      "pred_box": [
+        452.5263977050781,
+        244.71310424804688,
+        529.2923583984375,
+        351.62469482421875
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_0086_0086_001358.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.779,
+      "iou": 0.0,
+      "pred_box": [
+        671.4474487304688,
+        228.91964721679688,
+        745.4564208984375,
+        348.16455078125
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_3000_3000186.jpg",
+      "pred_class": "discuss",
+      "gt_class": "background",
+      "conf": 0.847,
+      "iou": 0.0,
+      "pred_box": [
+        368.4246826171875,
+        197.23175048828125,
+        1278.64306640625,
+        719.5051879882812
+      ]
+    },
+    {
+      "type": "misclassification",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_3000_3000186.jpg",
+      "pred_class": "discuss",
+      "gt_class": "normal",
+      "conf": 0.714,
+      "iou": 0.5220000147819519,
+      "pred_box": [
+        1271.18017578125,
+        528.1226196289062,
+        1907.6007080078125,
+        1010.0
+      ],
+      "gt_box": [
+        1506.1209716796875,
+        550.5054931640625,
+        1856.84619140625,
+        1006.6703491210938
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_3000_3000186.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.557,
+      "iou": 0.0,
+      "pred_box": [
+        1101.0262451171875,
+        425.5652770996094,
+        1292.8486328125,
+        765.50146484375
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_3000_3000186.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.39,
+      "iou": 0.0,
+      "pred_box": [
+        1587.2557373046875,
+        303.60589599609375,
+        1695.027587890625,
+        526.9859008789062
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_3000_3000186.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.269,
+      "iou": 0.0,
+      "pred_box": [
+        1690.134765625,
+        305.92529296875,
+        1890.9354248046875,
+        547.5247192382812
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_0086_0086_001035.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.858,
+      "iou": 0.0,
+      "pred_box": [
+        675.1217651367188,
+        227.36782836914062,
+        746.054443359375,
+        347.7398376464844
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_33_33_000248.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.413,
+      "iou": 0.0,
+      "pred_box": [
+        613.0018310546875,
+        296.75347900390625,
+        719.2963256835938,
+        404.0
+      ]
+    },
+    {
+      "type": "hallucination",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_0086_0086_001455.jpg",
+      "pred_class": "turn_head",
+      "gt_class": "background",
+      "conf": 0.805,
+      "iou": 0.0,
+      "pred_box": [
+        671.3641967773438,
+        229.8617706298828,
+        745.7825927734375,
+        350.32391357421875
+      ]
+    }
+  ],
+  "false_negatives": [
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_24_24_001183.jpg",
+      "gt_class": "head_down",
+      "gt_box": [
+        163.0,
+        115.0,
+        196.0,
+        158.5
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_24_24_001183.jpg",
+      "gt_class": "head_down",
+      "gt_box": [
+        597.0,
+        115.0,
+        636.5,
+        155.5
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_0009_0009013.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        91.39199829101562,
+        521.4719848632812,
+        377.8559875488281,
+        834.0479736328125
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_0009_0009013.jpg",
+      "gt_class": "head_down",
+      "gt_box": [
+        32.7582893371582,
+        275.71563720703125,
+        189.72500610351562,
+        367.1659851074219
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_16_16_001908.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        434.5,
+        89.0,
+        470.0,
+        176.5
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_16_16_001908.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        597.5,
+        123.5,
+        655.0,
+        243.5
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_16_16_001908.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        675.0,
+        140.5,
+        752.0,
+        244.0
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_16_16_001908.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        545.0,
+        173.5,
+        622.5,
+        374.0
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_145_145_000210.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        123.75,
+        512.5,
+        412.5,
+        876.25
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_145_145_000210.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        1380.0,
+        463.75,
+        1547.5,
+        671.25
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_134_134_000162.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        1129.7265625,
+        570.302001953125,
+        1345.72705078125,
+        811.1654663085938
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_134_134_000162.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        1512.0,
+        570.302001953125,
+        1675.16552734375,
+        789.4100952148438
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_145_145_000595.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        1385.0,
+        453.75,
+        1532.5,
+        666.25
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_145_145_000595.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        1767.5,
+        403.75,
+        1920.0,
+        702.5
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_145_145_000595.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        1215.0,
+        443.75,
+        1435.0,
+        756.25
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_145_145_000595.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        1332.5,
+        502.5,
+        1558.75,
+        862.5
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_21_21_001334.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        340.0,
+        291.5,
+        487.5,
+        403.5
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_16_16_000845.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        177.5,
+        126.5,
+        215.5,
+        208.0
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_3000_3000186.jpg",
+      "gt_class": "discuss",
+      "gt_box": [
+        784.5028076171875,
+        502.1575927734375,
+        1172.96435546875,
+        1002.4202880859375
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_24_24_001212.jpg",
+      "gt_class": "head_down",
+      "gt_box": [
+        162.0,
+        118.0,
+        197.5,
+        160.5
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_24_24_001212.jpg",
+      "gt_class": "head_down",
+      "gt_box": [
+        600.5,
+        112.0,
+        636.0,
+        149.0
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_24_24_000065.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        40.508018493652344,
+        138.8070068359375,
+        128.5449981689453,
+        231.70599365234375
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_21_21_001536.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        489.5,
+        297.0,
+        684.5,
+        403.5
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_145_145_000180.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        258.107666015625,
+        467.76507568359375,
+        600.7830200195312,
+        995.4320068359375
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_145_145_000180.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        586.0,
+        446.0,
+        826.0,
+        889.0
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_145_145_000180.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        850.0,
+        449.0,
+        1014.0,
+        799.0
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_145_145_000180.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        444.0,
+        533.0,
+        939.0,
+        1080.0
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_145_145_000180.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        860.0,
+        477.0,
+        1246.0,
+        1078.0
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_16_16_000896.jpg",
+      "gt_class": "turn_head",
+      "gt_box": [
+        334.5,
+        86.0,
+        386.5,
+        163.5
+      ]
+    },
+    {
+      "type": "missed_detection",
+      "img_path": "datasets\\processed_v3\\images\\val\\grp_0009_0009039.jpg",
+      "gt_class": "discuss",
+      "gt_box": [
+        115.67398834228516,
+        72.0009994506836,
+        1179.166015625,
+        574.8289794921875
+      ]
+    }
+  ]
+}

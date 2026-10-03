@@ -1,0 +1,38 @@
+{
+  "viewpoints": {
+    "front": {
+      "name_cn": "正方视角",
+      "clips": 593,
+      "size": "574MB",
+      "duration_range": "1-174s",
+      "resolution": "800x450",
+      "fps": 25
+    },
+    "diagonal_upper": {
+      "name_cn": "斜上方视角",
+      "clips": 4781,
+      "size": "5.30GB",
+      "duration_range": "1-115s",
+      "resolution": "800x450",
+      "fps": 25
+    },
+    "rear": {
+      "name_cn": "后方视角",
+      "clips": 4544,
+      "size": "3.48GB",
+      "duration_range": "1-59s",
+      "resolution": "800x450",
+      "fps": 25
+    },
+    "teacher": {
+      "name_cn": "教师视角",
+      "clips": 2918,
+      "size": "1.93GB",
+      "duration_range": "1-106s",
+      "resolution": "800x450",
+      "fps": 25
+    }
+  },
+  "total_clips": 12836,
+  "total_size": "11.28GB"
+}

@@ -1,0 +1,16 @@
+# Evidence Collection & Storage Configuration
+evidence:
+  enabled: true
+  storage_dir: "storage/evidence"
+  snapshot_dir: "storage/evidence/snapshots"
+  clip_dir: "storage/evidence/clips"
+
+  # Rolling buffer duration for video clips
+  pre_event_seconds: 4.0
+  post_event_seconds: 4.0
+  max_clip_fps: 15.0
+
+  # Snapshot formatting
+  save_annotated: true
+  save_clean: true
+  jpeg_quality: 90

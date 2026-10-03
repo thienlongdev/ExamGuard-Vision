@@ -1,0 +1,110 @@
+{
+  "audit_timestamp": "2026-10-03T19:20:00+07:00",
+  "audit_scope": "REPOSITORY_MODEL_PACKAGING_AND_GIT_LFS_CLASSIFICATION",
+  "summary": {
+    "total_models": 7,
+    "runtime_required_count": 4,
+    "runtime_required_size_mb": 372.88,
+    "optional_fallback_count": 2,
+    "optional_fallback_size_mb": 145.70,
+    "historical_count": 1,
+    "historical_size_mb": 42.01,
+    "total_model_size_mb": 560.59,
+    "git_lfs_required": true,
+    "git_lfs_tracked_count": 2,
+    "git_lfs_tracked_size_mb": 399.05
+  },
+  "models": [
+    {
+      "file": "yolo26m.pt",
+      "path": "yolo26m.pt",
+      "size_bytes": 44258957,
+      "size_mb": 42.21,
+      "sha256": "401cea9ab23ad19246ff7744859816bc599f350e93c9dd30367b6f0a0745d0b7",
+      "runtime_role": "GENERAL_OBJECT_DETECTOR",
+      "classification": "REQUIRED_FOR_RUNTIME",
+      "git_tracked": true,
+      "git_lfs": false,
+      "required_on_laptop": true,
+      "lfs_rationale": "Under GitHub 100 MB hard limit; standard git tracking or LFS eligible"
+    },
+    {
+      "file": "stage1_5_best.pt",
+      "path": "models/trained/stage1_5_best.pt",
+      "size_bytes": 44042205,
+      "size_mb": 42.00,
+      "sha256": "68690cf82715dc6dad2eb35a08711531170e935eb7dbe1c30fafabae341e2c2c",
+      "runtime_role": "MACRO_BEHAVIOR_DETECTOR",
+      "classification": "REQUIRED_FOR_RUNTIME",
+      "git_tracked": true,
+      "git_lfs": false,
+      "required_on_laptop": true,
+      "lfs_rationale": "Under GitHub 100 MB hard limit"
+    },
+    {
+      "file": "v4_posture_best.pt",
+      "path": "models/trained/v4_posture_best.pt",
+      "size_bytes": 18515621,
+      "size_mb": 17.66,
+      "sha256": "529a23f96ebec6051ad29279fba3cd5279e7aa8fe2e46292ab4bb9c9523ca180",
+      "runtime_role": "POSTURE_ESTIMATOR_PRIMARY",
+      "classification": "REQUIRED_FOR_RUNTIME",
+      "git_tracked": true,
+      "git_lfs": false,
+      "required_on_laptop": true,
+      "lfs_rationale": "Under GitHub 100 MB hard limit"
+    },
+    {
+      "file": "v4_headpose_yaw_best.pt",
+      "path": "models/trained/v4_headpose_yaw_best.pt",
+      "size_bytes": 284175765,
+      "size_mb": 271.01,
+      "sha256": "5d15eec5941cfc8d2468d09c27bff8eca2014e62bb12fc9a95c0c6239fbbca55",
+      "runtime_role": "HEADPOSE_ESTIMATOR_PRIMARY",
+      "classification": "REQUIRED_FOR_RUNTIME",
+      "git_tracked": true,
+      "git_lfs": true,
+      "required_on_laptop": true,
+      "lfs_rationale": "Exceeds GitHub 100 MB file size limit (271.01 MB). Git LFS strictly required."
+    },
+    {
+      "file": "best_model.pt (320 posture)",
+      "path": "runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt",
+      "size_bytes": 18515621,
+      "size_mb": 17.66,
+      "sha256": "070a2e328a161b1c957576ec13647d65846a073f9dd35488c7c6edc847f0f4cf",
+      "runtime_role": "POSTURE_ESTIMATOR_OPTIONAL_320",
+      "classification": "OPTIONAL_FALLBACK",
+      "git_tracked": true,
+      "git_lfs": false,
+      "required_on_laptop": false,
+      "lfs_rationale": "Under GitHub 100 MB hard limit. Retained for 320 crop ablation integrity."
+    },
+    {
+      "file": "best_model.pt (resnet18 headpose)",
+      "path": "runs/v4c/headpose_resnet18_yaw/best_model.pt",
+      "size_bytes": 134260265,
+      "size_mb": 128.04,
+      "sha256": "bc31d46cfea007ebddfb6a8d5845641a32fd1cc018a831c4c8ae8b61e579a7d9",
+      "runtime_role": "HEADPOSE_ESTIMATOR_OPTIONAL_RESNET18",
+      "classification": "OPTIONAL_FALLBACK",
+      "git_tracked": true,
+      "git_lfs": true,
+      "required_on_laptop": false,
+      "lfs_rationale": "Exceeds GitHub 100 MB file size limit (128.04 MB). Git LFS required."
+    },
+    {
+      "file": "stage1_best.pt",
+      "path": "models/trained/stage1_best.pt",
+      "size_bytes": 44052045,
+      "size_mb": 42.01,
+      "sha256": "6d713808f0bc670e8bf06e01b006fac73d8d6e5db7130584cec1658b003ce98a",
+      "runtime_role": "HISTORICAL_STAGE1_BASELINE",
+      "classification": "HISTORICAL_ONLY",
+      "git_tracked": true,
+      "git_lfs": false,
+      "required_on_laptop": false,
+      "lfs_rationale": "Under GitHub 100 MB hard limit. Retained for lineage and benchmark historical comparison."
+    }
+  ]
+}

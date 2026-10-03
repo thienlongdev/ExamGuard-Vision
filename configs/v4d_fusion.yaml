@@ -1,0 +1,136 @@
+# V4D Temporal & Multi-Cue Fusion Configuration Specification
+# Version: 4.0.0-v4d
+# Phase: V4D Multi-Cue Temporal Fusion Architecture
+# Status: AUTHORITATIVE CONFIGURATION FOR REPLAY & FUSION ENGINES
+
+version: "4.0.0-v4d"
+date: "2026-10-03"
+
+# ---------------------------------------------------------------------
+# 1. CAMERA CAPABILITY PROFILES
+# ---------------------------------------------------------------------
+camera_profiles:
+  HIGH_ANGLE_CCTV:
+    posture_supported: true
+    headpose_supported: false       # Steep high angle prevents reliable facial yaw
+    phone_supported: true
+    face_landmarks_supported: false
+    min_person_height_px: 120.0
+    min_head_dimension_px: 35.0
+
+  FRONT_OBLIQUE_CCTV:
+    posture_supported: true
+    headpose_supported: true        # Faces resolvable in front/oblique views
+    phone_supported: true
+    face_landmarks_supported: false
+    min_person_height_px: 120.0
+    min_head_dimension_px: 25.0
+
+  FRONTAL_DESK_LEVEL:
+    posture_supported: true
+    headpose_supported: true
+    phone_supported: true
+    face_landmarks_supported: true
+    min_person_height_px: 100.0
+    min_head_dimension_px: 20.0
+
+  LOW_RESOLUTION:
+    posture_supported: true
+    headpose_supported: false
+    phone_supported: false
+    face_landmarks_supported: false
+    min_person_height_px: 80.0
+    min_head_dimension_px: 30.0
+
+# ---------------------------------------------------------------------
+# 2. RESOLUTION & SCALE GATING
+# ---------------------------------------------------------------------
+scale_gating:
+  posture:
+    min_person_height_px: 120.0     # Crops H < 120px are gated as SUB_RESOLUTION
+    min_person_width_px: 40.0
+    high_res_fallback_available: true
+    default_resolution: 224         # Primary 224x224
+    alternative_resolution: 320     # High-res candidate
+    use_320_fallback: false         # Gated default: policy requires evidence
+
+  head_pose:
+    min_head_width_px: 25.0
+    min_head_height_px: 25.0
+    primary_model: "HopeNet-Yaw"
+    primary_yaw_range_deg: [-99.0, 99.0]
+    fallback_model: "ResNet18-Circular"
+    enable_circular_fallback: true
+    out_of_support_action: "FALLBACK_OR_UNAVAILABLE" # Do not fabricate yaw = 0
+
+# ---------------------------------------------------------------------
+# 3. TEMPORAL BUFFER & TIMESTAMPS
+# ---------------------------------------------------------------------
+temporal_buffer:
+  time_horizon_seconds: 30.0        # Max sliding window retained per track
+  max_samples_per_track: 300        # Memory cap: max 300 observations per track
+  eviction_inactive_seconds: 15.0   # Evict tracks not seen for 15s
+  track_continuity_tolerance_sec: 2.0 # Max gap before identity continuity uncertain
+  duplicate_timestamp_tolerance_sec: 0.001
+
+# ---------------------------------------------------------------------
+# 4. EVENT CANDIDATE THRESHOLDS (PROVISIONAL_CANDIDATE_THRESHOLD)
+# ---------------------------------------------------------------------
+# Note: All duration thresholds are PROVISIONAL until physical target validation
+provisional_thresholds:
+  sustained_head_rest:
+    min_candidate_duration_sec: 2.0  # Duration in seconds before candidate promotes to ACTIVE
+    evidence_enter_threshold: 0.55   # Minimum HEAD_REST_SLEEP probability
+    evidence_exit_threshold: 0.35    # Hysteresis exit threshold
+    read_write_veto_threshold: 0.50  # NORMAL_READ_WRITE score that suppresses sleep
+    cooldown_seconds: 4.0            # Cooldown after event closure
+
+  sustained_lateral_head_orientation:
+    min_candidate_duration_sec: 1.5  # Duration in seconds
+    posture_turn_enter_threshold: 0.50
+    posture_turn_exit_threshold: 0.30
+    supporting_yaw_deg_threshold: 25.0 # Supporting continuous yaw orientation
+    yaw_consistency_weight: 0.35     # Yaw weight in multi-cue evidence (correlated with posture)
+    cooldown_seconds: 3.0
+
+  phone_associated:
+    min_candidate_duration_sec: 1.0  # Persistence before ACTIVE
+    min_phone_confidence: 0.40
+    min_association_confidence: 0.50
+    desk_proximity_bonus: 0.15
+    cooldown_seconds: 5.0
+
+  discussion_candidate:
+    min_candidate_duration_sec: 2.0
+    min_discuss_score: 0.45
+    cooldown_seconds: 4.0
+
+  standing:
+    min_candidate_duration_sec: 1.5
+    min_stand_score: 0.50
+    cooldown_seconds: 5.0
+
+# ---------------------------------------------------------------------
+# 5. MULTI-CUE CORRELATION & RELIABILITY WEIGHTS
+# ---------------------------------------------------------------------
+reliability_weights:
+  posture:
+    base_weight: 1.0
+    small_crop_penalty: 0.25        # Deduct weight if H < 150px
+    blurry_crop_penalty: 0.20       # Deduct weight if blur score < 40
+  head_pose:
+    base_weight: 0.60               # Secondary supporting cue
+    correlated_with_turn_penalty: 0.30 # Discount factor to prevent double counting
+  phone:
+    base_weight: 1.0
+    ambiguous_association_penalty: 0.50
+
+# ---------------------------------------------------------------------
+# 6. RISK SCORING & POLICY
+# ---------------------------------------------------------------------
+risk_policy:
+  thresholds:
+    low_to_medium: 40.0             # Score >= 40 -> MEDIUM risk
+    medium_to_high: 75.0            # Score >= 75 -> HIGH risk
+  max_single_frame_score: 25.0      # Hard safety: single frame CANNOT trigger MEDIUM or HIGH
+  decay_rate_per_sec: 5.0           # Score decay when evidence absent

@@ -1,0 +1,420 @@
+{
+  "timestamp": "2026-10-03T04:39:27Z",
+  "phase": "STAGE_2_PHYSICAL_INTEGRATED_BENCHMARK",
+  "hardware": {
+    "gpu_name": "NVIDIA GeForce RTX 5070",
+    "cuda_available": true,
+    "total_vram_mb": 12226.56,
+    "cpu_count": 32,
+    "system_ram_mb": 31894.82
+  },
+  "config_version": "2.0.0-orchestration",
+  "checkpoint_hashes": {
+    "stage1_best": "6d713808f0bc670e8bf06e01b006fac73d8d6e5db7130584cec1658b003ce98a",
+    "stage1_5_best": "68690cf82715dc6dad2eb35a08711531170e935eb7dbe1c30fafabae341e2c2c",
+    "v4_posture_best": "529a23f96ebec6051ad29279fba3cd5279e7aa8fe2e46292ab4bb9c9523ca180",
+    "v4_headpose_yaw_best": "5d15eec5941cfc8d2468d09c27bff8eca2014e62bb12fc9a95c0c6239fbbca55",
+    "C1_320_best": "070a2e328a161b1c957576ec13647d65846a073f9dd35488c7c6edc847f0f4cf",
+    "resnet18_yaw_best": "bc31d46cfea007ebddfb6a8d5845641a32fd1cc018a831c4c8ae8b61e579a7d9"
+  },
+  "modes": {
+    "mode_a_single_student": {
+      "mode_name": "MODE_A_SINGLE_STUDENT_PHYSICAL",
+      "frames_processed": 150,
+      "total_wall_sec": 6.051,
+      "effective_fps": 24.79,
+      "component_latencies_ms": {
+        "decode_ms": {
+          "mean": 15.567,
+          "median": 16.7,
+          "p50": 16.7,
+          "p90": 18.816,
+          "p95": 19.071,
+          "p99": 19.342,
+          "max": 19.534
+        },
+        "detector_ms": {
+          "mean": 10.969,
+          "median": 10.727,
+          "p50": 10.727,
+          "p90": 11.325,
+          "p95": 11.639,
+          "p99": 13.607,
+          "max": 29.504
+        },
+        "tracker_ms": {
+          "mean": 0.651,
+          "median": 0.649,
+          "p50": 0.649,
+          "p90": 0.732,
+          "p95": 0.804,
+          "p99": 0.953,
+          "max": 1.163
+        },
+        "crop_preprocess_ms": {
+          "mean": 0.325,
+          "median": 0.014,
+          "p50": 0.014,
+          "p90": 0.664,
+          "p95": 1.134,
+          "p99": 1.27,
+          "max": 1.302
+        },
+        "posture_ms": {
+          "mean": 1.23,
+          "median": 0.0,
+          "p50": 0.0,
+          "p90": 3.821,
+          "p95": 3.885,
+          "p99": 4.114,
+          "max": 4.161
+        },
+        "headpose_ms": {
+          "mean": 0.918,
+          "median": 0.0,
+          "p50": 0.0,
+          "p90": 4.595,
+          "p95": 4.662,
+          "p99": 4.895,
+          "max": 6.061
+        },
+        "phone_ms": {
+          "mean": 0.004,
+          "median": 0.004,
+          "p50": 0.004,
+          "p90": 0.005,
+          "p95": 0.005,
+          "p99": 0.006,
+          "max": 0.007
+        },
+        "fusion_ms": {
+          "mean": 0.038,
+          "median": 0.038,
+          "p50": 0.038,
+          "p90": 0.046,
+          "p95": 0.056,
+          "p99": 0.061,
+          "max": 0.063
+        },
+        "event_ms": {
+          "mean": 0.023,
+          "median": 0.023,
+          "p50": 0.023,
+          "p90": 0.027,
+          "p95": 0.034,
+          "p99": 0.037,
+          "max": 0.038
+        },
+        "evidence_ms": {
+          "mean": 0.015,
+          "median": 0.015,
+          "p50": 0.015,
+          "p90": 0.018,
+          "p95": 0.022,
+          "p99": 0.024,
+          "max": 0.025
+        },
+        "serialization_ms": {
+          "mean": 0.05,
+          "median": 0.05,
+          "p50": 0.05,
+          "p90": 0.05,
+          "p95": 0.05,
+          "p99": 0.05,
+          "max": 0.05
+        },
+        "total_pipeline_ms": {
+          "mean": 24.758,
+          "median": 23.444,
+          "p50": 23.444,
+          "p90": 27.979,
+          "p95": 31.09,
+          "p99": 35.498,
+          "max": 40.802
+        }
+      },
+      "cadence_breakdown": {
+        "average_frame_latency_ms": 24.758,
+        "peak_cadence_alignment_mean_ms": 31.573,
+        "peak_cadence_alignment_p95_ms": 34.174,
+        "normal_cadence_mean_ms": 24.271
+      },
+      "memory": {
+        "initial_cpu_ram_mb": 2073.94,
+        "final_cpu_ram_mb": 2089.89,
+        "delta_cpu_ram_mb": 15.95,
+        "peak_gpu_allocated_vram_mb": 387.71,
+        "peak_gpu_reserved_vram_mb": 578.0
+      }
+    },
+    "mode_b_medium_student": {
+      "mode_name": "MODE_B_MEDIUM_STUDENT_LOAD",
+      "frames_processed": 150,
+      "total_wall_sec": 5.069,
+      "effective_fps": 29.59,
+      "component_latencies_ms": {
+        "decode_ms": {
+          "mean": 10.691,
+          "median": 11.969,
+          "p50": 11.969,
+          "p90": 13.793,
+          "p95": 14.26,
+          "p99": 14.588,
+          "max": 14.773
+        },
+        "detector_ms": {
+          "mean": 10.538,
+          "median": 10.539,
+          "p50": 10.539,
+          "p90": 11.164,
+          "p95": 11.381,
+          "p99": 12.343,
+          "max": 12.465
+        },
+        "tracker_ms": {
+          "mean": 0.477,
+          "median": 0.528,
+          "p50": 0.528,
+          "p90": 0.622,
+          "p95": 0.654,
+          "p99": 0.722,
+          "max": 0.751
+        },
+        "crop_preprocess_ms": {
+          "mean": 0.21,
+          "median": 0.001,
+          "p50": 0.001,
+          "p90": 0.626,
+          "p95": 0.732,
+          "p99": 1.152,
+          "max": 1.163
+        },
+        "posture_ms": {
+          "mean": 0.862,
+          "median": 0.0,
+          "p50": 0.0,
+          "p90": 3.767,
+          "p95": 3.855,
+          "p99": 3.997,
+          "max": 4.104
+        },
+        "headpose_ms": {
+          "mean": 0.667,
+          "median": 0.0,
+          "p50": 0.0,
+          "p90": 4.511,
+          "p95": 4.63,
+          "p99": 4.834,
+          "max": 4.869
+        },
+        "phone_ms": {
+          "mean": 0.002,
+          "median": 0.003,
+          "p50": 0.003,
+          "p90": 0.004,
+          "p95": 0.004,
+          "p99": 0.005,
+          "max": 0.005
+        },
+        "fusion_ms": {
+          "mean": 0.02,
+          "median": 0.027,
+          "p50": 0.027,
+          "p90": 0.037,
+          "p95": 0.039,
+          "p99": 0.045,
+          "max": 0.058
+        },
+        "event_ms": {
+          "mean": 0.012,
+          "median": 0.016,
+          "p50": 0.016,
+          "p90": 0.022,
+          "p95": 0.024,
+          "p99": 0.027,
+          "max": 0.035
+        },
+        "evidence_ms": {
+          "mean": 0.008,
+          "median": 0.011,
+          "p50": 0.011,
+          "p90": 0.015,
+          "p95": 0.016,
+          "p99": 0.018,
+          "max": 0.023
+        },
+        "serialization_ms": {
+          "mean": 0.05,
+          "median": 0.05,
+          "p50": 0.05,
+          "p90": 0.05,
+          "p95": 0.05,
+          "p99": 0.05,
+          "max": 0.05
+        },
+        "total_pipeline_ms": {
+          "mean": 23.084,
+          "median": 21.79,
+          "p50": 21.79,
+          "p90": 27.015,
+          "p95": 28.964,
+          "p99": 30.92,
+          "max": 31.551
+        }
+      },
+      "cadence_breakdown": {
+        "average_frame_latency_ms": 23.084,
+        "peak_cadence_alignment_mean_ms": 30.514,
+        "peak_cadence_alignment_p95_ms": 31.403,
+        "normal_cadence_mean_ms": 22.666
+      },
+      "memory": {
+        "initial_cpu_ram_mb": 2090.89,
+        "final_cpu_ram_mb": 2090.69,
+        "delta_cpu_ram_mb": -0.2,
+        "peak_gpu_allocated_vram_mb": 387.71,
+        "peak_gpu_reserved_vram_mb": 578.0
+      }
+    },
+    "mode_c_controlled_scaling": {
+      "mode_name": "MODE_C_CONTROLLED_LOAD_SCALING_SYNTHETIC",
+      "frames_processed": 150,
+      "total_wall_sec": 6.165,
+      "effective_fps": 24.33,
+      "component_latencies_ms": {
+        "decode_ms": {
+          "mean": 18.434,
+          "median": 20.61,
+          "p50": 20.61,
+          "p90": 21.572,
+          "p95": 21.751,
+          "p99": 22.03,
+          "max": 22.398
+        },
+        "detector_ms": {
+          "mean": 8.57,
+          "median": 8.143,
+          "p50": 8.143,
+          "p90": 9.597,
+          "p95": 10.018,
+          "p99": 11.187,
+          "max": 31.895
+        },
+        "tracker_ms": {
+          "mean": 0.423,
+          "median": 0.305,
+          "p50": 0.305,
+          "p90": 1.195,
+          "p95": 1.402,
+          "p99": 1.495,
+          "max": 1.536
+        },
+        "crop_preprocess_ms": {
+          "mean": 0.506,
+          "median": 0.0,
+          "p50": 0.0,
+          "p90": 0.004,
+          "p95": 4.73,
+          "p99": 8.463,
+          "max": 13.616
+        },
+        "posture_ms": {
+          "mean": 0.746,
+          "median": 0.0,
+          "p50": 0.0,
+          "p90": 0.0,
+          "p95": 2.282,
+          "p99": 28.096,
+          "max": 31.995
+        },
+        "headpose_ms": {
+          "mean": 0.539,
+          "median": 0.0,
+          "p50": 0.0,
+          "p90": 0.0,
+          "p95": 2.458,
+          "p99": 13.239,
+          "max": 17.905
+        },
+        "phone_ms": {
+          "mean": 0.002,
+          "median": 0.0,
+          "p50": 0.0,
+          "p90": 0.009,
+          "p95": 0.011,
+          "p99": 0.012,
+          "max": 0.012
+        },
+        "fusion_ms": {
+          "mean": 0.019,
+          "median": 0.0,
+          "p50": 0.0,
+          "p90": 0.118,
+          "p95": 0.15,
+          "p99": 0.165,
+          "max": 0.205
+        },
+        "event_ms": {
+          "mean": 0.011,
+          "median": 0.0,
+          "p50": 0.0,
+          "p90": 0.071,
+          "p95": 0.09,
+          "p99": 0.099,
+          "max": 0.123
+        },
+        "evidence_ms": {
+          "mean": 0.008,
+          "median": 0.0,
+          "p50": 0.0,
+          "p90": 0.047,
+          "p95": 0.06,
+          "p99": 0.066,
+          "max": 0.082
+        },
+        "serialization_ms": {
+          "mean": 0.05,
+          "median": 0.05,
+          "p50": 0.05,
+          "p90": 0.05,
+          "p95": 0.05,
+          "p99": 0.05,
+          "max": 0.05
+        },
+        "total_pipeline_ms": {
+          "mean": 19.358,
+          "median": 16.759,
+          "p50": 16.759,
+          "p90": 21.276,
+          "p95": 37.619,
+          "p99": 55.853,
+          "max": 82.818
+        }
+      },
+      "cadence_breakdown": {
+        "average_frame_latency_ms": 19.358,
+        "peak_cadence_alignment_mean_ms": 57.496,
+        "peak_cadence_alignment_p95_ms": 79.809,
+        "normal_cadence_mean_ms": 18.313
+      },
+      "memory": {
+        "initial_cpu_ram_mb": 2091.05,
+        "final_cpu_ram_mb": 2358.85,
+        "delta_cpu_ram_mb": 267.8,
+        "peak_gpu_allocated_vram_mb": 415.34,
+        "peak_gpu_reserved_vram_mb": 616.0
+      }
+    }
+  },
+  "summary": {
+    "mode_a_fps": 24.79,
+    "mode_a_p95_ms": 31.09,
+    "mode_b_fps": 29.59,
+    "mode_b_p95_ms": 28.964,
+    "mode_c_fps": 24.33,
+    "mode_c_p95_ms": 37.619,
+    "peak_vram_allocated_mb": 415.34,
+    "ram_stability_delta_mb": 15.95,
+    "readiness_verdict": "PHYSICAL_RUNTIME_ACCEPTABLE"
+  }
+}

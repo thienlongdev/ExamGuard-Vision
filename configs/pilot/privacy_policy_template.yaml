@@ -1,0 +1,36 @@
+# Privacy Policy Template for Target CCTV Pilot
+# Version: 1.0.0-pilot
+# Invariant: Strict Anonymous Observable Evidence. Human Invigilator Decides.
+
+privacy_governance:
+  policy_version: "1.0.0-pilot-privacy"
+  effective_date: "2026-10-03"
+  governance_role: "OBSERVABLE_EVIDENCE_RECORDER"
+
+  # Absolute Prohibitions
+  prohibited_capabilities:
+    facial_recognition: false          # Strictly disabled
+    biometric_identification: false    # Strictly disabled
+    automated_student_naming: false    # Strictly disabled
+    cheating_verdict_emission: false   # Strictly forbidden in code, logs, and UI
+
+  # Identity & Attribution Boundaries
+  identity_controls:
+    track_identifier_format: "ANONYMOUS_INTEGER" # e.g. Track 4, Track 12
+    event_identifier_format: "UUID_EVENT_V4"
+    camera_identifier_format: "SITE_ROOM_CAM_ID"
+    room_identifier_format: "ORGANIZATIONAL_ROOM_TAG"
+    person_attribute_profiling: false
+
+  # Data Ingestion & Storage Policies
+  media_handling:
+    record_continuous_full_room_video: false # Continuous full room recording disabled
+    recording_mode: "EVENT_CLIP_WITH_PREBUFFER" # DISABLED, EVENT_SNAPSHOT_ONLY, EVENT_CLIP, EVENT_CLIP_WITH_PREBUFFER
+    evidence_bounding_box_blurring: false # Optional face/surrounding redaction if required by institutional policy
+    allow_raw_stream_export: false
+
+  # Access Control & Compliance
+  access_control:
+    operator_role_required: "CERTIFIED_INVIGILATOR"
+    audit_trail_logging: true
+    event_review_mandatory_before_action: true

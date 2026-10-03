@@ -1,0 +1,65 @@
+{
+  "camera_id": "cam_room_101_front",
+  "timestamp": 1791011639.5883405,
+  "CRITICAL_GATES": {
+    "checkpoint_hashes_valid": {
+      "status": "PASS",
+      "details": "All certified model weights verified"
+    },
+    "gpu_cuda_available": {
+      "status": "PASS",
+      "details": "Device: NVIDIA GeForce RTX 5070, CUDA available: True"
+    },
+    "models_load": {
+      "status": "PASS",
+      "details": "General detector, macro detector, posture, headpose loaded successfully"
+    },
+    "storage_writable": {
+      "status": "PASS",
+      "details": "Evidence dir storage/evidence writable: True"
+    },
+    "storage_quota_available": {
+      "status": "PASS",
+      "details": "Quota status: HEALTHY, Free disk: 122.55 GB"
+    },
+    "camera_source_reachable": {
+      "status": "PASS",
+      "details": "Source samples/sample_exam.mp4 reachable: True (640x480 @ 15.0 FPS)"
+    }
+  },
+  "PERFORMANCE_GATES": {
+    "single_frame_end_to_end": {
+      "status": "WARN",
+      "details": "Single-frame whole loop latency: 447.84 ms"
+    },
+    "queue_bounded_management": {
+      "status": "PASS",
+      "details": "Queue depth: 0 <= max 5"
+    }
+  },
+  "CAPABILITY_WARNINGS": {
+    "viewpoint_geometry": {
+      "status": "INFO",
+      "details": "Viewpoint profile FRONT_OBLIQUE supported."
+    },
+    "headpose_status": {
+      "status": "INFO",
+      "details": "Head-pose eligible (front/oblique view)."
+    },
+    "phone_status": {
+      "status": "INFO",
+      "details": "Phone branch active (COCO Class 67 spatial association)."
+    }
+  },
+  "OPERATIONAL_WARNINGS": {
+    "storage_quota": {
+      "status": "INFO",
+      "details": "Storage quota healthy (0.0 / 50.0 GB)."
+    },
+    "rtsp_reconnect": {
+      "status": "INFO",
+      "details": "Source type video_file (offline file/simulated stream)."
+    }
+  },
+  "FINAL_VERDICT": "PILOT_PREFLIGHT_PASS_WITH_WARNINGS"
+}

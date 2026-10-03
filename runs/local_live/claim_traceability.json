@@ -1,0 +1,80 @@
+{
+  "phase": "LOCAL_LIVE_CAMERA_VALIDATION",
+  "claims": [
+    {
+      "claim": "7 Certified Checkpoint Integrity Verified",
+      "status": "VERIFIED",
+      "evidence_artifact": "runs/local_live/checkpoint_hashes.json"
+    },
+    {
+      "claim": "Camera Discovery Probe Probed 0..3 Cleanly (0 Cameras Found on Desktop)",
+      "status": "VERIFIED",
+      "evidence_artifact": "runs/local_live/camera_probe.json"
+    },
+    {
+      "claim": "No Fake / Synthetic Source Substituted for Webcam",
+      "status": "VERIFIED_HONEST",
+      "evidence_artifact": "runs/local_live/LOCAL_LIVE_EXECUTION_STATE.json"
+    },
+    {
+      "claim": "FastAPI Starts Strictly on 127.0.0.1:8000 (No External Exposure)",
+      "status": "VERIFIED",
+      "evidence_artifact": "runs/local_live/live_api_validation.json"
+    },
+    {
+      "claim": "Real Localhost HTTP Endpoints Function (/health, /api/cameras, /api/events, /api/system/status, /api/system/models, /)",
+      "status": "VERIFIED",
+      "evidence_artifact": "runs/local_live/live_api_validation.json"
+    },
+    {
+      "claim": "Software Event Lifecycle Broadcasting Verified via Software Fixture",
+      "status": "VERIFIED_SOFTWARE_PASS",
+      "evidence_artifact": "runs/local_live/live_websocket_validation.json"
+    },
+    {
+      "claim": "Physical Camera Event Lifecycle Validation",
+      "status": "DEFERRED_NO_CAMERA_HARDWARE",
+      "evidence_artifact": "runs/local_live/live_event_lifecycle.json"
+    },
+    {
+      "claim": "Dashboard HTML UI Integrated with Live WebSocket and No-Camera Status",
+      "status": "VERIFIED",
+      "evidence_artifact": "runs/local_live/live_dashboard_validation.json"
+    },
+    {
+      "claim": "Anonymous Evidence Pipeline Verified via Software Fixture",
+      "status": "VERIFIED_SOFTWARE_PASS",
+      "evidence_artifact": "runs/local_live/live_evidence_validation.json"
+    },
+    {
+      "claim": "Physical Camera Evidence Capture",
+      "status": "DEFERRED_NO_CAMERA_HARDWARE",
+      "evidence_artifact": "runs/local_live/live_evidence_validation.json"
+    },
+    {
+      "claim": "Runtime State Reset Verified (No Model Checkpoint Reload)",
+      "status": "VERIFIED",
+      "evidence_artifact": "runs/local_live/runtime_state_reset_validation.json"
+    },
+    {
+      "claim": "Physical Camera Release and Reopen",
+      "status": "DEFERRED_NO_CAMERA_HARDWARE",
+      "evidence_artifact": "runs/local_live/camera_restart_validation.json"
+    },
+    {
+      "claim": "Cameraless Software Memory Bounds Stable",
+      "status": "VERIFIED",
+      "evidence_artifact": "runs/local_live/memory_soak.json"
+    },
+    {
+      "claim": "Physical Camera 10-Minute Soak",
+      "status": "DEFERRED_NO_CAMERA_HARDWARE",
+      "evidence_artifact": "runs/local_live/memory_soak.json"
+    },
+    {
+      "claim": "Full Pytest Regression Suite Passes with 0 Failures",
+      "status": "VERIFIED",
+      "evidence_artifact": "pytest terminal log"
+    }
+  ]
+}

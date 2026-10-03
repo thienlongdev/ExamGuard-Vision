@@ -1,0 +1,64 @@
+{
+  "claims": [
+    {
+      "claim_id": "CLM-001",
+      "statement": "Models do not declare CHEATING or GUILTY verdicts.",
+      "evidence_source": "src/fusion/types.py, src/fusion/risk_aggregator.py, configs/v4d_fusion.yaml",
+      "status": "VERIFIED_INVARIANT"
+    },
+    {
+      "claim_id": "CLM-002",
+      "statement": "All 7 certified checkpoints verified against certified SHA256 hashes.",
+      "evidence_source": "runs/pilot/checkpoint_hashes.json, src/pilot/preflight.py",
+      "status": "VERIFIED_PHYSICAL_WEIGHTS"
+    },
+    {
+      "claim_id": "CLM-003",
+      "statement": "Operating envelope derived algorithmically from raw matrix with strict occupancy gating.",
+      "evidence_source": "runs/pilot/operating_envelope.json, scripts/generate_operating_envelope.py",
+      "status": "VERIFIED_EMPIRICAL_BENCHMARK"
+    },
+    {
+      "claim_id": "CLM-004",
+      "statement": "Ceiling high viewpoints disable facial head-pose due to steep pitch angle.",
+      "evidence_source": "runs/pilot/viewpoint_capability_matrix.json, src/pilot/profile.py",
+      "status": "VERIFIED_GEOMETRY_POLICY"
+    },
+    {
+      "claim_id": "CLM-005",
+      "statement": "RTSP stream long interruptions (>15s) evict stale tracks without phantom continuation.",
+      "evidence_source": "runs/pilot/rtsp_resilience.json, src/pilot/resilience.py",
+      "status": "VERIFIED_SIMULATED_HARNESS"
+    },
+    {
+      "claim_id": "CLM-006",
+      "statement": "Memory reaches plateau and zero temporal track leaks across 10,000 frames per workload.",
+      "evidence_source": "runs/pilot/soak_results.json",
+      "status": "VERIFIED_SOAK_TELEMETRY"
+    },
+    {
+      "claim_id": "CLM-007",
+      "statement": "Zero model retraining or dataset modification conducted in pilot preparation.",
+      "evidence_source": "git diff, runs/pilot/checkpoint_hashes.json",
+      "status": "VERIFIED_GOVERNANCE_INVARIANT"
+    },
+    {
+      "claim_id": "CLM-008",
+      "statement": "Dense 20+ student rooms do not sustain 25-30 FPS line rate on current pipeline.",
+      "evidence_source": "runs/pilot/resolution_occupancy_matrix.json",
+      "status": "VERIFIED_LIMITATION_DENSE_ROOM_NOT_READY"
+    },
+    {
+      "claim_id": "CLM-009",
+      "statement": "Temporal buffer is camera-scoped (camera_id, track_id) preventing multi-camera collisions.",
+      "evidence_source": "runs/pilot/state_cleanup_validation.json, src/fusion/temporal_buffer.py",
+      "status": "VERIFIED_ARCHITECTURE"
+    },
+    {
+      "claim_id": "CLM-010",
+      "statement": "Backpressure low-latency default queue depth 5 selected for burst absorption.",
+      "evidence_source": "runs/pilot/backpressure_validation.json, configs/stage2_pipeline.yaml",
+      "status": "VERIFIED_EMPIRICAL_BENCHMARK"
+    }
+  ]
+}

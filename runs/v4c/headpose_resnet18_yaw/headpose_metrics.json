@@ -1,0 +1,188 @@
+{
+  "model_name": "resnet18_yaw",
+  "best_epoch": 15,
+  "training_duration_sec": 516.79,
+  "checkpoint_path": "runs/v4c/headpose_resnet18_yaw/best_model.pt",
+  "provenance": {
+    "aflw_gt": "DIRECT SOURCE TARGET: Euler signed yaw ONLY (AFLW_GT_crop_yaws.npy). Pitch and roll are physically absent.",
+    "aflw2000_3d": "EXTERNAL TEST: Euler signed yaw ONLY (AFLW2000-3D.pose.npy, 1D array). Pitch and roll in manifest are derived from 3D landmarks (AFLW2000-3D.pts68.npy).",
+    "primary_task": "SIGNED YAW. Pitch and roll are not required for V4C classroom monitoring success."
+  },
+  "aflw_gt_val": {
+    "count": 2862,
+    "mae_deg": 6.07,
+    "median_error_deg": 4.43,
+    "p50_deg": 4.43,
+    "p75_deg": 8.16,
+    "p90_deg": 13.19,
+    "distribution_audit_counts": {
+      "lt15": 946,
+      "15_to_45": 1081,
+      "45_to_90": 729,
+      "90_to_120": 106,
+      "120_to_150": 0,
+      "ge150": 0
+    },
+    "slices": {
+      "frontal_lt15": {
+        "n": 946,
+        "mae_deg": 5.06,
+        "median_ae_deg": 3.93,
+        "p75_deg": 6.96,
+        "p90_deg": 10.67
+      },
+      "frontal_lt15_mae": 5.06,
+      "large_ge45_mae": 7.88,
+      "frontal_lt30": {
+        "n": 1584,
+        "mae_deg": 5.17,
+        "median_ae_deg": 3.94,
+        "p75_deg": 7.04,
+        "p90_deg": 11.02
+      },
+      "moderate_30_45": {
+        "n": 443,
+        "mae_deg": 5.86,
+        "median_ae_deg": 4.35,
+        "p75_deg": 7.74,
+        "p90_deg": 12.61
+      },
+      "large_45_90": {
+        "n": 729,
+        "mae_deg": 7.42,
+        "median_ae_deg": 5.51,
+        "p75_deg": 9.79,
+        "p90_deg": 15.57
+      },
+      "extreme_profile_ge90": {
+        "n": 106,
+        "mae_deg": 11.1,
+        "median_ae_deg": 8.81,
+        "p75_deg": 15.32,
+        "p90_deg": 24.18
+      },
+      "frontal_moderate_reference_slice": {
+        "n": 2028,
+        "mae_deg": 5.35,
+        "median_ae_deg": 4.07,
+        "p75_deg": 7.19,
+        "p90_deg": 11.46
+      },
+      "clear_turn_reference_slice": {
+        "n": 1000,
+        "mae_deg": 7.14,
+        "median_ae_deg": 5.38,
+        "p75_deg": 9.5,
+        "p90_deg": 15.28
+      },
+      "ontology_turn_reference_slice": {
+        "n": 800,
+        "mae_deg": 6.77,
+        "median_ae_deg": 4.97,
+        "p75_deg": 9.04,
+        "p90_deg": 14.7
+      },
+      "hopenet_common_support_slice": {
+        "n": 2835,
+        "mae_deg": 5.99,
+        "median_ae_deg": 4.39,
+        "p75_deg": 8.03,
+        "p90_deg": 13.07
+      }
+    }
+  },
+  "aflw2000_3d_test": {
+    "count": 2000,
+    "mae_deg": 4.83,
+    "median_error_deg": 3.6,
+    "p50_deg": 3.6,
+    "p75_deg": 6.29,
+    "p90_deg": 10.27,
+    "distribution_audit_counts": {
+      "lt15": 893,
+      "15_to_45": 616,
+      "45_to_90": 485,
+      "90_to_120": 5,
+      "120_to_150": 0,
+      "ge150": 1
+    },
+    "slices": {
+      "frontal_lt15": {
+        "n": 893,
+        "mae_deg": 3.56,
+        "median_ae_deg": 2.83,
+        "p75_deg": 4.93,
+        "p90_deg": 7.02
+      },
+      "frontal_lt15_mae": 3.56,
+      "large_ge45_mae": 7.36,
+      "frontal_lt30": {
+        "n": 1313,
+        "mae_deg": 3.81,
+        "median_ae_deg": 3.04,
+        "p75_deg": 5.22,
+        "p90_deg": 7.58
+      },
+      "moderate_30_45": {
+        "n": 196,
+        "mae_deg": 5.3,
+        "median_ae_deg": 3.98,
+        "p75_deg": 7.01,
+        "p90_deg": 10.6
+      },
+      "large_45_90": {
+        "n": 485,
+        "mae_deg": 6.93,
+        "median_ae_deg": 5.53,
+        "p75_deg": 9.57,
+        "p90_deg": 15.24
+      },
+      "extreme_profile_ge90": {
+        "n": 6,
+        "mae_deg": 42.17,
+        "median_ae_deg": 17.82,
+        "p75_deg": 31.76,
+        "p90_deg": 102.64
+      },
+      "frontal_moderate_reference_slice": {
+        "n": 1509,
+        "mae_deg": 4.0,
+        "median_ae_deg": 3.14,
+        "p75_deg": 5.46,
+        "p90_deg": 8.02
+      },
+      "clear_turn_reference_slice": {
+        "n": 611,
+        "mae_deg": 6.62,
+        "median_ae_deg": 5.22,
+        "p75_deg": 9.11,
+        "p90_deg": 13.88
+      },
+      "ontology_turn_reference_slice": {
+        "n": 513,
+        "mae_deg": 6.58,
+        "median_ae_deg": 5.14,
+        "p75_deg": 8.85,
+        "p90_deg": 13.32
+      },
+      "hopenet_common_support_slice": {
+        "n": 1995,
+        "mae_deg": 4.72,
+        "median_ae_deg": 3.6,
+        "p75_deg": 6.27,
+        "p90_deg": 10.12
+      }
+    }
+  },
+  "comparison_a_common_support": {
+    "n": 1995,
+    "mae_deg": 4.72,
+    "median_ae_deg": 3.6,
+    "p75_deg": 6.27,
+    "p90_deg": 10.12
+  },
+  "comparison_b_full_domain": {
+    "status": "EVALUATED_FULL_DOMAIN",
+    "full_test_mae": 4.83
+  }
+}

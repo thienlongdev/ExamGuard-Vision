@@ -1,0 +1,22 @@
+# Inference Configuration
+inference:
+  # Object detector model weights (standard pretrained COCO detector fallback or custom path)
+  object_model_path: "yolo11n.pt"
+  object_confidence: 0.35
+  object_iou_threshold: 0.45
+
+  # Behavior detector model weights (custom trained model or adapter)
+  behavior_model_path: "models/trained/behavior_best.pt"
+  behavior_confidence: 0.40
+  behavior_fallback_heuristic: true  # If custom model weights are not present, fallback safely with clear warning
+
+  # Frame sampling / performance
+  target_inference_fps: 12.0  # Run inference at 12 FPS even if camera captures at 30 FPS
+  image_size: 640             # 640 or 768
+  device: "cpu"               # "cpu", "cuda", or "0"
+
+# Optional Head Pose Estimation (MediaPipe / FaceMesh)
+head_pose:
+  enabled: false              # Disabled by default for wall-mounted CCTV scalability
+  min_face_size_pixels: 60    # Skip face analysis if face/person crop is too small
+  yaw_threshold_degrees: 35.0 # Degrees turn considered 'turn_head'

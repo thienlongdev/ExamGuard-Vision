@@ -1,0 +1,42 @@
+{
+  "gap_100ms": {
+    "gap_ms": 100,
+    "gap_sec": 0.1,
+    "tolerance_sec": 2.0,
+    "continuity_maintained": true,
+    "forced_event_closure": false,
+    "verdict": "CONTINUOUS_UPDATE"
+  },
+  "gap_500ms": {
+    "gap_ms": 500,
+    "gap_sec": 0.5,
+    "tolerance_sec": 2.0,
+    "continuity_maintained": true,
+    "forced_event_closure": false,
+    "verdict": "CONTINUOUS_UPDATE"
+  },
+  "gap_1000ms": {
+    "gap_ms": 1000,
+    "gap_sec": 1.0,
+    "tolerance_sec": 2.0,
+    "continuity_maintained": true,
+    "forced_event_closure": false,
+    "verdict": "CONTINUOUS_UPDATE"
+  },
+  "gap_2000ms": {
+    "gap_ms": 2000,
+    "gap_sec": 2.0,
+    "tolerance_sec": 2.0,
+    "continuity_maintained": true,
+    "forced_event_closure": false,
+    "verdict": "CONTINUOUS_UPDATE"
+  },
+  "gap_5000ms": {
+    "gap_ms": 5000,
+    "gap_sec": 5.0,
+    "tolerance_sec": 2.0,
+    "continuity_maintained": false,
+    "forced_event_closure": true,
+    "verdict": "DISCONTINUITY_CLOSED"
+  }
+}

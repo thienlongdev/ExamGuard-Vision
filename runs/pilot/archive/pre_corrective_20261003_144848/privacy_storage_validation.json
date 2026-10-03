@@ -1,0 +1,26 @@
+{
+  "storage_quota_telemetry": {
+    "evidence_dir": "storage/evidence",
+    "used_gb": 0.0,
+    "max_storage_gb": 50.0,
+    "quota_usage_pct": 0.0,
+    "free_disk_gb": 122.55,
+    "min_free_disk_gb": 5.0,
+    "status": "HEALTHY",
+    "allow_media_recording": true,
+    "allow_metadata_recording": true
+  },
+  "retention_policy_enforcement": {
+    "deleted_events": 0,
+    "freed_bytes": 0,
+    "freed_mb": 0.0
+  },
+  "privacy_compliance": {
+    "facial_recognition_strictly_disabled": true,
+    "biometric_identification_disabled": true,
+    "anonymous_tracks_only": true,
+    "continuous_full_room_recording": false,
+    "cheating_verdicts_strictly_prohibited": true
+  },
+  "safe_storage_degradation_verified": true
+}

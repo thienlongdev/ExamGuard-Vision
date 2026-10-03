@@ -1,0 +1,126 @@
+# Future Multi-Cue Fusion Input / Output Contract Specification
+# Version: 4.0-Contract
+# Phase: V4B Architecture Specification for Future V4C/V4D
+# Status: DRAFT INTERFACE DEFINITION (No Training / No Active Fusion Execution)
+
+version: "4.0"
+date: "2026-10-02"
+
+description: >
+  Formal interface contract decoupling specialized perception modules
+  (posture classifier, generic head-pose estimator, full-frame macro detector,
+  and object association engine) from the downstream temporal fusion engine.
+
+# ---------------------------------------------------------------------
+# 1. SPECIALIZED PERCEPTION MODULE CONTRACTS
+# ---------------------------------------------------------------------
+
+modules:
+  # Module A: Person Posture Classifier (Crop-Level)
+  posture_classifier:
+    description: "Evaluates tight and context student crops for fine-grained body and head orientation."
+    input:
+      image_format: "RGB"
+      target_resolution: [224, 224] # or [320, 320]
+      supported_crop_types: ["TIGHT_PERSON_CROP", "CONTEXT_PERSON_CROP", "UPPER_BODY_CROP"]
+    output_schema:
+      student_id: "int (ByteTrack persistent track ID)"
+      timestamp: "float (seconds from video start)"
+      frame_index: "int (0-indexed frame counter)"
+      normal_upright_score: "float in [0.0, 1.0]"
+      normal_read_write_score: "float in [0.0, 1.0]"
+      head_down_deep_score: "float in [0.0, 1.0]"
+      head_rest_sleep_score: "float in [0.0, 1.0]"
+      turn_head_clear_score: "float in [0.0, 1.0]"
+      crop_quality: "string (GOOD, SMALL, VERY_SMALL, BLURRY, HEAVILY_OCCLUDED)"
+      source_crop_type: "string (TIGHT, CONTEXT, UPPER_BODY)"
+      capability_flags:
+        - "POSTURE_CLASSIFIER_ELIGIBLE"
+
+  # Module B: Head-Pose Estimator (Continuous Euler Angles)
+  head_pose_estimator:
+    description: "Estimates continuous yaw, pitch, roll angles from cropped face/head regions."
+    input:
+      image_format: "RGB"
+      target_resolution: [224, 224]
+      capability_prerequisite: "head_width >= 25 px AND head_height >= 25 px"
+    output_schema:
+      student_id: "int (ByteTrack track ID)"
+      timestamp: "float (seconds)"
+      frame_index: "int"
+      yaw_deg: "float in [-180.0, +180.0] (camera-relative horizontal rotation)"
+      pitch_deg: "float in [-90.0, +90.0] (camera-relative vertical rotation)"
+      roll_deg: "float in [-180.0, +180.0] (in-plane rotation)"
+      pose_confidence: "float in [0.0, 1.0]"
+      face_quality: "string (EXCELLENT, COARSE, DEGRADED, UNRESOLVABLE)"
+      capability_flags:
+        - "HEAD_POSE_ELIGIBLE"
+        - "FACE_LANDMARK_ELIGIBLE (if high resolution)"
+
+  # Module C: Full-Frame Spatial & Interaction Detector
+  full_frame_detector:
+    description: "Evaluates global classroom macro behaviors and spatial student interactions."
+    input:
+      image_format: "RGB"
+      target_resolution: [1280, 1280] # High-resolution surveillance frame
+    output_schema:
+      frame_index: "int"
+      timestamp: "float"
+      detections:
+        - student_id: "int"
+          bbox: "[x1, y1, x2, y2] (pixel coordinates)"
+          stand_score: "float in [0.0, 1.0]"
+          discuss_score: "float in [0.0, 1.0]"
+          neighbor_peer_id: "int or null (if paired discussion detected)"
+          viewpoint_mount: "string (QHD_OBLIQUE, 4K_CEILING, FRONT_DESK)"
+
+  # Module D: Secondary Object & Phone Association Engine
+  object_association_engine:
+    description: "Associates detected physical contraband (phones, cheat sheets) with ByteTrack student tracks."
+    input:
+      object_boxes: "list of [cls, conf, x1, y1, x2, y2] from secondary COCO detector"
+      student_boxes: "list of [track_id, x1, y1, x2, y2] from primary tracker"
+    output_schema:
+      student_id: "int"
+      timestamp: "float"
+      phone_detected: "bool"
+      phone_confidence: "float in [0.0, 1.0]"
+      association_distance_iou: "float in [0.0, 1.0]"
+      desk_region_overlap: "bool"
+      hand_proximity_flag: "bool"
+
+# ---------------------------------------------------------------------
+# 2. DOWNSTREAM TEMPORAL FUSION AGGREGATOR SPECIFICATION
+# ---------------------------------------------------------------------
+
+temporal_fusion_aggregator:
+  description: "Sliding window state machine aggregating multiple cues over ByteTrack student tracks."
+  time_window_seconds: 5.0
+  cooldown_seconds: 5.0
+  provisional_candidate_thresholds:
+    turn_head_candidate_duration_sec: 1.5   # PROVISIONAL_CANDIDATE_THRESHOLD
+    sleep_candidate_duration_sec: 3.0       # PROVISIONAL_CANDIDATE_THRESHOLD
+    stand_candidate_duration_sec: 1.0       # PROVISIONAL_CANDIDATE_THRESHOLD
+    phone_hold_candidate_duration_sec: 2.0  # PROVISIONAL_CANDIDATE_THRESHOLD
+  
+  bayesian_update_priors:
+    p_turn_given_posture_and_yaw:
+      formula: "P(Turn | C_posture, theta_yaw) = sigmoid(w1 * score_turn + w2 * (|theta_yaw| - 25.0) / 20.0)"
+      gating: "If HEAD_POSE_ELIGIBLE is false, rely 100% on score_turn."
+
+  event_emission_contract:
+    event_id: "string (UUIDv4)"
+    student_id: "int"
+    camera_id: "string"
+    start_timestamp: "float"
+    end_timestamp: "float"
+    duration: "float"
+    behavior_type: "enum (TURN_HEAD_EVENT, HEAD_DOWN_EVENT, PHONE_USE_EVENT, STAND_EVENT, DISCUSS_EVENT)"
+    confidence: "float in [0.0, 1.0]"
+    risk_level: "enum (LOW, MEDIUM, HIGH)"
+    contributing_cues:
+      posture_classifier: "bool"
+      head_pose: "bool"
+      object_detector: "bool"
+      duration_counter: "bool"
+    human_review_required: "bool (true for all non-trivial detections)"

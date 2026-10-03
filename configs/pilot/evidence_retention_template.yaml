@@ -1,0 +1,30 @@
+# Evidence Retention & Storage Quota Policy
+# Version: 1.0.0-pilot
+# Invariant: Non-crashing graceful degradation under storage pressure
+
+storage_policy:
+  policy_version: "1.0.0-pilot-retention"
+  base_evidence_dir: "storage/evidence"
+
+  # Quota & Limits
+  limits:
+    retention_days: 7                  # Keep event media for 7 days
+    max_storage_gb: 50.0               # Maximum total storage for all evidence
+    max_events_per_camera: 500         # Upper bound per camera session
+    warning_threshold_pct: 80.0        # Emit EVIDENCE_STORAGE_LOW warning at 80%
+    critical_threshold_pct: 95.0       # Halt new media recording at 95%
+    min_free_disk_gb: 5.0              # Mandatory free disk buffer on host
+
+  # Cleanup & Lifecycle Strategy
+  lifecycle:
+    auto_delete_expired: true
+    preserve_unreviewed_evidence: true # If true, never auto-delete unreviewed events even if expired
+    cleanup_cadence_minutes: 30
+    graceful_degradation_action: "RECORD_METADATA_ONLY" # Under quota pressure, record JSON metadata only, halt MP4/JPEG
+
+  # Quota Safety States
+  operational_states:
+    HEALTHY: "Full JPEG snapshot and rolling MP4 clips active"
+    WARNING: "Storage usage exceeds 80%; operator warning active"
+    CRITICAL: "Storage usage exceeds 95%; media capture suspended, metadata continues"
+    EXHAUSTED: "Disk free space < min_free_disk_gb; media recording stopped, zero pipeline crash"

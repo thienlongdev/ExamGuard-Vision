@@ -1,0 +1,240 @@
+{
+  "benchmark_mode": "MODE_C1_DENSE_FULL_PIPELINE_TILED",
+  "label": "DENSE_FULL_PIPELINE_TILED_SCENE_TEST",
+  "frames_processed": 300,
+  "total_wall_sec": 14.856,
+  "effective_fps": 20.19,
+  "line_rate_verdicts": {
+    "DENSE_30FPS_LINE_RATE": "NO",
+    "DENSE_25FPS_LINE_RATE": "NO"
+  },
+  "track_accounting": {
+    "mean_active_tracks": 25.0,
+    "median_active_tracks": 25.0,
+    "p05_active_tracks": 25.0,
+    "p95_active_tracks": 25.0,
+    "min_active_tracks": 25,
+    "max_active_tracks": 25,
+    "mean_eligible_posture_tracks": 20.0,
+    "mean_eligible_headpose_tracks": 20.0
+  },
+  "whole_loop_end_to_end_ms": {
+    "mean": 49.412,
+    "median": 49.466,
+    "p50": 49.466,
+    "p90": 74.475,
+    "p95": 75.942,
+    "p99": 79.81,
+    "min": 21.488,
+    "max": 91.685
+  },
+  "post_decode_pipeline_ms": {
+    "mean": 39.387,
+    "median": 39.067,
+    "p50": 39.067,
+    "p90": 61.468,
+    "p95": 70.055,
+    "p99": 73.024,
+    "min": 16.671,
+    "max": 84.18
+  },
+  "component_latencies_ms": {
+    "source_read_ms": {
+      "mean": 5.205,
+      "median": 0.321,
+      "p50": 0.321,
+      "p90": 15.697,
+      "p95": 16.752,
+      "p99": 18.002,
+      "min": 0.18,
+      "max": 19.126
+    },
+    "decode_ms": {
+      "mean": 5.205,
+      "median": 0.321,
+      "p50": 0.321,
+      "p90": 15.697,
+      "p95": 16.752,
+      "p99": 18.002,
+      "min": 0.18,
+      "max": 19.126
+    },
+    "general_detector_ms": {
+      "mean": 15.469,
+      "median": 15.332,
+      "p50": 15.332,
+      "p90": 17.153,
+      "p95": 17.801,
+      "p99": 19.611,
+      "min": 12.157,
+      "max": 24.419
+    },
+    "macro_behavior_ms": {
+      "mean": 3.067,
+      "median": 0.0,
+      "p50": 0.0,
+      "p90": 15.218,
+      "p95": 16.264,
+      "p99": 18.031,
+      "min": 0.0,
+      "max": 20.029
+    },
+    "tracker_ms": {
+      "mean": 2.628,
+      "median": 2.616,
+      "p50": 2.616,
+      "p90": 2.97,
+      "p95": 3.129,
+      "p99": 3.301,
+      "min": 2.094,
+      "max": 3.426
+    },
+    "crop_extraction_ms": {
+      "mean": 0.067,
+      "median": 0.028,
+      "p50": 0.028,
+      "p90": 0.13,
+      "p95": 0.183,
+      "p99": 0.226,
+      "min": 0.013,
+      "max": 0.264
+    },
+    "posture_preprocess_ms": {
+      "mean": 4.075,
+      "median": 0.675,
+      "p50": 0.675,
+      "p90": 11.687,
+      "p95": 11.998,
+      "p99": 12.845,
+      "min": 0.0,
+      "max": 14.078
+    },
+    "posture_inference_ms": {
+      "mean": 4.676,
+      "median": 5.845,
+      "p50": 5.845,
+      "p90": 8.411,
+      "p95": 9.376,
+      "p99": 11.083,
+      "min": 0.0,
+      "max": 13.534
+    },
+    "headpose_preprocess_ms": {
+      "mean": 2.315,
+      "median": 0.0,
+      "p50": 0.0,
+      "p90": 10.889,
+      "p95": 11.153,
+      "p99": 11.52,
+      "min": 0.0,
+      "max": 11.902
+    },
+    "headpose_inference_ms": {
+      "mean": 5.473,
+      "median": 0.0,
+      "p50": 0.0,
+      "p90": 20.52,
+      "p95": 20.873,
+      "p99": 21.326,
+      "min": 0.0,
+      "max": 22.447
+    },
+    "phone_association_ms": {
+      "mean": 0.025,
+      "median": 0.024,
+      "p50": 0.024,
+      "p90": 0.027,
+      "p95": 0.03,
+      "p99": 0.036,
+      "min": 0.02,
+      "max": 0.048
+    },
+    "fusion_ms": {
+      "mean": 0.668,
+      "median": 0.655,
+      "p50": 0.655,
+      "p90": 0.773,
+      "p95": 0.806,
+      "p99": 0.864,
+      "min": 0.541,
+      "max": 1.333
+    },
+    "event_engine_ms": {
+      "mean": 0.18,
+      "median": 0.173,
+      "p50": 0.173,
+      "p90": 0.214,
+      "p95": 0.224,
+      "p99": 0.255,
+      "min": 0.146,
+      "max": 0.739
+    },
+    "risk_aggregation_ms": {
+      "mean": 0.0,
+      "median": 0.0,
+      "p50": 0.0,
+      "p90": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "evidence_manager_ms": {
+      "mean": 0.0,
+      "median": 0.0,
+      "p50": 0.0,
+      "p90": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "serialization_ms": {
+      "mean": 0.017,
+      "median": 0.017,
+      "p50": 0.017,
+      "p90": 0.02,
+      "p95": 0.022,
+      "p99": 0.027,
+      "min": 0.014,
+      "max": 0.032
+    },
+    "debug_overlay_ms": {
+      "mean": 0.0,
+      "median": 0.0,
+      "p50": 0.0,
+      "p90": 0.0,
+      "p95": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0
+    },
+    "post_decode_pipeline_ms": {
+      "mean": 39.387,
+      "median": 39.067,
+      "p50": 39.067,
+      "p90": 61.468,
+      "p95": 70.055,
+      "p99": 73.024,
+      "min": 16.671,
+      "max": 84.18
+    },
+    "whole_loop_end_to_end_ms": {
+      "mean": 49.412,
+      "median": 49.466,
+      "p50": 49.466,
+      "p90": 74.475,
+      "p95": 75.942,
+      "p99": 79.81,
+      "min": 21.488,
+      "max": 91.685
+    }
+  },
+  "memory": {
+    "initial_cpu_ram_mb": 2216.64,
+    "final_cpu_ram_mb": 2330.93,
+    "delta_cpu_ram_mb": 114.29,
+    "peak_gpu_allocated_vram_mb": 489.27,
+    "peak_gpu_reserved_vram_mb": 1024.0
+  }
+}

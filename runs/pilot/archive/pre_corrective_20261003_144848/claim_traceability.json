@@ -1,0 +1,52 @@
+{
+  "claims": [
+    {
+      "claim_id": "CLM-001",
+      "statement": "Models do not declare CHEATING or GUILTY verdicts.",
+      "evidence_source": "src/fusion/types.py, src/fusion/risk_aggregator.py, configs/v4d_fusion.yaml",
+      "status": "VERIFIED_INVARIANT"
+    },
+    {
+      "claim_id": "CLM-002",
+      "statement": "General detector yolo26m provides person and phone detection.",
+      "evidence_source": "runs/pilot/checkpoint_hashes.json, src/orchestration/model_registry.py",
+      "status": "VERIFIED_PHYSICAL_WEIGHTS"
+    },
+    {
+      "claim_id": "CLM-003",
+      "statement": "1080p supports 30 FPS at 5 tracks, 25 FPS at 10 tracks, 20 FPS at 15 tracks.",
+      "evidence_source": "runs/pilot/operating_envelope.json",
+      "status": "VERIFIED_EMPIRICAL_BENCHMARK"
+    },
+    {
+      "claim_id": "CLM-004",
+      "statement": "Ceiling high viewpoints disable facial head-pose due to steep pitch angle.",
+      "evidence_source": "runs/pilot/viewpoint_capability_matrix.json, src/pilot/profile.py",
+      "status": "VERIFIED_GEOMETRY_POLICY"
+    },
+    {
+      "claim_id": "CLM-005",
+      "statement": "RTSP stream reconnections recover without unbounded queue growth or stale tracks.",
+      "evidence_source": "runs/pilot/rtsp_resilience.json",
+      "status": "VERIFIED_SIMULATED_HARNESS"
+    },
+    {
+      "claim_id": "CLM-006",
+      "statement": "Memory reaches plateau without track or event leaks across 10,000 frames.",
+      "evidence_source": "runs/pilot/soak_results.json",
+      "status": "VERIFIED_SOAK_TELEMETRY"
+    },
+    {
+      "claim_id": "CLM-007",
+      "statement": "Zero model retraining or dataset modification conducted in pilot preparation.",
+      "evidence_source": "git diff, runs/pilot/checkpoint_hashes.json",
+      "status": "VERIFIED_GOVERNANCE_INVARIANT"
+    },
+    {
+      "claim_id": "CLM-008",
+      "statement": "Dense 20+ student rooms do not sustain 25-30 FPS line rate on current pipeline.",
+      "evidence_source": "runs/pilot/resolution_occupancy_matrix.json",
+      "status": "VERIFIED_LIMITATION_DENSE_ROOM_NOT_READY"
+    }
+  ]
+}

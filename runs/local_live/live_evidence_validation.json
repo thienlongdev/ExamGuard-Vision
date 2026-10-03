@@ -1,0 +1,11 @@
+{
+  "snapshot_created": true,
+  "snapshot_path": "evidence/local_validation\\snapshots\\test-ev-local-live-01_open.jpg",
+  "metadata_path": "evidence/local_validation\\metadata\\test-ev-local-live-01_metadata.json",
+  "snapshot_non_empty": true,
+  "privacy_verified": true,
+  "snapshot_size_bytes": 23759,
+  "EVIDENCE_PIPELINE_SOFTWARE_PASS": "YES",
+  "EVIDENCE_FROM_PHYSICAL_CAMERA_PASS": "DEFERRED_NO_CAMERA_HARDWARE",
+  "evidence_origin": "SOFTWARE_VALIDATION_FIXTURE"
+}
