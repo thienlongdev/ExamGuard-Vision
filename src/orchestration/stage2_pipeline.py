@@ -279,6 +279,24 @@ class Stage2Pipeline:
             fps = float(vs_cfg.get("target_fps", 30.0))
             self.source = create_video_source(source_type=stype, source=spath, source_id=cid, fps=fps)
 
+        # Determine semantic source origin from video source (never falsely elevated)
+        if hasattr(self.source, "source_origin") and self.source.source_origin:
+            self.source_origin = str(self.source.source_origin)
+        elif hasattr(self.source, "source_type"):
+            stype = str(self.source.source_type).lower()
+            if stype == "webcam":
+                self.source_origin = "PHYSICAL_LIVE_CAMERA"
+            elif stype in ["video_file", "file"]:
+                self.source_origin = "VIDEO_FILE"
+            elif stype == "rtsp":
+                self.source_origin = "RTSP_STREAM"
+            elif stype == "software_fixture":
+                self.source_origin = "SOFTWARE_VALIDATION_FIXTURE"
+            else:
+                self.source_origin = "UNKNOWN"
+        else:
+            self.source_origin = "UNKNOWN"
+
         # 10. Real Bounded Ingestion Queue & Backpressure
         bp_cfg = self.config.get("backpressure", {})
         self.max_decode_queue = int(bp_cfg.get("max_decode_queue_depth", 5))
@@ -289,6 +307,35 @@ class Stage2Pipeline:
         # Event listeners (e.g. for WebSocket broadcasting)
         self.event_listeners: List[Callable[[FusedEvent, str], None]] = []
         self._active_events_map: Dict[str, FusedEvent] = {}
+
+        # Downstream display frame & track buffer for browser streaming (MJPEG)
+        self._latest_jpeg_frame: Optional[bytes] = None
+        self._latest_tracks_summary: List[Dict[str, Any]] = []
+        self._frame_lock = threading.Lock()
+
+        import collections
+        self._processed_timestamps: collections.deque = collections.deque(maxlen=30)
+        self._captured_timestamps: collections.deque = collections.deque(maxlen=30)
+
+    @property
+    def observed_capture_fps(self) -> Optional[float]:
+        if len(self._captured_timestamps) >= 5:
+            dt = self._captured_timestamps[-1] - self._captured_timestamps[0]
+            if dt > 0.01:
+                return round((len(self._captured_timestamps) - 1) / dt, 1)
+        return None
+
+    @property
+    def observed_processed_fps(self) -> Optional[float]:
+        if len(self._processed_timestamps) >= 5:
+            dt = self._processed_timestamps[-1] - self._processed_timestamps[0]
+            if dt > 0.01:
+                return round((len(self._processed_timestamps) - 1) / dt, 1)
+        return None
+
+    @property
+    def observed_inference_fps(self) -> Optional[float]:
+        return self.observed_processed_fps
 
     @property
     def dropped_frames_count(self) -> int:
@@ -428,6 +475,11 @@ class Stage2Pipeline:
         h, w = frame.shape[:2]
         cam_id = video_frame.source_id
 
+        # Update rolling FPS tracking
+        self._processed_timestamps.append(time.time())
+        if ts is not None and ts > 0:
+            self._captured_timestamps.append(ts)
+
         # Feed rolling clip buffer immediately
         self.evidence_manager.push_frame(frame, ts)
 
@@ -555,6 +607,7 @@ class Stage2Pipeline:
                 track_id=t_id,
                 timestamp_sec=ts,
                 camera_id=cam_id,
+                source_origin=self.source_origin,
                 tracking=tracking_state,
                 posture=pos_cue or PostureCue(),
                 headpose=hp_cue or HeadPoseCue(),
@@ -681,6 +734,16 @@ class Stage2Pipeline:
 
         self.processed_frames_count += 1
 
+        # Update thread-safe latest frame buffer for downstream dashboard streaming
+        # Product web stream receives CLEAN physical frame; web frontend renders product overlays
+        self._update_latest_frame_buffer(
+            frame,
+            tracks,
+            posture_cues,
+            headpose_cues,
+            phone_associations,
+        )
+
         return Stage2FrameResult(
             frame_idx=frame_idx,
             timestamp_sec=ts,
@@ -691,6 +754,59 @@ class Stage2Pipeline:
             metrics=metrics,
             annotated_frame=annotated_frame,
         )
+
+    def _update_latest_frame_buffer(
+        self,
+        frame: np.ndarray,
+        tracks: List[Track],
+        posture_cues: Dict[int, Any],
+        headpose_cues: Dict[int, Any],
+        phone_associations: Dict[int, Any],
+    ) -> None:
+        """Thread-safe frame buffer update for downstream HTTP/MJPEG streaming."""
+        try:
+            ret, jpeg_buf = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+            if ret:
+                tracks_summary = []
+                for t in tracks:
+                    tid = t.track_id
+                    bx = t.bbox.as_int_tuple() if hasattr(t.bbox, "as_int_tuple") else list(t.bbox)
+                    pos = posture_cues.get(tid)
+                    hp = headpose_cues.get(tid)
+                    ph = phone_associations.get(tid)
+                    evs = [e.event_type for e in self._active_events_map.values() if e.track_id == tid]
+                    max_risk = "LOW"
+                    for e in self._active_events_map.values():
+                        if e.track_id == tid:
+                            if e.risk_level == "HIGH":
+                                max_risk = "HIGH"
+                            elif e.risk_level == "MEDIUM" and max_risk != "HIGH":
+                                max_risk = "MEDIUM"
+                    tracks_summary.append({
+                        "track_id": tid,
+                        "bbox": bx,
+                        "posture": pos.predicted_class if (pos and hasattr(pos, "predicted_class") and pos.predicted_class) else "N/A",
+                        "posture_conf": round(float(pos.confidence), 2) if (pos and hasattr(pos, "confidence") and pos.confidence is not None) else None,
+                        "yaw_deg": round(float(hp.yaw_deg), 1) if (hp and hasattr(hp, "yaw_deg") and hp.yaw_deg is not None) else None,
+                        "phone_status": ph.status if ph and hasattr(ph, "status") else "NONE",
+                        "active_events": evs,
+                        "risk_level": max_risk,
+                    })
+                with self._frame_lock:
+                    self._latest_jpeg_frame = jpeg_buf.tobytes()
+                    self._latest_tracks_summary = tracks_summary
+        except Exception as e:
+            logger.debug(f"Frame buffer update failed: {e}")
+
+    def set_external_display_frame(self, frame: np.ndarray) -> None:
+        """Allow orchestrator to feed HUD-rendered frame to browser stream."""
+        try:
+            ret, jpeg_buf = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+            if ret:
+                with self._frame_lock:
+                    self._latest_jpeg_frame = jpeg_buf.tobytes()
+        except Exception:
+            pass
 
     def _render_debug_overlay(
         self,
@@ -846,6 +962,8 @@ class Stage2Pipeline:
         self._cached_macro_dets = []
         self.ingestion_queue = BoundedFrameQueue(maxsize=self.max_decode_queue, drop_policy=self.drop_policy)
         self.processed_frames_count = 0
+        self._processed_timestamps.clear()
+        self._captured_timestamps.clear()
         if self.evidence_manager is not None:
             self.evidence_manager.reset()
         logger.info("Stage2Pipeline runtime state successfully reset.")

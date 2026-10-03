@@ -169,11 +169,14 @@ class MultiCueFusionEngine:
         discuss_score = update.macro_behavior.discuss_score if macro_status == ObservationStatus.AVAILABLE else 0.0
         paired_id = update.macro_behavior.paired_peer_id if macro_status == ObservationStatus.AVAILABLE else None
 
+        resolved_origin = getattr(update, "source_origin", getattr(update, "origin", "UNKNOWN"))
+
         return PerTrackCueState(
             track_id=track_id,
             last_update_timestamp=timestamp,
             time_since_seen=gap,
             continuity_valid=continuous,
+            source_origin=resolved_origin,
             posture_status=posture_status,
             posture_probs=active_posture_probs,
             posture_reliability=posture_rel,

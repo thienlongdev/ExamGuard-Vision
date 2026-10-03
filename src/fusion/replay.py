@@ -166,10 +166,13 @@ class ReplayEngine:
                     visibility_score=float(trk_data.get("visibility_score", 1.0)),
                 )
 
+            replay_origin = str(data.get("source_origin") or data.get("origin") or "REPLAY_STREAM")
+
             return UnifiedTrackUpdate(
                 track_id=track_id,
                 timestamp_sec=t,
                 camera_id=cam_id,
+                source_origin=replay_origin,
                 tracking=tracking_state,
                 posture=posture_cue,
                 headpose=headpose_cue,

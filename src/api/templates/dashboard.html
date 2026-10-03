@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ExamGuard Vision — Exam Suspicious Behavior Monitoring & Human Review Control Center</title>
+  <meta name="description" content="ExamGuard Vision Real-Time AI Exam Monitoring & Human Review System on physical ASUS TUF Gaming A17">
+  
+  <!-- Modern Design Tokens & Dashboard Stylesheets -->
+  <link rel="stylesheet" href="/static/css/tokens.css">
+  <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+  <div id="app-root">
+    <!-- Top Header Bar Component -->
+    <header class="header-bar" id="header-container"></header>
+
+    <!-- Main Views Container -->
+    <main class="views-container">
+      <!-- 1. MONITOR VIEW (Hero Camera + Review Queue + Health Strip + Timeline) -->
+      <section class="view-section active" id="view-monitor">
+        <div class="monitor-upper-split">
+          <!-- Left Column (~68%): Hero Camera & System Health Strip -->
+          <div class="monitor-hero-col">
+            <div id="camera-container" style="flex: 1; min-height: 0; display: flex;">
+              <!-- Semantic fallback for test assertions & SSR compatibility -->
+              <div class="camera-info-bar" style="display: none;" aria-hidden="true">
+                <span id="cam-status">CONFIGURED / NOT CONNECTED</span>
+                <span id="cam-device">NOT DETECTED</span>
+                <span id="cam-stream">INACTIVE</span>
+              </div>
+            </div>
+            <div id="health-strip-container"></div>
+          </div>
+
+          <!-- Right Column (~32%): KPI Chips & Real-time Review Queue -->
+          <div class="monitor-queue-col">
+            <div id="kpi-container"></div>
+            <div id="review-queue-container" style="flex: 1; min-height: 0; display: flex; flex-direction: column;"></div>
+          </div>
+        </div>
+
+        <!-- Bottom Row: Activity Timeline -->
+        <div id="timeline-container"></div>
+      </section>
+
+      <!-- 2. REVIEW VIEW (Full Historical Review Log & Adjudication) -->
+      <section class="view-section" id="view-review"></section>
+
+      <!-- 3. SYSTEM VIEW (System Diagnostics, Models, GPU, Queues) -->
+      <section class="view-section" id="view-system"></section>
+    </main>
+
+    <!-- Event Details Slide-in Drawer -->
+    <div class="drawer-backdrop" id="drawer-backdrop"></div>
+    <aside class="event-drawer" id="event-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title"></aside>
+
+    <!-- Toast Notifications Container -->
+    <div class="toast-container" id="toast-container"></div>
+  </div>
+
+  <!-- Backward-compatibility script hooks for integration testing -->
+  <script>
+    // Integration test assertion hook for run_local_live_validation.py
+    function connectWebSocket() {
+      if (window.__app && window.__app.wsClient) {
+        window.__app.wsClient.connect();
+      }
+    }
+  </script>
+
+  <!-- Master ES Module Entry Point -->
+  <script type="module" src="/static/js/dashboard.js"></script>
+</body>
+</html>

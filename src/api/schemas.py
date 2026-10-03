@@ -72,6 +72,9 @@ class EventResponse(BaseModel):
     snapshot_path: Optional[str] = None
     clip_path: Optional[str] = None
     status: str
+    lifecycle_status: Optional[str] = "active"
+    review_status: Optional[str] = "awaiting"
+    observation_snapshot: Optional[Dict[str, Any]] = None
     reviewer_notes: Optional[str] = None
     configured_evidence_score: Optional[float] = None
     lifecycle_action: Optional[str] = None

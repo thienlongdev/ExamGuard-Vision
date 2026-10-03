@@ -26,6 +26,7 @@ class PerTrackCueState:
     last_update_timestamp: float
     time_since_seen: float = 0.0
     continuity_valid: bool = True
+    source_origin: str = "UNKNOWN"
 
     # Smoothed Posture Evidence
     posture_status: ObservationStatus = ObservationStatus.NOT_EVALUATED

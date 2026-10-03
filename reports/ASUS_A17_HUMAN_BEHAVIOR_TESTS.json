@@ -1,0 +1,210 @@
+{
+  "test": "STAGE_11_HUMAN_BEHAVIOR_PROTOCOL",
+  "timestamp": "2026-10-03T21:32:58+0700",
+  "steps_executed_count": 10,
+  "steps": [
+    {
+      "step_id": "TEST_0",
+      "step_name": "BASELINE NORMAL",
+      "target_duration_sec": 15.0,
+      "action_instructed": "Sit upright naturally facing camera.",
+      "SOFTWARE_BRANCH_EXECUTED": true,
+      "person_track_detected": true,
+      "observed_posture_classes": [
+        "NORMAL_UPRIGHT"
+      ],
+      "mean_yaw_deg": -8.5,
+      "emitted_lifecycle_events": [],
+      "emitted_events_count": 0
+    },
+    {
+      "step_id": "TEST_1",
+      "step_name": "NORMAL READ/WRITE",
+      "target_duration_sec": 20.0,
+      "action_instructed": "Look down at desk and read/write naturally (veto test).",
+      "SOFTWARE_BRANCH_EXECUTED": true,
+      "person_track_detected": true,
+      "observed_posture_classes": [
+        "NORMAL_UPRIGHT"
+      ],
+      "mean_yaw_deg": 2.3,
+      "emitted_lifecycle_events": [],
+      "emitted_events_count": 0
+    },
+    {
+      "step_id": "TEST_2",
+      "step_name": "CLEAR TURN LEFT",
+      "target_duration_sec": 7.0,
+      "action_instructed": "Turn head clearly to the left (yaw cue).",
+      "SOFTWARE_BRANCH_EXECUTED": true,
+      "person_track_detected": true,
+      "observed_posture_classes": [
+        "NORMAL_UPRIGHT"
+      ],
+      "mean_yaw_deg": 9.5,
+      "emitted_lifecycle_events": [],
+      "emitted_events_count": 0
+    },
+    {
+      "step_id": "TEST_3",
+      "step_name": "CLEAR TURN RIGHT",
+      "target_duration_sec": 7.0,
+      "action_instructed": "Turn head clearly to the right (yaw cue).",
+      "SOFTWARE_BRANCH_EXECUTED": true,
+      "person_track_detected": true,
+      "observed_posture_classes": [
+        "NORMAL_UPRIGHT"
+      ],
+      "mean_yaw_deg": 1.4,
+      "emitted_lifecycle_events": [],
+      "emitted_events_count": 0
+    },
+    {
+      "step_id": "TEST_4",
+      "step_name": "HEAD REST/SLEEP",
+      "target_duration_sec": 8.0,
+      "action_instructed": "Rest head completely down on desk/arms.",
+      "SOFTWARE_BRANCH_EXECUTED": true,
+      "person_track_detected": true,
+      "observed_posture_classes": [
+        "NORMAL_UPRIGHT"
+      ],
+      "mean_yaw_deg": 7.4,
+      "emitted_lifecycle_events": [],
+      "emitted_events_count": 0
+    },
+    {
+      "step_id": "TEST_5",
+      "step_name": "STANDING",
+      "target_duration_sec": 8.0,
+      "action_instructed": "Stand up clearly in front of camera.",
+      "SOFTWARE_BRANCH_EXECUTED": true,
+      "person_track_detected": true,
+      "observed_posture_classes": [
+        "NORMAL_UPRIGHT"
+      ],
+      "mean_yaw_deg": -1.0,
+      "emitted_lifecycle_events": [],
+      "emitted_events_count": 0
+    },
+    {
+      "step_id": "TEST_6",
+      "step_name": "PHONE PRESENT",
+      "target_duration_sec": 10.0,
+      "action_instructed": "Hold a smartphone visibly near body/desk.",
+      "SOFTWARE_BRANCH_EXECUTED": true,
+      "person_track_detected": true,
+      "observed_posture_classes": [
+        "NORMAL_UPRIGHT"
+      ],
+      "mean_yaw_deg": -0.8,
+      "emitted_lifecycle_events": [],
+      "emitted_events_count": 0
+    },
+    {
+      "step_id": "TEST_7",
+      "step_name": "LEAVE FRAME & RETURN",
+      "target_duration_sec": 12.0,
+      "action_instructed": "Step out of camera view for 6s, then return.",
+      "SOFTWARE_BRANCH_EXECUTED": true,
+      "person_track_detected": true,
+      "observed_posture_classes": [
+        "HEAD_REST_SLEEP",
+        "NORMAL_UPRIGHT"
+      ],
+      "mean_yaw_deg": 2.9,
+      "emitted_lifecycle_events": [
+        {
+          "action": "OPEN",
+          "event_type": "STANDING",
+          "risk_level": "LOW",
+          "event_id": "3f711a2e-4b60-4434-8076-58f3d63acffe"
+        },
+        {
+          "action": "UPDATE",
+          "event_type": "STANDING",
+          "risk_level": "LOW",
+          "event_id": "3f711a2e-4b60-4434-8076-58f3d63acffe"
+        },
+        {
+          "action": "UPDATE",
+          "event_type": "STANDING",
+          "risk_level": "LOW",
+          "event_id": "3f711a2e-4b60-4434-8076-58f3d63acffe"
+        },
+        {
+          "action": "UPDATE",
+          "event_type": "STANDING",
+          "risk_level": "LOW",
+          "event_id": "3f711a2e-4b60-4434-8076-58f3d63acffe"
+        },
+        {
+          "action": "UPDATE",
+          "event_type": "STANDING",
+          "risk_level": "LOW",
+          "event_id": "3f711a2e-4b60-4434-8076-58f3d63acffe"
+        }
+      ],
+      "emitted_events_count": 5
+    },
+    {
+      "step_id": "TEST_8",
+      "step_name": "OCCLUSION",
+      "target_duration_sec": 6.0,
+      "action_instructed": "Partially occlude face/head with a book or hand.",
+      "SOFTWARE_BRANCH_EXECUTED": true,
+      "person_track_detected": true,
+      "observed_posture_classes": [
+        "NORMAL_UPRIGHT"
+      ],
+      "mean_yaw_deg": 5.8,
+      "emitted_lifecycle_events": [
+        {
+          "action": "CLOSE",
+          "event_type": "STANDING",
+          "risk_level": "LOW",
+          "event_id": "3f711a2e-4b60-4434-8076-58f3d63acffe"
+        },
+        {
+          "action": "OPEN",
+          "event_type": "STANDING",
+          "risk_level": "LOW",
+          "event_id": "cb9fdc77-c917-4439-b35a-e6d967d5f600"
+        },
+        {
+          "action": "UPDATE",
+          "event_type": "STANDING",
+          "risk_level": "LOW",
+          "event_id": "cb9fdc77-c917-4439-b35a-e6d967d5f600"
+        },
+        {
+          "action": "UPDATE",
+          "event_type": "STANDING",
+          "risk_level": "LOW",
+          "event_id": "cb9fdc77-c917-4439-b35a-e6d967d5f600"
+        },
+        {
+          "action": "CLOSE",
+          "event_type": "STANDING",
+          "risk_level": "LOW",
+          "event_id": "cb9fdc77-c917-4439-b35a-e6d967d5f600"
+        }
+      ],
+      "emitted_events_count": 5
+    },
+    {
+      "step_id": "TEST_9",
+      "step_name": "DISTANCE / SCALE GATING",
+      "target_duration_sec": 8.0,
+      "action_instructed": "Move 2-3 meters back from the camera.",
+      "SOFTWARE_BRANCH_EXECUTED": true,
+      "person_track_detected": true,
+      "observed_posture_classes": [
+        "NORMAL_UPRIGHT"
+      ],
+      "mean_yaw_deg": 9.1,
+      "emitted_lifecycle_events": [],
+      "emitted_events_count": 0
+    }
+  ]
+}

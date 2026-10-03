@@ -34,9 +34,12 @@ class SuspiciousEvent:
     evidence: Dict[str, Any]
     snapshot_path: Optional[str] = None
     clip_path: Optional[str] = None
-    status: str = "new"      # 'new', 'reviewed', 'confirmed', 'dismissed'
+    status: str = "new"      # 'new', 'reviewed', 'confirmed', 'dismissed' (human review status)
+    lifecycle_status: str = "open"  # 'open', 'active', 'closed'
+    review_status: str = "awaiting" # 'awaiting', 'confirmed', 'dismissed'
+    observation_snapshot: Dict[str, Any] = field(default_factory=dict)
     reviewer_notes: Optional[str] = None
-    event_origin: Optional[str] = "LIVE_OBSERVATION"
+    event_origin: Optional[str] = "UNKNOWN"
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -188,11 +191,18 @@ class EventManager:
             raise ValueError(f"Invalid status '{new_status}'. Allowed: {valid_statuses}")
 
         event.status = norm_status
+        if norm_status in ("confirmed", "confirmed_event", "reviewed"):
+            event.review_status = "confirmed"
+        elif norm_status == "dismissed":
+            event.review_status = "dismissed"
+        else:
+            event.review_status = "awaiting"
+
         if reviewer_notes is not None:
             event.reviewer_notes = reviewer_notes
 
         logger.info(
-            f"Event {event_id[:8]} status updated to '{event.status}' by invigilator. "
+            f"Event {event_id[:8]} status updated to '{event.status}' (review_status='{event.review_status}') by invigilator. "
             f"(Notes: {reviewer_notes})"
         )
         return True

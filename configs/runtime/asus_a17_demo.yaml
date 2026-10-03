@@ -1,0 +1,154 @@
+# ASUS TUF Gaming A17 (FA707RC) Final School Demo Runtime Profile
+# ==============================================================
+# Hardware: AMD Ryzen 7 6800H, 16 GB DDR5, NVIDIA RTX 3050 Laptop GPU (4 GB VRAM)
+# Target Camera: USB2.0 HD UVC WebCam / Integrated UVC (Index 0, CAP_DSHOW)
+# Execution: Localhost Only (127.0.0.1:8000)
+
+version: "2.1.0-asus-a17-demo"
+profile_name: "ASUS_A17_BALANCED_DEMO"
+hardware_target: "ASUS TUF Gaming A17 (FA707RC)"
+
+# 1. VIDEO SOURCE SPECIFICATION
+video_source:
+  default_type: "webcam"
+  default_path: 0
+  camera_backend: "CAP_DSHOW"
+  camera_id: "asus_a17_webcam_0"
+  target_fps: 30.0
+  width: 1280
+  height: 720
+  fallback_width: 640
+  fallback_height: 480
+  reconnect_delay_sec: 2.0
+  max_reconnect_attempts: 5
+
+camera:
+  source_type: "webcam"
+  camera_index: 0
+  camera_backend: "CAP_DSHOW"
+  camera_id: "asus_a17_webcam_0"
+  name: "ASUS A17 HD WebCam"
+  requested_resolution: [1280, 720]
+  fallback_resolution: [640, 480]
+  requested_fps: 30.0
+  reconnect_enabled: true
+  reconnect_delay_sec: 2.0
+
+# 2. FROZEN PERCEPTION MODELS
+models:
+  general_object_detector:
+    model_path: "yolo26m.pt"
+    confidence: 0.35
+    iou_threshold: 0.45
+    image_size: 640
+    device: "cuda:0"
+    target_classes:
+      - "person"
+      - "cell phone"
+
+  detector:
+    model_path: "yolo26m.pt"
+    confidence: 0.35
+    iou_threshold: 0.45
+    image_size: 640
+    device: "cuda:0"
+    target_classes:
+      - "person"
+      - "cell phone"
+
+  macro_behavior_detector:
+    model_path: "models/trained/stage1_5_best.pt"
+    confidence: 0.40
+    image_size: 768
+    device: "cuda:0"
+    allow_fallback: true
+
+  posture:
+    primary_checkpoint: "models/trained/v4_posture_best.pt"
+    primary_resolution: 224
+    architecture: "mobilenet_v3_small"
+    device: "cuda:0"
+    precision_mode: "fp32"
+
+  headpose:
+    primary_checkpoint: "models/trained/v4_headpose_yaw_best.pt"
+    architecture: "hopenet_yaw"
+    primary_range_deg: [-99.0, 99.0]
+    device: "cuda:0"
+    precision_mode: "fp32"
+
+# 3. TRACKING (ByteTrack)
+tracking:
+  tracker_type: "bytetrack"
+  track_high_thresh: 0.45
+  track_low_thresh: 0.10
+  new_track_thresh: 0.50
+  track_buffer: 30
+  match_thresh: 0.80
+  frame_rate: 30
+
+# 4. MEASURED BALANCED CADENCE (Optimized for 1-2 Students on RTX 3050 4 GB)
+cadence:
+  detector_hz: 12.0
+  posture_hz: 10.0
+  headpose_hz: 6.0
+  macro_hz: 4.0
+  phone_hz: 6.0
+
+# 5. BATCHING & SCALE GATING
+batching:
+  max_posture_batch_size: 16
+  max_headpose_batch_size: 16
+  crop_padding_ratio: 0.05
+  min_person_height_px: 120.0
+  posture_low_resolution_min_height_px: 60.0
+  min_head_dimension_px: 25.0
+
+# 6. PHONE ASSOCIATION
+phone_association:
+  expand_student_bbox_ratio: 0.20
+  max_center_distance_ratio: 0.65
+  min_iou_overlap: 0.04
+  ambiguity_margin: 0.15
+
+# 7. BACKPRESSURE & BOUNDED INGESTION
+backpressure:
+  max_decode_queue_depth: 5
+  drop_policy: "DROP_STALE_ON_BACKPRESSURE"
+  max_frame_latency_ms: 120.0
+
+# 8. FUSION ENGINE
+fusion:
+  config_path: "configs/v4d_fusion.yaml"
+  track_continuity_tolerance_sec: 2.0
+  eviction_inactive_seconds: 15.0
+
+# 9. EVIDENCE LIFECYCLE (SNAPSHOT-ONLY FOR PERFORMANCE EFFICIENCY)
+evidence:
+  enabled: true
+  mode: "snapshot-only"
+  output_dir: "evidence/asus_a17_demo"
+  snapshot_on_open: true
+  max_snapshots_per_event: 3
+  clip_pre_event_sec: 0.0
+  clip_post_event_sec: 0.0
+  max_active_recordings: 0
+
+# 10. SERVER CONFIGURATION
+api:
+  host: "127.0.0.1"
+  port: 8000
+  websocket_broadcast_lifecycle: true
+
+server:
+  host: "127.0.0.1"
+  port: 8000
+  enable_fastapi: true
+  enable_websocket: true
+  websocket_broadcast_hz: 15.0
+  debug_overlay: true
+
+storage:
+  evidence_dir: "evidence/asus_a17_demo"
+  safe_local_mode: true
+  auto_cleanup_days: 7

@@ -89,6 +89,64 @@ class TrackEventStateMachine:
                 # Promote to ACTIVE: Open new event
                 self.state = EventLifecycleState.ACTIVE
                 event_id = str(uuid.uuid4())
+
+                # Determine dominant posture and confidence
+                post_probs = getattr(cue_state, "posture_probs", {})
+                dom_posture = "UNKNOWN"
+                dom_conf = 0.0
+                if post_probs:
+                    dom_posture, dom_conf = max(post_probs.items(), key=lambda x: x[1])
+
+                resolved_origin = getattr(cue_state, "source_origin", "UNKNOWN")
+
+                obs_snapshot = {
+                    "posture": {
+                        "class": details.get("posture") or dom_posture,
+                        "confidence": round(float(details.get("posture_confidence", dom_conf)), 2),
+                        "availability": getattr(cue_state.posture_status, "value", str(cue_state.posture_status)),
+                        "probabilities": {k: round(v, 4) for k, v in post_probs.items()},
+                    },
+                    "headpose": {
+                        "yaw_deg": round(float(cue_state.smoothed_yaw_deg), 1) if getattr(cue_state, "smoothed_yaw_deg", None) is not None else None,
+                        "availability": getattr(cue_state.headpose_status, "value", str(cue_state.headpose_status)),
+                        "reliability": round(float(getattr(cue_state, "headpose_reliability", 1.0)), 2),
+                        "source_model": getattr(cue_state, "headpose_source_model", "HopeNet-Yaw"),
+                    },
+                    "phone": {
+                        "detected": bool(getattr(cue_state, "phone_detected", False)),
+                        "association_status": str(details.get("phone_status") or getattr(cue_state, "phone_association_status", "NO_PHONE")),
+                        "spatial_relation": str(details.get("spatial_relation", "NONE")),
+                        "confidence": round(float(getattr(cue_state, "phone_confidence", 0.0)), 2),
+                        "availability": getattr(cue_state.phone_status, "value", str(cue_state.phone_status)),
+                    },
+                    "macro": {
+                        "cue": getattr(cue_state.macro_status, "value", str(cue_state.macro_status)),
+                        "stand_score": round(float(getattr(cue_state, "stand_score", 0.0)), 2),
+                        "discuss_score": round(float(getattr(cue_state, "discuss_score", 0.0)), 2),
+                        "availability": getattr(cue_state.macro_status, "value", str(cue_state.macro_status)),
+                    },
+                    "risk": {
+                        "score": round(evidence_score * 100.0 if evidence_score <= 1.0 else evidence_score, 1),
+                        "level": RiskLevel.LOW.value,
+                    },
+                    "timestamp": timestamp,
+                    "origin": resolved_origin,
+                }
+
+                ev_summary = {
+                    "initial_evidence_score": round(evidence_score, 4),
+                    "candidate_duration_sec": round(candidate_duration, 2),
+                    "posture": obs_snapshot["posture"]["class"],
+                    "posture_confidence": obs_snapshot["posture"]["confidence"],
+                    "yaw_deg": obs_snapshot["headpose"]["yaw_deg"],
+                    "phone_status": obs_snapshot["phone"]["association_status"],
+                    "phone_detected": obs_snapshot["phone"]["detected"],
+                    "has_phone": obs_snapshot["phone"]["detected"],
+                    "macro_behavior": obs_snapshot["macro"]["cue"],
+                    "event_origin": resolved_origin,
+                    **details,
+                }
+
                 self.active_event = FusedEvent(
                     event_id=event_id,
                     track_id=self.track_id,
@@ -98,24 +156,24 @@ class TrackEventStateMachine:
                     last_update_timestamp=timestamp,
                     duration=candidate_duration,
                     risk_level=RiskLevel.LOW.value,
-                    evidence_summary={
-                        "initial_evidence_score": round(evidence_score, 4),
-                        "candidate_duration_sec": round(candidate_duration, 2),
-                        **details,
-                    },
+                    evidence_summary=ev_summary,
+                    observation_snapshot=obs_snapshot,
                     cue_availability={
-                        "posture": cue_state.posture_status.value,
-                        "headpose": cue_state.headpose_status.value,
-                        "phone": cue_state.phone_status.value,
-                        "macro": cue_state.macro_status.value,
+                        "posture": getattr(cue_state.posture_status, "value", str(cue_state.posture_status)),
+                        "headpose": getattr(cue_state.headpose_status, "value", str(cue_state.headpose_status)),
+                        "phone": getattr(cue_state.phone_status, "value", str(cue_state.phone_status)),
+                        "macro": getattr(cue_state.macro_status, "value", str(cue_state.macro_status)),
                     },
                     cue_reliability={
-                        "posture_reliability": round(cue_state.posture_reliability, 4),
-                        "headpose_reliability": round(cue_state.headpose_reliability, 4),
-                        "phone_reliability": round(cue_state.phone_reliability, 4),
+                        "posture_reliability": round(getattr(cue_state, "posture_reliability", 1.0), 4),
+                        "headpose_reliability": round(getattr(cue_state, "headpose_reliability", 1.0), 4),
+                        "phone_reliability": round(getattr(cue_state, "phone_reliability", 1.0), 4),
                     },
                     status="active",
+                    lifecycle_status="open",
+                    review_status="awaiting",
                     fusion_config_version=self.config_version,
+                    event_origin=resolved_origin,
                 )
                 return self.active_event, "OPEN"
 
@@ -128,8 +186,13 @@ class TrackEventStateMachine:
                 if self.active_event is not None:
                     self.active_event.last_update_timestamp = timestamp
                     self.active_event.duration = timestamp - self.active_event.start_timestamp
+                    self.active_event.lifecycle_status = "active"
                     self.active_event.evidence_summary.update(details)
                     self.active_event.evidence_summary["latest_evidence_score"] = round(evidence_score, 4)
+                    if "risk" in self.active_event.observation_snapshot:
+                        self.active_event.observation_snapshot["risk"]["score"] = round(
+                            evidence_score * 100.0 if evidence_score <= 1.0 else evidence_score, 1
+                        )
                 return self.active_event, "UPDATE"
 
             # Evidence dropped below exit threshold or was vetoed: Close event and enter COOLDOWN
@@ -140,6 +203,9 @@ class TrackEventStateMachine:
                 closed_event.end_timestamp = timestamp
                 closed_event.duration = timestamp - closed_event.start_timestamp
                 closed_event.status = "closed"
+                closed_event.lifecycle_status = "closed"
+                if not getattr(closed_event, "review_status", None):
+                    closed_event.review_status = "awaiting"
             self.active_event = None
             self.candidate_start_time = None
             return closed_event, "CLOSE"
@@ -162,6 +228,9 @@ class TrackEventStateMachine:
             closed_event.end_timestamp = timestamp
             closed_event.duration = timestamp - closed_event.start_timestamp
             closed_event.status = "closed"
+            closed_event.lifecycle_status = "closed"
+            if not getattr(closed_event, "review_status", None):
+                closed_event.review_status = "awaiting"
             closed_event.evidence_summary["closure_reason"] = reason
             self.active_event = None
             self.state = EventLifecycleState.INACTIVE
@@ -252,6 +321,8 @@ class EventEngine:
             cue_state=cue_state,
             camera_id=camera_id,
             supporting_details={
+                "posture": "HEAD_REST_SLEEP",
+                "posture_confidence": round(sleep_prob, 4),
                 "posture_sleep_prob": round(sleep_prob, 4),
                 "competing_read_write_score": round(cue_state.read_write_score, 4),
                 "read_write_suppression": sleep_vetoed,
@@ -273,7 +344,10 @@ class EventEngine:
             cue_state=cue_state,
             camera_id=camera_id,
             supporting_details={
+                "posture": "TURN_HEAD_CLEAR",
+                "posture_confidence": round(cue_state.posture_probs.get("TURN_HEAD_CLEAR", 0.0), 4),
                 "posture_turn_score": round(cue_state.posture_probs.get("TURN_HEAD_CLEAR", 0.0), 4),
+                "yaw_deg": round(cue_state.smoothed_yaw_deg, 1) if cue_state.smoothed_yaw_deg is not None else None,
                 "smoothed_yaw_deg": round(cue_state.smoothed_yaw_deg, 2) if cue_state.smoothed_yaw_deg is not None else None,
                 "multi_cue_agreement": cue_state.turn_multi_cue_agreement,
                 "headpose_source": cue_state.headpose_source_model,
@@ -297,7 +371,10 @@ class EventEngine:
             camera_id=camera_id,
             supporting_details={
                 "phone_confidence": round(cue_state.phone_confidence, 4),
+                "phone_status": cue_state.phone_association_status,
                 "association_status": cue_state.phone_association_status,
+                "phone_detected": cue_state.phone_detected,
+                "has_phone": cue_state.phone_detected,
                 "ambiguous_association": phone_ambiguous,
             },
         )
@@ -316,6 +393,7 @@ class EventEngine:
             cue_state=cue_state,
             camera_id=camera_id,
             supporting_details={
+                "macro_behavior": "DISCUSSION_CANDIDATE",
                 "discuss_macro_score": round(discuss_score, 4),
                 "paired_peer_id": cue_state.paired_peer_id,
             },
@@ -335,6 +413,8 @@ class EventEngine:
             cue_state=cue_state,
             camera_id=camera_id,
             supporting_details={
+                "posture": "STANDING",
+                "macro_behavior": "STANDING",
                 "stand_macro_score": round(stand_score, 4),
             },
         )

@@ -23,6 +23,7 @@ class WebcamSource(VideoSource):
         fps: float = 30.0,
     ):
         super().__init__(source_id=source_id, source_type="webcam")
+        self.source_origin = "PHYSICAL_LIVE_CAMERA"
         self.device_index = int(source) if isinstance(source, str) and source.isdigit() else (source if isinstance(source, int) else 0)
         self.requested_width = width
         self.requested_height = height

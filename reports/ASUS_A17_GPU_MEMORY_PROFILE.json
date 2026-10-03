@@ -1,0 +1,1198 @@
+{
+  "vram_profile": {
+    "vram_allocated": 289.3,
+    "vram_reserved": 512.0,
+    "vram_max_allocated": 431.8,
+    "vram_headroom_mb": 3663.7
+  },
+  "periodic_samples": [
+    {
+      "frame_idx": 30,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 60,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 90,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 120,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 150,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 180,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 210,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 240,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 270,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 300,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 330,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 360,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 390,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 420,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 450,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 480,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 510,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 540,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 570,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 600,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 630,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 660,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 690,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 720,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 750,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 780,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 810,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 840,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 870,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 900,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 930,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 960,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 990,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1020,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1050,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1080,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1110,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1140,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1170,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1200,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1230,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1260,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1290,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1320,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1350,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1380,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1410,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1440,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1470,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1500,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1530,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1560,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1590,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1620,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1650,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1680,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1710,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1740,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1770,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1800,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1830,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1860,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1890,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1920,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1950,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 1980,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2010,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2040,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2070,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2100,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2130,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2160,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2190,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2220,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2250,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2280,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2310,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2340,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2370,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2400,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2430,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2460,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2490,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2520,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2550,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2580,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2610,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2640,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2670,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2700,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2730,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2760,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2790,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2820,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2850,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2880,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2910,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2940,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 2970,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3000,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3030,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3060,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3090,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3120,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3150,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3180,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3210,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3240,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3270,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3300,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3330,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3360,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3390,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3420,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3450,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3480,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3510,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3540,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3570,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3600,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3630,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3660,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3690,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3720,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3750,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3780,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3810,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3840,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3870,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3900,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3930,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3960,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 3990,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4020,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4050,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4080,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4110,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4140,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4170,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4200,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4230,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4260,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4290,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4320,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4350,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4380,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4410,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4440,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4470,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4500,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4530,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4560,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4590,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4620,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4650,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4680,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4710,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4740,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4770,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4800,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4830,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4860,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4890,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4920,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4950,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 4980,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5010,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5040,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5070,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5100,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5130,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5160,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5190,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5220,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5250,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5280,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5310,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5340,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5370,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5400,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5430,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5460,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5490,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5520,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5550,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5580,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5610,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5640,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5670,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5700,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5730,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5760,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5790,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5820,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5850,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5880,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5910,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    },
+    {
+      "frame_idx": 5940,
+      "vram_allocated_mb": 289.3,
+      "vram_reserved_mb": 512.0,
+      "vram_max_mb": 431.8
+    }
+  ]
+}

@@ -24,6 +24,18 @@ class ObservationStatus(str, Enum):
     NOT_EVALUATED = "NOT_EVALUATED"
 
 
+class SourceOrigin(str, Enum):
+    """Semantic provenance of observations and events (never falsely elevated)."""
+    PHYSICAL_LIVE_CAMERA = "PHYSICAL_LIVE_CAMERA"
+    SOFTWARE_VALIDATION_FIXTURE = "SOFTWARE_VALIDATION_FIXTURE"
+    REPLAY_STREAM = "REPLAY_STREAM"
+    VIDEO_FILE = "VIDEO_FILE"
+    RTSP_STREAM = "RTSP_STREAM"
+    SYNTHETIC_TEST = "SYNTHETIC_TEST"
+    UNKNOWN = "UNKNOWN"
+
+
+
 class PostureClass(int, Enum):
     """Frozen 4-Class Posture Ontology."""
     NORMAL_UPRIGHT = 0
@@ -167,6 +179,11 @@ class UnifiedTrackUpdate:
     headpose: HeadPoseCue = field(default_factory=HeadPoseCue)
     phone: PhoneCue = field(default_factory=PhoneCue)
     macro_behavior: MacroBehaviorCue = field(default_factory=MacroBehaviorCue)
+    source_origin: str = SourceOrigin.UNKNOWN.value
+
+    @property
+    def origin(self) -> str:
+        return self.source_origin
 
     def is_valid(self) -> bool:
         """Validate timestamp and track ID."""
@@ -194,11 +211,14 @@ class FusedEvent:
     evidence_summary: Dict[str, Any] = field(default_factory=dict)
     cue_availability: Dict[str, str] = field(default_factory=dict)
     cue_reliability: Dict[str, float] = field(default_factory=dict)
-    status: str = "new"                     # 'new', 'active', 'closed', 'reviewed'
+    status: str = "active"                  # Legacy field kept for compatibility
+    lifecycle_status: str = "active"        # 'open', 'active', 'closed'
+    review_status: str = "awaiting"         # 'awaiting', 'confirmed', 'dismissed'
+    observation_snapshot: Dict[str, Any] = field(default_factory=dict)
     reviewer_notes: Optional[str] = None
     model_versions: Dict[str, str] = field(default_factory=dict)
     fusion_config_version: str = "4.0.0-v4d"
-    event_origin: str = "LIVE_OBSERVATION"
+    event_origin: str = "UNKNOWN"
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)

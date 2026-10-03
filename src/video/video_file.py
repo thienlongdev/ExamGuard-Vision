@@ -24,6 +24,7 @@ class VideoFileSource(VideoSource):
     ):
         file_id = source_id or os.path.splitext(os.path.basename(file_path))[0]
         super().__init__(source_id=file_id, source_type="video_file")
+        self.source_origin = "VIDEO_FILE"
         self.file_path = file_path
         self.loop = loop
         self.realtime_pace = realtime_pace

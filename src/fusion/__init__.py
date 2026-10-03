@@ -21,6 +21,7 @@ from src.fusion.types import (
     TrackingState,
     UnifiedTrackUpdate,
     FusedEvent,
+    SourceOrigin,
 )
 
 from src.fusion.capability import CapabilityGate
@@ -48,6 +49,7 @@ __all__ = [
     "TrackingState",
     "UnifiedTrackUpdate",
     "FusedEvent",
+    "SourceOrigin",
     "CapabilityGate",
     "ReliabilityModel",
     "TemporalBuffer",

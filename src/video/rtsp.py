@@ -25,6 +25,7 @@ class RTSPSource(VideoSource):
         expected_fps: float = 25.0,
     ):
         super().__init__(source_id=source_id, source_type="rtsp")
+        self.source_origin = "RTSP_STREAM"
         self.rtsp_url = rtsp_url
         self.max_reconnect_attempts = max_reconnect_attempts
         self.initial_reconnect_delay = initial_reconnect_delay

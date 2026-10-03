@@ -47,6 +47,17 @@ recordings/
 *.mov
 *.mkv
 
+# Local physical-camera evidence - never commit
+evidence/asus_a17_demo/
+evidence/local_validation/
+
+# Local live validation runtime outputs
+runs/local_live/
+
+# Visual QA screenshots may contain personal webcam imagery
+reports/final_*.png
+reports/screen_*.png
+
 # Large intermediate runs artifacts: ignore heavy training images, logs, intermediate checkpoints
 runs/**/weights/
 runs/**/*.png

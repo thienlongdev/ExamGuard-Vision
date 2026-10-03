@@ -1,0 +1,72 @@
+{
+  "profile_name": "ASUS_A17_BALANCED_DEMO",
+  "hardware_target": "ASUS TUF Gaming A17 (FA707RC)",
+  "platform": {
+    "os": "Windows 11 Home Single Language 64-bit",
+    "cpu": "AMD Ryzen 7 6800H with Radeon Graphics",
+    "ram_total_mb": 15632.0,
+    "gpu": "NVIDIA GeForce RTX 3050 Laptop GPU",
+    "vram_total_mb": 4096.0,
+    "cuda_version": "12.6",
+    "torch_version": "2.14.1+cu126"
+  },
+  "camera_specification": {
+    "backend": "CAP_DSHOW",
+    "device_index": 0,
+    "requested_mode": "1280x720 @ 30.0 FPS",
+    "fallback_mode": "640x480 @ 30.0 FPS",
+    "measured_delivered_mode": "1280x720 @ 30.0 FPS",
+    "empirical_capture_fps": 10.0
+  },
+  "model_scheduling": {
+    "detector_imgsz": 640,
+    "detector_cadence_hz": 12.0,
+    "posture_imgsz": 224,
+    "posture_cadence_hz": 10.0,
+    "headpose_imgsz": 224,
+    "headpose_cadence_hz": 6.0,
+    "macro_imgsz": 768,
+    "macro_cadence_hz": 4.0,
+    "phone_cadence_hz": 6.0,
+    "tracker": "ByteTrack",
+    "queue_depth": 5,
+    "evidence_mode": "snapshot-only (clips deferred)"
+  },
+  "measured_benchmarks": {
+    "processed_fps": 9.93,
+    "latency_p50_ms": 103.81,
+    "latency_p95_ms": 159.39,
+    "latency_p99_ms": 167.97,
+    "component_latencies_ms": {
+      "detector": 25.29,
+      "tracker": 0.98,
+      "posture": 4.64,
+      "headpose": 4.98,
+      "macro": 16.04,
+      "phone": 0.01,
+      "fusion": 0.08,
+      "event": 0.02,
+      "evidence": 0.01
+    },
+    "gpu_memory": {
+      "vram_allocated_mb": 289.3,
+      "vram_max_allocated_mb": 431.8,
+      "vram_headroom_mb": 3663.7,
+      "memory_leak_mb": 0.0,
+      "oom_events": 0
+    },
+    "queue_stability": {
+      "total_frames_processed": 5957,
+      "total_frames_dropped": 0,
+      "drop_percentage": 0.0
+    }
+  },
+  "runtime_endpoints": {
+    "host": "127.0.0.1",
+    "port": 8000,
+    "dashboard_url": "http://127.0.0.1:8000/",
+    "dashboard_alias": "http://127.0.0.1:8000/dashboard",
+    "websocket_url": "ws://127.0.0.1:8000/ws/events"
+  },
+  "launch_command": ".\\.venv\\Scripts\\python.exe scripts/run_asus_a17_demo.py"
+}
