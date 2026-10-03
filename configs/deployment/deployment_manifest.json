@@ -21,7 +21,7 @@
   ],
   "runtime_checkpoints": [
     {
-      "path": "yolo26m.pt",
+      "path": "models/trained/yolo26m.pt",
       "sha256": "401cea9ab23ad19246ff7744859816bc599f350e93c9dd30367b6f0a0745d0b7",
       "classification": "REQUIRED_FOR_RUNTIME",
       "role": "GENERAL_OBJECT_DETECTOR"
@@ -45,13 +45,13 @@
       "role": "SPECIALIZED_HEADPOSE_ESTIMATOR"
     },
     {
-      "path": "runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt",
+      "path": "models/fallback/posture_320/best_model.pt",
       "sha256": "070a2e328a161b1c957576ec13647d65846a073f9dd35488c7c6edc847f0f4cf",
       "classification": "OPTIONAL_FALLBACK",
       "role": "POSTURE_OPTIONAL_320_CANDIDATE"
     },
     {
-      "path": "runs/v4c/headpose_resnet18_yaw/best_model.pt",
+      "path": "models/fallback/headpose_resnet18/best_model.pt",
       "sha256": "bc31d46cfea007ebddfb6a8d5845641a32fd1cc018a831c4c8ae8b61e579a7d9",
       "classification": "OPTIONAL_FALLBACK",
       "role": "HEADPOSE_CIRCULAR_FALLBACK"

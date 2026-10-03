@@ -78,19 +78,10 @@ class PilotPreflightChecker:
         # Checkpoint hashes
         hash_mismatches = []
         for path, expected_hash in CERTIFIED_HASHES.items():
-            actual_path = path
-            if not os.path.exists(actual_path):
-                if path == "models/trained/yolo26m.pt" and os.path.exists("yolo26m.pt"):
-                    actual_path = "yolo26m.pt"
-                elif "models/fallback/posture_320" in path and os.path.exists("runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt"):
-                    actual_path = "runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt"
-                elif "models/fallback/headpose_resnet18" in path and os.path.exists("runs/v4c/headpose_resnet18_yaw/best_model.pt"):
-                    actual_path = "runs/v4c/headpose_resnet18_yaw/best_model.pt"
-
-            if not os.path.exists(actual_path):
+            if not os.path.exists(path):
                 hash_mismatches.append(f"{path}: NOT_FOUND")
             else:
-                with open(actual_path, "rb") as f:
+                with open(path, "rb") as f:
                     actual_hash = hashlib.sha256(f.read()).hexdigest()
                 if actual_hash != expected_hash:
                     hash_mismatches.append(f"{path}: HASH_MISMATCH ({actual_hash[:8]} vs {expected_hash[:8]})")

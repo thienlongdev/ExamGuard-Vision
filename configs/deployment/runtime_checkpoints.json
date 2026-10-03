@@ -3,7 +3,7 @@
   "total_checkpoints_audited": 7,
   "checkpoints": [
     {
-      "file_path": "yolo26m.pt",
+      "file_path": "models/trained/yolo26m.pt",
       "sha256": "401cea9ab23ad19246ff7744859816bc599f350e93c9dd30367b6f0a0745d0b7",
       "classification": "REQUIRED_FOR_RUNTIME",
       "runtime_role": "GENERAL_OBJECT_DETECTOR",
@@ -69,7 +69,7 @@
       "source_derivation": "ModelRegistry.initialize_models -> self.headpose_model"
     },
     {
-      "file_path": "runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt",
+      "file_path": "models/fallback/posture_320/best_model.pt",
       "sha256": "070a2e328a161b1c957576ec13647d65846a073f9dd35488c7c6edc847f0f4cf",
       "classification": "OPTIONAL_FALLBACK",
       "runtime_role": "POSTURE_OPTIONAL_320_CANDIDATE",
@@ -80,7 +80,7 @@
       "source_derivation": "configs/local_live_camera.yaml -> models.posture.alternative_checkpoint"
     },
     {
-      "file_path": "runs/v4c/headpose_resnet18_yaw/best_model.pt",
+      "file_path": "models/fallback/headpose_resnet18/best_model.pt",
       "sha256": "bc31d46cfea007ebddfb6a8d5845641a32fd1cc018a831c4c8ae8b61e579a7d9",
       "classification": "OPTIONAL_FALLBACK",
       "runtime_role": "HEADPOSE_CIRCULAR_FALLBACK",

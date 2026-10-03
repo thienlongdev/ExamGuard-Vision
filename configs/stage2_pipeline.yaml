@@ -52,7 +52,7 @@ models:
     primary_checkpoint: "models/trained/v4_posture_best.pt"
     primary_resolution: 224
     architecture: "mobilenet_v3_small"
-    alternative_checkpoint: "runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt"
+    alternative_checkpoint: "models/fallback/posture_320/best_model.pt"
     alternative_resolution: 320
     use_adaptive_resolution: false # Gated default: policy requires explicit config
     device: "cuda:0"
@@ -62,7 +62,7 @@ models:
     primary_checkpoint: "models/trained/v4_headpose_yaw_best.pt"
     architecture: "hopenet_yaw"
     primary_range_deg: [-99.0, 99.0]
-    fallback_checkpoint: "runs/v4c/headpose_resnet18_yaw/best_model.pt"
+    fallback_checkpoint: "models/fallback/headpose_resnet18/best_model.pt"
     fallback_architecture: "resnet18_yaw"
     enable_circular_fallback: true
     device: "cuda:0"

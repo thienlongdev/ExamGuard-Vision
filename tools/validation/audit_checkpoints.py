@@ -99,10 +99,9 @@ if __name__ == "__main__":
         "models/trained/stage1_5_best.pt",
         "models/trained/v4_posture_best.pt",
         "models/trained/v4_headpose_yaw_best.pt",
-        "runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt",
-        "runs/v4c/headpose_resnet18_yaw/best_model.pt",
-        "yolo11n.pt",
-        "yolo26m.pt",
+        "models/fallback/posture_320/best_model.pt",
+        "models/fallback/headpose_resnet18/best_model.pt",
+        "models/trained/yolo26m.pt",
     ]
     results = {}
     for c in candidates:

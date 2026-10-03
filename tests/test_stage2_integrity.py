@@ -345,8 +345,6 @@ def test_v4_checkpoint_identity_and_taxonomy():
     import json
     import hashlib
     identity_path = "models/manifests/v4_checkpoint_identity.json"
-    if not os.path.exists(identity_path):
-        identity_path = "runs/stage2_integrity/v4_checkpoint_identity.json"
     assert os.path.exists(identity_path), f"Missing {identity_path}"
 
     with open(identity_path, "r", encoding="utf-8") as f:

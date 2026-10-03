@@ -17,7 +17,7 @@
   "models": [
     {
       "file": "yolo26m.pt",
-      "path": "yolo26m.pt",
+      "path": "models/trained/yolo26m.pt",
       "size_bytes": 44258957,
       "size_mb": 42.21,
       "sha256": "401cea9ab23ad19246ff7744859816bc599f350e93c9dd30367b6f0a0745d0b7",
@@ -69,7 +69,7 @@
     },
     {
       "file": "best_model.pt (320 posture)",
-      "path": "runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt",
+      "path": "models/fallback/posture_320/best_model.pt",
       "size_bytes": 18515621,
       "size_mb": 17.66,
       "sha256": "070a2e328a161b1c957576ec13647d65846a073f9dd35488c7c6edc847f0f4cf",
@@ -82,7 +82,7 @@
     },
     {
       "file": "best_model.pt (resnet18 headpose)",
-      "path": "runs/v4c/headpose_resnet18_yaw/best_model.pt",
+      "path": "models/fallback/headpose_resnet18/best_model.pt",
       "size_bytes": 134260265,
       "size_mb": 128.04,
       "sha256": "bc31d46cfea007ebddfb6a8d5845641a32fd1cc018a831c4c8ae8b61e579a7d9",
