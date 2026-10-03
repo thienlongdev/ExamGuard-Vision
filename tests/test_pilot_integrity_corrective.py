@@ -40,7 +40,10 @@ from src.pilot.preflight import CERTIFIED_HASHES
 from src.video.video_file import VideoFileSource
 from src.video.base import VideoFrame
 from src.tracking.tracker import Track
-from scripts.generate_operating_envelope import derive_operating_envelope
+try:
+    from tools.research.generate_operating_envelope import derive_operating_envelope
+except ImportError:
+    from scripts.generate_operating_envelope import derive_operating_envelope
 
 
 def _make_update(track_id: int, camera_id: str, ts: float, x1: float = 10.0) -> UnifiedTrackUpdate:
@@ -60,16 +63,16 @@ def test_checkpoint_hash_set_contains_all_seven():
     """Verify all 7 certified checkpoints are registered in CERTIFIED_HASHES."""
     assert len(CERTIFIED_HASHES) == 7, f"Expected 7 certified checkpoints, got {len(CERTIFIED_HASHES)}"
     expected_keys = [
-        "yolo26m.pt",
+        "models/trained/yolo26m.pt",
         "models/trained/stage1_best.pt",
         "models/trained/stage1_5_best.pt",
         "models/trained/v4_posture_best.pt",
         "models/trained/v4_headpose_yaw_best.pt",
-        "runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt",
-        "runs/v4c/headpose_resnet18_yaw/best_model.pt",
+        "models/fallback/posture_320/best_model.pt",
+        "models/fallback/headpose_resnet18/best_model.pt",
     ]
+    norm_keys = [os.path.normpath(p) for p in CERTIFIED_HASHES.keys()]
     for k in expected_keys:
-        norm_keys = [os.path.normpath(p) for p in CERTIFIED_HASHES.keys()]
         assert os.path.normpath(k) in norm_keys, f"Missing checkpoint {k}"
 
 

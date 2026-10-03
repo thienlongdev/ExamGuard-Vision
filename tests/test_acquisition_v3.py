@@ -9,11 +9,15 @@ ROOT = Path(__file__).resolve().parent.parent
 
 def test_full_dataset_identity_handling():
     """Verify that full SCB-Dataset5 identity report confirms complete status with multi-subdataset evidence."""
-    identity_path = ROOT / "reports" / "scb_dataset5_full" / "IDENTITY.md"
-    stats_path = ROOT / "reports" / "scb_dataset5_full" / "statistics.json"
+    identity_path = ROOT / "tests" / "fixtures" / "scb_dataset5_full" / "IDENTITY.md"
+    stats_path = ROOT / "tests" / "fixtures" / "scb_dataset5_full" / "statistics.json"
+    if not identity_path.exists():
+        identity_path = ROOT / "reports" / "scb_dataset5_full" / "IDENTITY.md"
+    if not stats_path.exists():
+        stats_path = ROOT / "reports" / "scb_dataset5_full" / "statistics.json"
 
-    assert identity_path.exists(), "IDENTITY.md must exist in reports/scb_dataset5_full"
-    assert stats_path.exists(), "statistics.json must exist in reports/scb_dataset5_full"
+    assert identity_path.exists(), "IDENTITY.md must exist in tests/fixtures/scb_dataset5_full"
+    assert stats_path.exists(), "statistics.json must exist in tests/fixtures/scb_dataset5_full"
 
     content = identity_path.read_text(encoding="utf-8")
     assert "IS THIS ACTUALLY THE FULL SCB-DATASET5?" in content
@@ -50,7 +54,9 @@ def test_duplicate_source_preference():
 
 def test_annotation_conflict_quarantine():
     """Verify that contradictory labels for the same person box are quarantined into annotation_conflicts_v3.json."""
-    conflicts_path = ROOT / "reports" / "annotation_conflicts_v3.json"
+    conflicts_path = ROOT / "tests" / "fixtures" / "annotation_conflicts_v3.json"
+    if not conflicts_path.exists():
+        conflicts_path = ROOT / "reports" / "annotation_conflicts_v3.json"
     assert conflicts_path.exists(), "annotation_conflicts_v3.json must exist"
 
     with open(conflicts_path, "r", encoding="utf-8") as f:

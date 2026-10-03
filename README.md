@@ -367,12 +367,12 @@ Tất cả các model sử dụng trong luồng suy luận đều được cố 
 
 | Tên vai trò model | File Checkpoint | Kích thước | SHA-256 Hash được chứng thực | Kiến trúc & Đầu vào |
 |---|---|---|---|---|
-| **General Object Detector** | `yolo26m.pt` | ~44.3 MB | `401cea9ab23ad19246ff7744859816bc599f350e93c9dd30367b6f0a0745d0b7` | YOLOv8/v11 640x640 (person, cell phone) |
+| **General Object Detector** | `models/trained/yolo26m.pt` | ~44.3 MB | `401cea9ab23ad19246ff7744859816bc599f350e93c9dd30367b6f0a0745d0b7` | YOLOv8/v11 640x640 (person, cell phone) |
 | **Macro Behavior Detector** | `models/trained/stage1_5_best.pt` | ~44.0 MB | `68690cf82715dc6dad2eb35a08711531170e935eb7dbe1c30fafabae341e2c2c` | Custom YOLO Stage 1.5 @ 768x768 |
 | **Posture Classifier** | `models/trained/v4_posture_best.pt` | ~18.5 MB | `529a23f96ebec6051ad29279fba3cd5279e7aa8fe2e46292ab4bb9c9523ca180` | MobileNetV3-Small @ 224x224 (4 lớp tư thế) |
 | **Headpose Yaw Estimator** | `models/trained/v4_headpose_yaw_best.pt` *(Git LFS)* | ~284.2 MB | `5d15eec5941cfc8d2468d09c27bff8eca2014e62bb12fc9a95c0c6239fbbca55` | HopeNet-Yaw @ 224x224 (Góc quay $[-99^\circ, +99^\circ]$) |
-| **Headpose Circular Fallback** | `runs/v4c/headpose_resnet18_yaw/best_model.pt` *(Git LFS)* | ~44.7 MB | `bc31d46cfea007ebddfb6a8d5845641a32fd1cc018a831c4c8ae8b61e579a7d9` | ResNet18 Circular Yaw (Phạm vi $[-180^\circ, +180^\circ]$) |
-| **High-Res Person Crop Fallback** | `runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt` | ~18.5 MB | `070a2e328a161b1c957576ec13647d65846a073f9dd35488c7c6edc847f0f4cf` | MobileNetV3-Small @ 320x320 |
+| **Headpose Circular Fallback** | `models/fallback/headpose_resnet18/best_model.pt` *(Git LFS)* | ~44.7 MB | `bc31d46cfea007ebddfb6a8d5845641a32fd1cc018a831c4c8ae8b61e579a7d9` | ResNet18 Circular Yaw (Phạm vi $[-180^\circ, +180^\circ]$) |
+| **High-Res Person Crop Fallback** | `models/fallback/posture_320/best_model.pt` | ~18.5 MB | `070a2e328a161b1c957576ec13647d65846a073f9dd35488c7c6edc847f0f4cf` | MobileNetV3-Small @ 320x320 |
 | **Stage 1 Baseline Checkpoint** | `models/trained/stage1_best.pt` | ~44.0 MB | `6d713808f0bc670e8bf06e01b006fac73d8d6e5db7130584cec1658b003ce98a` | Baseline foundation checkpoint |
 
 ---
@@ -396,16 +396,16 @@ Endpoint `/api/evidence/{file_path:path}` được gia cố an ninh nghiêm ng�
 
 ## 11. Cấu trúc thư mục repository
 
-Cấu trúc thư mục tinh gọn và đúng thực tế nhất của dự án:
+Cấu trúc thư mục tinh gọn và chuẩn mực kỹ thuật của dự án:
 
 ```
 ExamGuard-Vision/
 ├── .gitattributes             # Cấu hình Git LFS cho các checkpoint lớn (> 100 MB)
 ├── .gitignore                # Loại trừ virtualenv, dataset thô, video và bằng chứng cục bộ
+├── pytest.ini                # Cấu hình bộ kiểm thử tự động pytest
 ├── README.md                 # Tài liệu kỹ thuật và hướng dẫn triển khai hệ thống
 ├── requirements.txt          # Danh sách toàn bộ thư viện chi tiết
 ├── requirements-runtime.txt  # Danh sách phụ thuộc phục vụ chạy thực thi (loại trừ cố định torch)
-├── yolo26m.pt                # Checkpoint detector vật thể tổng quát (COCO person, phone)
 │
 ├── configs/                  # Thư mục cấu hình tham số hệ thống
 │   ├── camera.yaml           # Cấu hình nguồn camera và FPS
@@ -413,25 +413,34 @@ ExamGuard-Vision/
 │   ├── inference.yaml        # Ngưỡng tin cậy suy luận và thiết bị
 │   ├── tracking.yaml         # Tham số ByteTrack
 │   ├── v4d_fusion.yaml       # Tham số hợp nhất chuỗi thời gian V4D và ngưỡng rủi ro
+│   ├── deployment/           # Metadata chứng thực và kiểm định môi trường triển khai
 │   └── runtime/              # Cấu hình hồ sơ thực thi đã chứng thực
 │       └── asus_a17_demo.yaml # Hồ sơ vận hành chuẩn cho ASUS TUF Gaming A17
 │
 ├── docs/                     # Tài liệu kỹ thuật chi tiết
-│   ├── validation.md         # Báo cáo kiểm định phần cứng và chứng thực hệ thống
 │   ├── architecture.md       # Thiết kế kiến trúc luồng xử lý và hợp nhất đa tín hiệu
-│   └── deployment.md         # Hướng dẫn chi tiết triển khai và vận hành hệ thống
+│   ├── deployment.md         # Hướng dẫn chi tiết triển khai và vận hành hệ thống
+│   ├── validation.md         # Báo cáo kiểm định phần cứng và chứng thực hệ thống
+│   ├── research.md           # Nghiên cứu mô hình, bộ dữ liệu và đánh giá hợp nhất V4D
+│   └── testing.md            # Kiến trúc kiểm thử, phân loại test suites và hướng dẫn QA
 │
 ├── models/                   # Thư mục lưu trữ model
-│   └── trained/              # Các model đã huấn luyện và đóng băng
-│       ├── stage1_5_best.pt        # Model hành vi macro Stage 1.5
-│       ├── v4_posture_best.pt      # Model phân loại tư thế 4 lớp (MobileNetV3)
-│       └── v4_headpose_yaw_best.pt # Model ước lượng góc quay đầu (HopeNet - Git LFS)
+│   ├── trained/              # Các model đã huấn luyện và đóng băng
+│   │   ├── yolo26m.pt              # Detector vật thể tổng quát (COCO person, phone)
+│   │   ├── stage1_best.pt          # Baseline foundation checkpoint
+│   │   ├── stage1_5_best.pt        # Model hành vi macro Stage 1.5
+│   │   ├── v4_posture_best.pt      # Model phân loại tư thế 4 lớp (MobileNetV3)
+│   │   └── v4_headpose_yaw_best.pt # Model ước lượng góc quay đầu (HopeNet - Git LFS)
+│   ├── fallback/             # Checkpoint dự phòng tối ưu cho thiết bị giới hạn tài nguyên
+│   │   ├── posture_320/            # Model MobileNetV3 phân giải 320x320
+│   │   └── headpose_resnet18/      # Model ResNet18 HopeNet (Git LFS)
+│   └── manifests/            # Manifest xác thực danh tính và kiến trúc model
+│       └── v4_checkpoint_identity.json
 │
-├── runs/                     # Checkpoint dự phòng và manifest kiểm định
-│   ├── stage2_integrity/v4_checkpoint_identity.json
-│   └── v4c/
-│       ├── C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt
-│       └── headpose_resnet18_yaw/best_model.pt (Git LFS)
+├── scripts/                  # Kịch bản vận hành trực tiếp dành cho người dùng
+│   ├── run_asus_a17_demo.py  # Kịch bản khởi chạy một lệnh chuẩn cho demo trường học
+│   ├── laptop_preflight.py   # Công cụ tiền kiểm tra phần cứng, GPU, model và cổng mạng
+│   └── run_local_live_validation.py # Bộ công cụ kiểm định sâu các thành phần
 │
 ├── src/                      # Mã nguồn logic cốt lõi
 │   ├── api/                  # Tầng Backend FastAPI & Giao tiếp
@@ -443,6 +452,9 @@ ExamGuard-Vision/
 │   │   └── static/           # Tài nguyên tĩnh JS/CSS phục vụ dashboard 100% offline
 │   ├── behavior/             # Quản lý sự kiện và bộ tính điểm
 │   │   └── event_manager.py  # Quản lý vòng đời sự kiện, debounce và cooldown
+│   ├── detection/            # Adapter bộ nhận diện vật thể YOLO
+│   │   ├── object_detector.py # General Object Detector adapter
+│   │   └── behavior_detector.py # Macro Behavior Detector adapter
 │   ├── evidence/             # Chụp và lưu trữ ảnh chụp bằng chứng
 │   │   └── snapshot.py       # Module ghi ảnh JPEG bất đồng bộ
 │   ├── fusion/               # Động cơ hợp nhất đa tín hiệu V4D
@@ -450,27 +462,37 @@ ExamGuard-Vision/
 │   │   ├── cue_state.py      # Trạng thái quan sát từng frame của mỗi thí sinh
 │   │   ├── fusion_engine.py  # Động cơ hợp nhất đa tín hiệu theo thời gian
 │   │   └── event_engine.py   # Máy trạng thái phát hiện sự kiện hành vi
+│   ├── models/               # Định nghĩa kiến trúc PyTorch (Posture, HeadPose)
+│   │   ├── posture/          # MobileNetV3 posture classifier
+│   │   └── headpose/         # HopeNet yaw estimator
 │   ├── orchestration/        # Tầng điều phối quy trình xử lý
 │   │   ├── stage2_pipeline.py# Đường ống xử lý chính (Camera -> Model -> Fusion)
 │   │   └── model_registry.py # Quản lý và kiểm tra mã băm SHA-256 của các model
+│   ├── pilot/                # Module tiền kiểm tra và cấu hình camera
+│   ├── tracking/             # Module bám vết đa đối tượng ByteTrack
 │   └── video/                # Lớp trừu tượng hoá nguồn video
 │       ├── base.py           # VideoSource ABC
 │       ├── webcam.py         # WebcamSource (DirectShow / MSMF)
 │       ├── video_file.py     # VideoFileSource
 │       └── rtsp.py           # RTSPSource
 │
-├── scripts/                  # Kịch bản thực thi và công cụ
-│   ├── run_asus_a17_demo.py  # Kịch bản khởi chạy một lệnh chuẩn cho demo trường học
-│   ├── laptop_preflight.py   # Công cụ tiền kiểm tra phần cứng, GPU, model và cổng mạng
-│   └── run_local_live_validation.py # Bộ công cụ kiểm định sâu các thành phần
+├── tests/                    # Bộ kiểm thử tự động (Unit & Integration tests)
+│   └── fixtures/             # Dữ liệu mẫu kiểm thử và video giả lập
 │
-└── tests/                    # Bộ kiểm thử tự động (Unit & Integration tests)
+└── tools/                    # Công cụ nội bộ phục vụ nghiên cứu và phát triển
+    ├── benchmark/            # Công cụ đo lường hiệu năng suy luận và thông lượng
+    ├── dataset/              # Công cụ thu thập, tiền xử lý và kiểm định tập dữ liệu
+    ├── dev/                  # Tiện ích hỗ trợ phát triển và quét mã bí mật
+    ├── research/             # Kịch bản huấn luyện, phân tích góc quay và tái tạo báo cáo
+    └── validation/           # Bộ kịch bản kiểm tra toàn vẹn checkpoint và hiệu chuẩn camera
 ```
 
 ### Tài liệu kỹ thuật chuyên sâu (Technical Documentation)
-- **[Báo cáo Kiểm định Phần cứng & Chứng thực (docs/validation.md)](docs/validation.md)**: Toàn văn kết quả kiểm định soak test 10 phút, đo lường an toàn bộ nhớ VRAM, độ trễ từng module và ma trận sẵn sàng phần cứng.
 - **[Kiến trúc Hệ thống & Hợp nhất Đa tín hiệu (docs/architecture.md)](docs/architecture.md)**: Sơ đồ chi tiết quy trình xử lý luồng, máy trạng thái sự kiện Observable Event Engine và cơ chế chống đếm trùng tín hiệu.
 - **[Hướng dẫn Triển khai & Vận hành (docs/deployment.md)](docs/deployment.md)**: Hướng dẫn cài đặt từ đầu, tham số dòng lệnh launcher và danh mục xử lý sự cố thường gặp.
+- **[Báo cáo Kiểm định Phần cứng & Chứng thực (docs/validation.md)](docs/validation.md)**: Toàn văn kết quả kiểm định soak test 10 phút, đo lường an toàn bộ nhớ VRAM, độ trễ từng module và ma trận sẵn sàng phần cứng.
+- **[Nghiên cứu Mô hình & Tập Dữ liệu (docs/research.md)](docs/research.md)**: Căn cứ khoa học, phân tích tập dữ liệu SCB-Dataset5, AFLW, chuẩn hóa góc quay và đánh giá abalation V4D.
+- **[Kiểm thử & Đảm bảo Chất lượng (docs/testing.md)](docs/testing.md)**: Phân loại 219 tests, hướng dẫn chạy kiểm thử tự động và giải thích chi tiết các bài test phụ thuộc dữ liệu offline.
 
 ---
 

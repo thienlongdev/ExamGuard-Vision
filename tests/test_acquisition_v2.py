@@ -1,5 +1,8 @@
 import math
-from scripts.preflight_acquisition_v2 import strict_box, supported_classes
+try:
+    from tools.dataset.preflight_acquisition_v2 import strict_box, supported_classes
+except ImportError:
+    from scripts.preflight_acquisition_v2 import strict_box, supported_classes
 import yaml
 from pathlib import Path
 

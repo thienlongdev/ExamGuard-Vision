@@ -83,7 +83,7 @@ def test_detector_taxonomy_introspection_stage1_and_stage1_5():
 def test_general_detector_resolves_classes_from_model_names():
     """Verify general object detector resolves person and phone IDs dynamically from model.names."""
     det = YOLOObjectDetector(
-        model_path="yolo26m.pt",
+        model_path="models/trained/yolo26m.pt",
         target_classes=["person", "cell phone"],
     )
     assert det.is_person_available
@@ -344,7 +344,9 @@ def test_v4_checkpoint_identity_and_taxonomy():
     """Verify v4_checkpoint_identity.json artifact and physical checkpoint model identities."""
     import json
     import hashlib
-    identity_path = "runs/stage2_integrity/v4_checkpoint_identity.json"
+    identity_path = "models/manifests/v4_checkpoint_identity.json"
+    if not os.path.exists(identity_path):
+        identity_path = "runs/stage2_integrity/v4_checkpoint_identity.json"
     assert os.path.exists(identity_path), f"Missing {identity_path}"
 
     with open(identity_path, "r", encoding="utf-8") as f:

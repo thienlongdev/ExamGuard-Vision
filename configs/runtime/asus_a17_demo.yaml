@@ -37,7 +37,7 @@ camera:
 # 2. FROZEN PERCEPTION MODELS
 models:
   general_object_detector:
-    model_path: "yolo26m.pt"
+    model_path: "models/trained/yolo26m.pt"
     confidence: 0.35
     iou_threshold: 0.45
     image_size: 640
@@ -47,7 +47,7 @@ models:
       - "cell phone"
 
   detector:
-    model_path: "yolo26m.pt"
+    model_path: "models/trained/yolo26m.pt"
     confidence: 0.35
     iou_threshold: 0.45
     image_size: 640

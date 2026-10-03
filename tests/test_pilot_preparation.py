@@ -55,7 +55,10 @@ from src.pilot.resilience import (
 from src.pilot.preflight import (
     PilotPreflightChecker,
 )
-from scripts.generate_pilot_camera_profile import generate_recommended_profile
+try:
+    from tools.validation.generate_pilot_camera_profile import generate_recommended_profile
+except ImportError:
+    from scripts.generate_pilot_camera_profile import generate_recommended_profile
 from src.video.video_file import VideoFileSource
 from src.video.base import VideoFrame
 from src.tracking.tracker import Track

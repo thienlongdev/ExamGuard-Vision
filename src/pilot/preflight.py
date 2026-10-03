@@ -26,13 +26,13 @@ from src.orchestration.stage2_pipeline import Stage2Pipeline
 logger = logging.getLogger(__name__)
 
 CERTIFIED_HASHES = {
-    "yolo26m.pt": "401cea9ab23ad19246ff7744859816bc599f350e93c9dd30367b6f0a0745d0b7",
+    "models/trained/yolo26m.pt": "401cea9ab23ad19246ff7744859816bc599f350e93c9dd30367b6f0a0745d0b7",
     "models/trained/stage1_best.pt": "6d713808f0bc670e8bf06e01b006fac73d8d6e5db7130584cec1658b003ce98a",
     "models/trained/stage1_5_best.pt": "68690cf82715dc6dad2eb35a08711531170e935eb7dbe1c30fafabae341e2c2c",
     "models/trained/v4_posture_best.pt": "529a23f96ebec6051ad29279fba3cd5279e7aa8fe2e46292ab4bb9c9523ca180",
     "models/trained/v4_headpose_yaw_best.pt": "5d15eec5941cfc8d2468d09c27bff8eca2014e62bb12fc9a95c0c6239fbbca55",
-    "runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt": "070a2e328a161b1c957576ec13647d65846a073f9dd35488c7c6edc847f0f4cf",
-    "runs/v4c/headpose_resnet18_yaw/best_model.pt": "bc31d46cfea007ebddfb6a8d5845641a32fd1cc018a831c4c8ae8b61e579a7d9",
+    "models/fallback/posture_320/best_model.pt": "070a2e328a161b1c957576ec13647d65846a073f9dd35488c7c6edc847f0f4cf",
+    "models/fallback/headpose_resnet18/best_model.pt": "bc31d46cfea007ebddfb6a8d5845641a32fd1cc018a831c4c8ae8b61e579a7d9",
 }
 
 
@@ -78,10 +78,19 @@ class PilotPreflightChecker:
         # Checkpoint hashes
         hash_mismatches = []
         for path, expected_hash in CERTIFIED_HASHES.items():
-            if not os.path.exists(path):
+            actual_path = path
+            if not os.path.exists(actual_path):
+                if path == "models/trained/yolo26m.pt" and os.path.exists("yolo26m.pt"):
+                    actual_path = "yolo26m.pt"
+                elif "models/fallback/posture_320" in path and os.path.exists("runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt"):
+                    actual_path = "runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt"
+                elif "models/fallback/headpose_resnet18" in path and os.path.exists("runs/v4c/headpose_resnet18_yaw/best_model.pt"):
+                    actual_path = "runs/v4c/headpose_resnet18_yaw/best_model.pt"
+
+            if not os.path.exists(actual_path):
                 hash_mismatches.append(f"{path}: NOT_FOUND")
             else:
-                with open(path, "rb") as f:
+                with open(actual_path, "rb") as f:
                     actual_hash = hashlib.sha256(f.read()).hexdigest()
                 if actual_hash != expected_hash:
                     hash_mismatches.append(f"{path}: HASH_MISMATCH ({actual_hash[:8]} vs {expected_hash[:8]})")

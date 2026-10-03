@@ -38,6 +38,12 @@ class VideoFileSource(VideoSource):
     def open(self) -> bool:
         """Open the video file."""
         if not os.path.exists(self.file_path):
+            normalized = self.file_path.replace("\\", "/")
+            if normalized.startswith("samples/"):
+                fixture_candidate = normalized.replace("samples/", "tests/fixtures/")
+                if os.path.exists(fixture_candidate):
+                    self.file_path = fixture_candidate
+        if not os.path.exists(self.file_path):
             logger.error(f"Video file not found: {self.file_path}")
             return False
 

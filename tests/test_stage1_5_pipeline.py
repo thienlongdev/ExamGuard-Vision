@@ -68,7 +68,9 @@ def test_stage1_5_zero_duplicate_hash_leakage():
 
 def test_stage1_5_quarantine_exclusion():
     """Verify all quarantined annotation conflicts remain excluded from positive supervision."""
-    conflicts_p = ROOT_DIR / "reports" / "annotation_conflicts_v3.json"
+    conflicts_p = ROOT_DIR / "tests" / "fixtures" / "annotation_conflicts_v3.json"
+    if not conflicts_p.exists():
+        conflicts_p = ROOT_DIR / "reports" / "annotation_conflicts_v3.json"
     assert conflicts_p.exists()
     conflicts = json.load(open(conflicts_p, "r", encoding="utf-8"))
     assert len(conflicts) == 2939, f"Expected 2939 quarantined conflicts, got {len(conflicts)}"

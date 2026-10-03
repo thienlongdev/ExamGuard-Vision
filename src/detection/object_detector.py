@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 import logging
+import os
 from typing import Dict, List, Optional
 import numpy as np
 
@@ -31,7 +32,7 @@ class YOLOObjectDetector(ObjectDetector):
 
     def __init__(
         self,
-        model_path: str = "yolo26m.pt",
+        model_path: str = "models/trained/yolo26m.pt",
         confidence: float = 0.35,
         iou_threshold: float = 0.45,
         image_size: int = 640,
@@ -53,6 +54,12 @@ class YOLOObjectDetector(ObjectDetector):
 
     def _load_model(self) -> None:
         """Load the YOLO model and dynamically verify/resolve target class indices."""
+        if not os.path.exists(self.model_path):
+            candidate = os.path.join("models", "trained", self.model_path)
+            if os.path.exists(candidate):
+                self.model_path = candidate
+            elif os.path.exists(os.path.basename(self.model_path)):
+                self.model_path = os.path.basename(self.model_path)
         try:
             from ultralytics import YOLO
             logger.info(f"Loading object detector model from '{self.model_path}' on device '{self.device}'...")

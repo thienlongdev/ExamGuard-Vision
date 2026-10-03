@@ -65,6 +65,7 @@ recordings/
 *.avi
 *.mov
 *.mkv
+!tests/fixtures/*.mp4
 
 # ------------------------------------------------------------------------------
 # Runtime Evidence — Never Commit Personal / Webcam Data
@@ -72,47 +73,23 @@ recordings/
 evidence/
 
 # ------------------------------------------------------------------------------
-# Generated Machine Telemetry Reports & Visual Images
+# Generated Machine Telemetry Reports & Outputs
 # ------------------------------------------------------------------------------
-reports/ASUS_A17_*.json
-reports/FINAL_CERTIFICATION_AUDIT.json
-reports/final_*.png
-reports/screen_*.png
-reports/**/*.jpg
-reports/**/*.png
-reports/**/*.jpeg
+reports/
 
 # ------------------------------------------------------------------------------
-# Local Validation Runtime Outputs
+# Experiment Runs & Local Validation Outputs
 # ------------------------------------------------------------------------------
-runs/local_live/
+runs/
 
 # ------------------------------------------------------------------------------
-# Training Outputs & Intermediate Checkpoints
+# Local Samples & Temporary Video Captures
 # ------------------------------------------------------------------------------
-runs/detect/
-runs/pilot/
-runs/stage1_5/
-runs/stage1_v3/
-runs/stage2/
-runs/v4d/
-runs/stage2_integrity/*.json
-!runs/stage2_integrity/v4_checkpoint_identity.json
+samples/
 
-runs/v4c/**
-!runs/v4c/
-!runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/
-!runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt
-!runs/v4c/headpose_resnet18_yaw/
-!runs/v4c/headpose_resnet18_yaw/best_model.pt
-
-runs/**/weights/
-runs/**/*.png
-runs/**/*.jpg
-runs/**/*.jpeg
-runs/**/*.csv
-runs/**/*.log
-
-# Intermediate weights outside models/trained
+# ------------------------------------------------------------------------------
+# Intermediate weights outside canonical models/
+# ------------------------------------------------------------------------------
 weights/
 yolo11n.pt
+*.pt.tmp

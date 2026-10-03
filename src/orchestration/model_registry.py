@@ -8,6 +8,7 @@ warms up GPU execution, and prevents checkpoint reloading during runtime.
 
 import hashlib
 import logging
+import os
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple
 import torch
@@ -160,7 +161,11 @@ class ModelRegistry:
         # 1. General Object Detector (for Person & Phone)
         # Check general_object_detector first, fallback to detector
         det_cfg = self.models_cfg.get("general_object_detector") or self.models_cfg.get("detector", {})
-        det_path = det_cfg.get("model_path", "yolo26m.pt")
+        det_path = det_cfg.get("model_path", "models/trained/yolo26m.pt")
+        if not os.path.exists(det_path):
+            candidate = os.path.join("models", "trained", os.path.basename(det_path))
+            if os.path.exists(candidate):
+                det_path = candidate
         # Ensure detector is a genuine person/phone capable checkpoint
         det_imgsz = int(det_cfg.get("image_size", 640))
         target_classes = det_cfg.get("target_classes", ["person", "cell phone"])
