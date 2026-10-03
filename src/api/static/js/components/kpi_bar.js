@@ -22,21 +22,21 @@ export class KPIBarComponent {
 
   render() {
     this.container.innerHTML = `
-      <div class="kpi-row">
+      <div class="kpi-row" title="Mức cảnh báo dùng để ưu tiên giám thị xem xét, không phải kết luận gian lận.">
         <div class="kpi-chip kpi-total">
-          <div class="kpi-label">Events</div>
+          <div class="kpi-label">TỔNG SỰ KIỆN</div>
           <div class="kpi-val" id="kpi-total">0</div>
         </div>
         <div class="kpi-chip kpi-awaiting">
-          <div class="kpi-label">Awaiting</div>
+          <div class="kpi-label">CHỜ DUYỆT</div>
           <div class="kpi-val" id="kpi-awaiting">0</div>
         </div>
         <div class="kpi-chip kpi-confirmed">
-          <div class="kpi-label">Reviewed</div>
+          <div class="kpi-label">ĐÃ XÁC NHẬN</div>
           <div class="kpi-val" id="kpi-confirmed">0</div>
         </div>
         <div class="kpi-chip kpi-dismissed">
-          <div class="kpi-label">Dismissed</div>
+          <div class="kpi-label">ĐÃ BỎ QUA</div>
           <div class="kpi-val" id="kpi-dismissed">0</div>
         </div>
       </div>

@@ -215,8 +215,13 @@ class TrackEventStateMachine:
             cooldown_start = self.cooldown_start_time if self.cooldown_start_time is not None else timestamp
             elapsed = timestamp - cooldown_start
             if elapsed >= self.cooldown_seconds:
-                self.state = EventLifecycleState.INACTIVE
-                self.cooldown_start_time = None
+                # Reopen policy (Section 19):
+                # Only return to INACTIVE when cooldown elapsed AND the behavior has genuinely disappeared
+                # below the exit threshold (or was vetoed). This prevents reopening duplicate events
+                # while a single continuous behavior incident is still ongoing.
+                if is_vetoed or evidence_score < self.exit_threshold:
+                    self.state = EventLifecycleState.INACTIVE
+                    self.cooldown_start_time = None
             return None, "NONE"
 
         return None, "NONE"

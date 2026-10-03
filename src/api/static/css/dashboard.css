@@ -375,63 +375,157 @@ html, body {
   position: absolute;
   pointer-events: auto;
   cursor: pointer;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  border-radius: var(--radius-xs);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background var(--transition-fast);
 }
 
-/* Futuristic Corner Brackets Style */
+/* Corner Brackets Style */
 .track-box-corner {
   position: absolute;
-  width: 12px;
-  height: 12px;
-  border-color: var(--accent-cyan);
+  width: 14px;
+  height: 14px;
   pointer-events: none;
 }
 .track-box-corner.tl {
-  top: -1px; left: -1px;
-  border-top: 2px solid; border-left: 2px solid;
+  top: -2px; left: -2px;
+  border-top: 2.5px solid; border-left: 2.5px solid;
 }
 .track-box-corner.tr {
-  top: -1px; right: -1px;
-  border-top: 2px solid; border-right: 2px solid;
+  top: -2px; right: -2px;
+  border-top: 2.5px solid; border-right: 2.5px solid;
 }
 .track-box-corner.bl {
-  bottom: -1px; left: -1px;
-  border-bottom: 2px solid; border-left: 2px solid;
+  bottom: -2px; left: -2px;
+  border-bottom: 2.5px solid; border-left: 2.5px solid;
 }
 .track-box-corner.br {
-  bottom: -1px; right: -1px;
-  border-bottom: 2px solid; border-right: 2px solid;
+  bottom: -2px; right: -2px;
+  border-bottom: 2.5px solid; border-right: 2.5px solid;
 }
 
+/* State 1: SAFE (Green) */
+.track-box.risk-low,
+.track-box.risk-normal,
+.track-box.state-safe {
+  border: 1.5px solid var(--state-safe-border);
+  background: var(--state-safe-bg);
+  box-shadow: var(--state-safe-glow);
+}
+.track-box.risk-low .track-box-corner,
+.track-box.risk-normal .track-box-corner,
+.track-box.state-safe .track-box-corner {
+  border-color: var(--state-safe);
+}
+
+/* State 2: ATTENTION (Amber) */
+.track-box.risk-medium,
+.track-box.state-attention {
+  border: 2px solid var(--state-attention-border);
+  background: var(--state-attention-bg);
+  box-shadow: var(--state-attention-glow);
+  animation: pulse-attention 3s ease-in-out infinite;
+}
+.track-box.risk-medium .track-box-corner,
+.track-box.state-attention .track-box-corner {
+  border-color: var(--state-attention);
+}
+
+/* State 3: HIGH_ALERT (Red) */
+.track-box.risk-high,
+.track-box.state-high {
+  border: 2.5px solid var(--state-high-border);
+  background: var(--state-high-bg);
+  box-shadow: var(--state-high-glow);
+  animation: pulse-high 2.5s ease-in-out infinite;
+}
+.track-box.risk-high .track-box-corner,
+.track-box.state-high .track-box-corner {
+  border-color: var(--state-high);
+}
+
+@keyframes pulse-attention {
+  0%, 100% { box-shadow: 0 0 12px rgba(245, 158, 11, 0.35); border-color: rgba(245, 158, 11, 0.85); }
+  50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.65); border-color: #f59e0b; }
+}
+
+@keyframes pulse-high {
+  0%, 100% { box-shadow: 0 0 14px rgba(244, 63, 94, 0.45); border-color: rgba(244, 63, 94, 0.85); }
+  50% { box-shadow: 0 0 24px rgba(244, 63, 94, 0.80); border-color: #f43f5e; }
+}
+
+/* Clean, Human-Facing Two-Line Track Badge (Section 21) */
 .track-tag {
   position: absolute;
-  top: -26px;
-  left: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 8px;
-  border-radius: var(--radius-xs);
-  background: rgba(7, 17, 31, 0.92);
-  backdrop-filter: blur(6px);
+  top: -46px;
+  left: -1px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  background: rgba(7, 17, 31, 0.94);
+  backdrop-filter: blur(8px);
   border: 1px solid var(--border-light);
-  font-size: 0.78rem;
-  font-weight: 700;
-  font-family: var(--font-mono);
-  color: var(--text-primary);
   white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+  z-index: 5;
 }
 
-.track-box.risk-high .track-box-corner { border-color: var(--color-high); }
-.track-box.risk-high { background: rgba(244, 63, 94, 0.08); box-shadow: 0 0 14px rgba(244, 63, 94, 0.3); }
-.track-box.risk-medium .track-box-corner { border-color: var(--color-medium); }
-.track-box.risk-medium { background: rgba(245, 158, 11, 0.06); }
-.track-box.risk-low .track-box-corner { border-color: var(--color-low); }
-.track-box.risk-normal .track-box-corner { border-color: var(--color-normal); }
+.track-tag-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  font-family: var(--font-mono);
+}
+
+.track-tag-id {
+  color: var(--text-primary);
+  letter-spacing: 0.04em;
+}
+
+.track-tag-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: var(--radius-xs);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.track-tag-badge.safe {
+  background: rgba(16, 185, 129, 0.22);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+}
+
+.track-tag-badge.attention {
+  background: rgba(245, 158, 11, 0.25);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+}
+
+.track-tag-badge.high {
+  background: rgba(244, 63, 94, 0.28);
+  color: #f43f5e;
+  border: 1px solid rgba(244, 63, 94, 0.55);
+}
+
+.track-tag-bottom {
+  font-size: 0.70rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 
 .track-box:hover, .track-box.highlighted {
-  box-shadow: 0 0 16px var(--accent-cyan);
-  background: rgba(6, 182, 212, 0.12);
+  box-shadow: 0 0 20px var(--accent-cyan);
 }
 
 /* Camera Overlay Top Controls & Badges */

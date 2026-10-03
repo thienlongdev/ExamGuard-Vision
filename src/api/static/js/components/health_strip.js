@@ -23,49 +23,49 @@ export class HealthStripComponent {
   render() {
     this.container.innerHTML = `
       <div class="health-strip-card" id="health-strip">
-        <div class="health-item" title="Physical Camera Connection Layer">
+        <div class="health-item" title="Trạng thái kết nối camera vật lý">
           <span class="label">Camera</span>
-          <span class="val live" id="strip-cam-status">ACTIVE</span>
+          <span class="val live" id="strip-cam-status">HOẠT ĐỘNG</span>
         </div>
 
         <div class="health-divider"></div>
 
-        <div class="health-item" title="Measured Camera Ingestion Rate">
-          <span class="label">Capture</span>
+        <div class="health-item" title="Tốc độ thu hình từ camera vật lý">
+          <span class="label">Thu hình</span>
           <span class="val cyan" id="strip-cap-fps">— FPS</span>
         </div>
 
         <div class="health-divider"></div>
 
-        <div class="health-item" title="Full Pipeline AI Processing Rate">
-          <span class="label">AI Proc</span>
+        <div class="health-item" title="Tốc độ xử lý thực tế của luồng AI">
+          <span class="label">Xử lý AI</span>
           <span class="val cyan" id="strip-proc-fps">— FPS</span>
         </div>
 
         <div class="health-divider"></div>
 
-        <div class="health-item" title="Currently Tracked Students">
-          <span class="label">Tracks</span>
+        <div class="health-item" title="Số lượng thí sinh đang theo dõi">
+          <span class="label">Thí sinh</span>
           <span class="val" id="strip-tracks">0</span>
         </div>
 
         <div class="health-divider"></div>
 
-        <div class="health-item" title="Ingestion Queue Depth (Max 5)">
-          <span class="label">Queue</span>
+        <div class="health-item" title="Độ sâu hàng đợi khung hình (Tối đa 5)">
+          <span class="label">Hàng đợi</span>
           <span class="val" id="strip-queue">0 / 5</span>
         </div>
 
         <div class="health-divider"></div>
 
-        <div class="health-item" title="Backpressure Frame Drop Percentage">
-          <span class="label">Drop Rate</span>
+        <div class="health-item" title="Tỷ lệ bỏ khung hình khi nghẽn">
+          <span class="label">Tỷ lệ bỏ</span>
           <span class="val" id="strip-drops">0.0%</span>
         </div>
 
         <div class="health-divider"></div>
 
-        <div class="health-item" title="Dedicated NVIDIA GPU VRAM Allocation">
+        <div class="health-item" title="Bộ nhớ đồ họa NVIDIA GPU đang phân bổ">
           <span class="label">VRAM</span>
           <span class="val" id="strip-vram">— MB</span>
         </div>
@@ -88,11 +88,11 @@ export class HealthStripComponent {
 
     if (cam) {
       if (cam.streaming) {
-        if (elCam) { elCam.innerText = "ACTIVE"; elCam.className = "val live"; }
+        if (elCam) { elCam.innerText = "HOẠT ĐỘNG"; elCam.className = "val live"; }
       } else if (cam.connected) {
-        if (elCam) { elCam.innerText = "STANDBY"; elCam.className = "val amber"; }
+        if (elCam) { elCam.innerText = "CHỜ"; elCam.className = "val amber"; }
       } else {
-        if (elCam) { elCam.innerText = "OFFLINE"; elCam.className = "val"; }
+        if (elCam) { elCam.innerText = "NGOẠI TUYẾN"; elCam.className = "val"; }
       }
     }
 

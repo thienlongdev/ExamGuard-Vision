@@ -515,6 +515,12 @@ class Stage2Pipeline:
                     "time_since_seen_sec": 0.0,
                     "missing_duration": 0.0,
                     "continuity_status": "NEW",
+                    "baseline_y1_samples": [],
+                    "baseline_height_samples": [],
+                    "baseline_aspect_samples": [],
+                    "baseline_y1": None,
+                    "baseline_height": None,
+                    "baseline_aspect": None,
                 }
             else:
                 m_entry = self._track_metadata[tid]
@@ -561,7 +567,20 @@ class Stage2Pipeline:
             macro_ms = 0.0
             macro_eval_status = ObservationStatus.AVAILABLE if self._cached_macro_dets else ObservationStatus.NOT_EVALUATED
 
-        macro_map = {i: det for i, det in enumerate(macro_dets)}
+        # Match tracks to macro detections via IoU / spatial containment
+        macro_track_map = {}
+        for track in tracks:
+            best_det = None
+            best_iou = 0.0
+            for m_det in (macro_dets or []):
+                iou = track.bbox.iou(m_det.bbox)
+                if iou > best_iou:
+                    best_iou = iou
+                    best_det = m_det
+                elif best_det is None and track.bbox.contains_point(*m_det.bbox.center):
+                    best_det = m_det
+            if best_det and (best_iou >= 0.15 or track.bbox.contains_point(*best_det.bbox.center)):
+                macro_track_map[track.track_id] = best_det
 
         # 6. Physical Fusion Engine & Event Engine Updates
         t_fusion_total = 0.0
@@ -572,19 +591,70 @@ class Stage2Pipeline:
         unified_updates: List[UnifiedTrackUpdate] = []
         lifecycle_events: List[Tuple[FusedEvent, str]] = []
 
-        for i, track in enumerate(tracks):
+        for track in tracks:
             t_id = track.track_id
             pos_cue = posture_cues.get(t_id)
             hp_cue = headpose_cues.get(t_id)
             phone_assoc = phone_associations.get(t_id)
             phone_cue = phone_assoc.to_phone_cue() if phone_assoc else None
 
-            # Macro cue
-            macro_det = macro_map.get(i)
+            # Track state metadata & Seated baseline update
+            t_meta = self._track_metadata.setdefault(t_id, {})
+            cur_y1 = float(track.bbox.y1)
+            cur_h = float(track.bbox.height)
+            cur_w = float(track.bbox.width)
+            cur_ar = cur_h / max(1.0, cur_w)
+
+            # Update seated baseline during normal/read-write posture or initial stabilization
+            is_seated_cue = False
+            if pos_cue and pos_cue.status == ObservationStatus.AVAILABLE:
+                if pos_cue.predicted_class in ("NORMAL_UPRIGHT", "NORMAL_READ_WRITE"):
+                    is_seated_cue = True
+            elif t_meta.get("track_age_frames", 1) <= 15:
+                is_seated_cue = True
+
+            if is_seated_cue:
+                y1_list = t_meta.setdefault("baseline_y1_samples", [])
+                h_list = t_meta.setdefault("baseline_height_samples", [])
+                ar_list = t_meta.setdefault("baseline_aspect_samples", [])
+                y1_list.append(cur_y1)
+                h_list.append(cur_h)
+                ar_list.append(cur_ar)
+                if len(y1_list) > 60:
+                    y1_list.pop(0)
+                    h_list.pop(0)
+                    ar_list.pop(0)
+                t_meta["baseline_y1"] = float(np.median(y1_list))
+                t_meta["baseline_height"] = float(np.median(h_list))
+                t_meta["baseline_aspect"] = float(np.median(ar_list))
+
+            # Macro cue evaluation with conservative Standing validation gate
+            macro_det = macro_track_map.get(t_id)
             macro_cue = MacroBehaviorCue(status=macro_eval_status)
             if macro_det:
                 if macro_det.behavior == "stand":
-                    macro_cue.stand_score = macro_det.confidence
+                    conf = float(macro_det.confidence)
+                    is_stand_valid = (conf >= 0.55)
+
+                    # Posture veto: reading/writing or head on desk is not standing
+                    if pos_cue and pos_cue.status == ObservationStatus.AVAILABLE:
+                        rw_score = pos_cue.probabilities.get("NORMAL_READ_WRITE", 0.0)
+                        sleep_score = pos_cue.probabilities.get("HEAD_REST_SLEEP", 0.0)
+                        if rw_score >= 0.35 or sleep_score >= 0.35:
+                            is_stand_valid = False
+
+                    # Geometry gate: Leaning forward towards camera lowers head; actual standing extends upward!
+                    base_y1 = t_meta.get("baseline_y1")
+                    base_h = t_meta.get("baseline_height")
+                    base_ar = t_meta.get("baseline_aspect")
+                    samples_cnt = len(t_meta.get("baseline_y1_samples", []))
+                    if base_y1 is not None and base_h is not None and samples_cnt >= 8:
+                        head_rose = (cur_y1 < base_y1 - 0.12 * base_h)
+                        aspect_tall = (base_ar is not None and cur_ar > base_ar * 1.30)
+                        if not (head_rose or aspect_tall):
+                            is_stand_valid = False
+
+                    macro_cue.stand_score = conf if is_stand_valid else 0.0
                 elif macro_det.behavior == "discuss":
                     macro_cue.discuss_score = macro_det.confidence
 
@@ -774,14 +844,18 @@ class Stage2Pipeline:
                     pos = posture_cues.get(tid)
                     hp = headpose_cues.get(tid)
                     ph = phone_associations.get(tid)
-                    evs = [e.event_type for e in self._active_events_map.values() if e.track_id == tid]
+                    track_events = [e for e in self._active_events_map.values() if e.track_id == tid]
                     max_risk = "LOW"
-                    for e in self._active_events_map.values():
-                        if e.track_id == tid:
-                            if e.risk_level == "HIGH":
-                                max_risk = "HIGH"
-                            elif e.risk_level == "MEDIUM" and max_risk != "HIGH":
-                                max_risk = "MEDIUM"
+                    primary_ev = None
+                    for e in track_events:
+                        if e.risk_level == "HIGH":
+                            max_risk = "HIGH"
+                            primary_ev = e
+                            break
+                        elif e.risk_level == "MEDIUM" and max_risk != "HIGH":
+                            max_risk = "MEDIUM"
+                            primary_ev = e
+
                     tracks_summary.append({
                         "track_id": tid,
                         "bbox": bx,
@@ -789,7 +863,8 @@ class Stage2Pipeline:
                         "posture_conf": round(float(pos.confidence), 2) if (pos and hasattr(pos, "confidence") and pos.confidence is not None) else None,
                         "yaw_deg": round(float(hp.yaw_deg), 1) if (hp and hasattr(hp, "yaw_deg") and hp.yaw_deg is not None) else None,
                         "phone_status": ph.status if ph and hasattr(ph, "status") else "NONE",
-                        "active_events": evs,
+                        "active_events": [e.event_type for e in track_events],
+                        "primary_event_type": primary_ev.event_type if primary_ev else None,
                         "risk_level": max_risk,
                     })
                 with self._frame_lock:

@@ -41,16 +41,17 @@ class RiskAggregator:
         track_id = event.track_id
         ev_type = event.event_type
 
-        # Base score by event family
+        # Base score by event family (Deterministic evidence priority policy)
+        # Note: 0-100 score reflects auditable evidence strength, NOT probability of cheating.
         base_scores = {
-            EventFamily.SUSTAINED_HEAD_REST.value: 20.0,
+            EventFamily.SUSTAINED_HEAD_REST.value: 25.0,
             EventFamily.SUSTAINED_LATERAL_HEAD_ORIENTATION.value: 25.0,
-            EventFamily.PHONE_ASSOCIATED.value: 45.0,
+            EventFamily.PHONE_ASSOCIATED.value: 65.0,  # Elevated so sustained clear phone resolves to HIGH (>= 75)
             EventFamily.DISCUSSION_CANDIDATE.value: 30.0,
-            EventFamily.STANDING.value: 15.0,
+            EventFamily.STANDING.value: 25.0,
             EventFamily.MULTI_CUE_ATTENTION_SHIFT.value: 35.0,
         }
-        base = base_scores.get(ev_type, 20.0)
+        base = base_scores.get(ev_type, 25.0)
 
         # 1. Single-cue / short-duration safety
         if duration < 0.5:

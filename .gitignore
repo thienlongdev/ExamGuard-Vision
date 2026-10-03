@@ -93,3 +93,11 @@ samples/
 weights/
 yolo11n.pt
 *.pt.tmp
+
+# ------------------------------------------------------------------------------
+# QA Screenshots & Local Validation Imagery — Never Commit
+# ------------------------------------------------------------------------------
+screenshots/
+final_vi_*.png
+*.png
+!src/api/static/**/*.png

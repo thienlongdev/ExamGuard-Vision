@@ -1,11 +1,7 @@
-/**
- * ExamGuard Vision — Review Queue Component
- * Right panel displaying real-time observable events requiring human review.
- */
-
 import { appState } from "../state.js";
 import { formatRelativeTime, formatDuration } from "../adapter.js";
 import { ApiClient } from "../api.js";
+import { getSeverityInfo, ALERT_SEMANTICS_TOOLTIP } from "../localization.js";
 
 export class ReviewQueueComponent {
   constructor(containerId) {
@@ -41,15 +37,15 @@ export class ReviewQueueComponent {
       <div class="review-queue-panel">
         <div class="queue-header">
           <div class="queue-title-row">
-            <h2>Review Queue</h2>
-            <span class="queue-subtext">Realtime Observable Events</span>
+            <h2>Sự kiện cần xem</h2>
+            <span class="queue-subtext">Quan sát theo thời gian thực</span>
           </div>
 
           <div class="queue-filter-tabs">
-            <button class="filter-tab active" data-filter="all" id="tab-filter-all">All</button>
-            <button class="filter-tab" data-filter="awaiting" id="tab-filter-awaiting">Awaiting</button>
-            <button class="filter-tab" data-filter="reviewed" id="tab-filter-reviewed">Reviewed</button>
-            <button class="filter-tab" data-filter="dismissed" id="tab-filter-dismissed">Dismissed</button>
+            <button class="filter-tab active" data-filter="all" id="tab-filter-all">Tất cả</button>
+            <button class="filter-tab" data-filter="awaiting" id="tab-filter-awaiting">Chờ duyệt</button>
+            <button class="filter-tab" data-filter="reviewed" id="tab-filter-reviewed">Đã xác nhận</button>
+            <button class="filter-tab" data-filter="dismissed" id="tab-filter-dismissed">Đã bỏ qua</button>
           </div>
         </div>
 
@@ -58,8 +54,8 @@ export class ReviewQueueComponent {
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
             </svg>
-            <h4>No observable events awaiting review</h4>
-            <p>Physical camera feed active. Behavioral anomalies will be queued here.</p>
+            <h4>Không có sự kiện chờ duyệt</h4>
+            <p>Camera trực tiếp đang hoạt động. Các sự kiện cần chú ý sẽ xuất hiện tại đây.</p>
           </div>
         </div>
       </div>
@@ -89,8 +85,8 @@ export class ReviewQueueComponent {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
           </svg>
-          <h4>No observable events</h4>
-          <p>Continuous monitoring active on physical camera.</p>
+          <h4>Không có sự kiện</h4>
+          <p>Hệ thống giám sát liên tục đang hoạt động trên camera trực tiếp.</p>
         </div>
       `;
       return;
@@ -98,7 +94,8 @@ export class ReviewQueueComponent {
 
     scrollArea.innerHTML = events
       .map((ev) => {
-        const riskLower = ev.riskLevel.toLowerCase();
+        const sev = getSeverityInfo(ev.riskLevel);
+        const riskLower = sev.key;
         const isSelected = appState.selectedEventId === ev.eventId;
         const relativeTime = formatRelativeTime(ev.timestamp);
         const rStatus = ev.reviewStatus || "awaiting";
@@ -107,34 +104,34 @@ export class ReviewQueueComponent {
         if (rStatus === "awaiting") {
           actionHtml = `
             <div class="card-actions-group" onclick="event.stopPropagation()">
-              <button class="btn-action btn-confirm" data-action="confirm" data-id="${ev.eventId}" title="Mark as confirmed review">Confirm</button>
-              <button class="btn-action btn-dismiss" data-action="dismiss" data-id="${ev.eventId}" title="Dismiss event">Dismiss</button>
+              <button class="btn-action btn-confirm" data-action="confirm" data-id="${ev.eventId}" title="Giám thị xác nhận sự kiện">Xác nhận</button>
+              <button class="btn-action btn-dismiss" data-action="dismiss" data-id="${ev.eventId}" title="Bỏ qua sự kiện">Bỏ qua</button>
             </div>
           `;
         } else if (rStatus === "confirmed") {
-          actionHtml = `<span class="status-tag confirmed">✓ Human Confirmed</span>`;
+          actionHtml = `<span class="status-tag confirmed">✓ Đã xác nhận</span>`;
         } else {
-          actionHtml = `<span class="status-tag dismissed">Dismissed</span>`;
+          actionHtml = `<span class="status-tag dismissed">Đã bỏ qua</span>`;
         }
 
         const thumbHtml = ev.snapshotUrl
-          ? `<img class="card-thumbnail-img" src="${ev.snapshotUrl}" alt="Evidence" loading="lazy" onerror="this.style.display='none'; const el = this.parentElement.querySelector('.card-thumbnail-empty'); if (el) el.style.display='flex';" />
+          ? `<img class="card-thumbnail-img" src="${ev.snapshotUrl}" alt="Ảnh bằng chứng" loading="lazy" onerror="this.style.display='none'; const el = this.parentElement.querySelector('.card-thumbnail-empty'); if (el) el.style.display='flex';" />
              <div class="card-thumbnail-empty" style="display: none;">
                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                </svg>
-               <span>Evidence</span>
+               <span>Bằng chứng</span>
              </div>`
           : `<div class="card-thumbnail-empty">
                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                </svg>
-               <span>Evidence</span>
+               <span>Bằng chứng</span>
              </div>`;
 
         const isLive = ev.lifecycle === "open" || ev.lifecycle === "active";
         const lifecycleBadge = isLive
-          ? `<span class="event-live-indicator" title="Active physical event"><span class="live-pulse-dot small"></span> LIVE</span>`
+          ? `<span class="event-live-indicator" title="Sự kiện đang diễn ra"><span class="live-pulse-dot small"></span> TRỰC TIẾP</span>`
           : "";
 
         return `
@@ -145,7 +142,7 @@ export class ReviewQueueComponent {
                 ${lifecycleBadge}
               </span>
               <div class="card-badges">
-                <span class="risk-pill ${riskLower}">${ev.riskLevel}</span>
+                <span class="risk-pill ${riskLower}">${sev.badge}</span>
               </div>
             </div>
 
@@ -156,13 +153,11 @@ export class ReviewQueueComponent {
 
               <div class="card-details">
                 <div class="card-meta-line">
-                  <span>Student: <strong>#${ev.trackId}</strong></span>
-                  <span>·</span>
-                  <span>${ev.cameraId}</span>
+                  <span>Thí sinh: <strong>#${ev.trackId}</strong></span>
                   ${ev.duration ? `<span>·</span><span>${formatDuration(ev.duration)}</span>` : ""}
                 </div>
 
-                <div class="risk-bar-container">
+                <div class="risk-bar-container" title="${ALERT_SEMANTICS_TOOLTIP}">
                   <div class="risk-bar-track">
                     <div class="risk-bar-fill ${riskLower}" style="width: ${ev.score}%"></div>
                   </div>

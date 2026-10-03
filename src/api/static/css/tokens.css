@@ -38,6 +38,22 @@
   --color-dismissed: #64748b;
   --color-dismissed-dim: rgba(100, 116, 139, 0.18);
 
+  /* Centralized Alert State Tokens (Section 45) */
+  --state-safe: #10b981;
+  --state-safe-bg: rgba(16, 185, 129, 0.10);
+  --state-safe-border: #10b981;
+  --state-safe-glow: 0 0 14px rgba(16, 185, 129, 0.35);
+
+  --state-attention: #f59e0b;
+  --state-attention-bg: rgba(245, 158, 11, 0.12);
+  --state-attention-border: #f59e0b;
+  --state-attention-glow: 0 0 16px rgba(245, 158, 11, 0.45);
+
+  --state-high: #f43f5e;
+  --state-high-bg: rgba(244, 63, 94, 0.14);
+  --state-high-border: #f43f5e;
+  --state-high-glow: 0 0 20px rgba(244, 63, 94, 0.55);
+
   /* Typography Colors */
   --text-primary: #f8fafc;
   --text-secondary: #cbd5e1;

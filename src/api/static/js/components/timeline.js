@@ -1,10 +1,6 @@
-/**
- * ExamGuard Vision — Activity Timeline Component
- * Adaptive temporal visualization of observable events across tracked students.
- */
-
 import { appState } from "../state.js";
 import { formatDuration } from "../adapter.js";
+import { getSeverityInfo, REVIEW_STATUS_VI } from "../localization.js";
 
 export class TimelineComponent {
   constructor(containerId) {
@@ -39,19 +35,19 @@ export class TimelineComponent {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
             </svg>
-            Activity Timeline <span id="timeline-window-label" class="timeline-window-tag">2m Window</span>
+            Dòng thời gian hoạt động <span id="timeline-window-label" class="timeline-window-tag">Khung 2 phút</span>
           </div>
           <div class="timeline-legend">
-            <div class="legend-item"><span class="legend-dot high"></span> High Risk</div>
-            <div class="legend-item"><span class="legend-dot medium"></span> Medium</div>
-            <div class="legend-item"><span class="legend-dot low"></span> Low</div>
+            <div class="legend-item"><span class="legend-dot high"></span> Cảnh báo cao</div>
+            <div class="legend-item"><span class="legend-dot medium"></span> Cần chú ý</div>
+            <div class="legend-item"><span class="legend-dot low"></span> Thông tin</div>
           </div>
         </div>
 
         <div class="timeline-canvas-container" id="timeline-canvas-container">
           <div class="timeline-tracks-area" id="timeline-tracks-area">
             <div class="timeline-empty-notice">
-              Continuous monitoring active. Behavioral observations will display here across temporal lanes.
+              Hệ thống giám sát liên tục đang hoạt động. Các sự kiện quan sát sẽ hiển thị tại đây theo từng thí sinh.
             </div>
           </div>
 
@@ -75,21 +71,21 @@ export class TimelineComponent {
 
     // Adaptive window calculation
     let windowSec = 120; // 2m
-    let ticks = ["-2m", "-90s", "-60s", "-30s", "Now"];
-    let tag = "2m Window";
+    let ticks = ["-2p", "-90s", "-60s", "-30s", "Hiện tại"];
+    let tag = "Khung 2 phút";
 
     if (sessionAgeSec > 600) {
       windowSec = 900; // 15m
-      ticks = ["-15m", "-12m", "-9m", "-6m", "-3m", "Now"];
-      tag = "15m Rolling Window";
+      ticks = ["-15p", "-12p", "-9p", "-6p", "-3p", "Hiện tại"];
+      tag = "Khung 15 phút";
     } else if (sessionAgeSec > 300) {
       windowSec = 600; // 10m
-      ticks = ["-10m", "-8m", "-6m", "-4m", "-2m", "Now"];
-      tag = "10m Window";
+      ticks = ["-10p", "-8p", "-6p", "-4p", "-2p", "Hiện tại"];
+      tag = "Khung 10 phút";
     } else if (sessionAgeSec > 120) {
       windowSec = 300; // 5m
-      ticks = ["-5m", "-4m", "-3m", "-2m", "-1m", "Now"];
-      tag = "5m Window";
+      ticks = ["-5p", "-4p", "-3p", "-2p", "-1p", "Hiện tại"];
+      tag = "Khung 5 phút";
     }
 
     if (windowLabel) windowLabel.innerText = tag;
@@ -103,7 +99,7 @@ export class TimelineComponent {
     if (events.length === 0) {
       tracksArea.innerHTML = `
         <div class="timeline-empty-notice">
-          Continuous monitoring active on physical camera. No observable events in this session.
+          Hệ thống giám sát liên tục đang hoạt động trên camera trực tiếp. Chưa có sự kiện quan sát trong phiên này.
         </div>
       `;
       return;
@@ -121,7 +117,7 @@ export class TimelineComponent {
     if (byTrack.size === 0) {
       tracksArea.innerHTML = `
         <div class="timeline-empty-notice">
-          No observable events in the active ${tag.toLowerCase()}.
+          Không có sự kiện quan sát nào trong ${tag.toLowerCase()}.
         </div>
       `;
       return;
@@ -141,16 +137,19 @@ export class TimelineComponent {
 
             const leftPct = Math.max(0, Math.min(99, ((startClamped - windowStart) / windowSec) * 100));
             const widthPct = Math.max(1.8, Math.min(100 - leftPct, ((endClamped - startClamped) / windowSec) * 100));
-            const riskLower = ev.riskLevel.toLowerCase();
+            const sev = getSeverityInfo(ev.riskLevel);
+            const riskLower = sev.key;
 
-            // Compact event label if block is wide enough (> 6%)
             const showLabel = widthPct > 6;
             const shortLabel = getShortEventLabel(ev.canonicalType);
 
-            const tooltip = `${ev.displayName} (Student #${ev.trackId})\n` +
-              `Duration: ${formatDuration(ev.duration || (endClamped - startClamped))}\n` +
-              `Evidence Risk: ${ev.score}/100 (${ev.riskLevel})\n` +
-              `Status: ${ev.reviewStatus.toUpperCase()} · ${ev.lifecycle.toUpperCase()}`;
+            const rStatusVi = REVIEW_STATUS_VI[ev.reviewStatus] || ev.reviewStatus;
+            const lifecycleVi = ev.lifecycle === "closed" ? "Đã kết thúc" : "Đang diễn ra";
+
+            const tooltip = `${ev.displayName} (Thí sinh #${ev.trackId})\n` +
+              `Thời lượng: ${formatDuration(ev.duration || (endClamped - startClamped))}\n` +
+              `Mức cảnh báo: ${ev.score}/100 (${sev.badge})\n` +
+              `Trạng thái: ${rStatusVi} · ${lifecycleVi}`;
 
             return `
               <div 
@@ -167,7 +166,7 @@ export class TimelineComponent {
 
         return `
           <div class="timeline-track-lane">
-            <span class="timeline-lane-label">Student #${tid}</span>
+            <span class="timeline-lane-label">Thí sinh #${tid}</span>
             <div class="timeline-markers-track">
               ${markersHtml}
             </div>
@@ -186,10 +185,10 @@ export class TimelineComponent {
 }
 
 function getShortEventLabel(type) {
-  if (type === "SUSTAINED_HEAD_REST") return "HEAD REST";
-  if (type === "PHONE_ASSOCIATED") return "PHONE";
-  if (type === "SUSTAINED_LATERAL_HEAD_ORIENTATION") return "HEAD TURN";
-  if (type === "STANDING") return "STANDING";
-  if (type === "DISCUSSION_CANDIDATE") return "DISCUSS";
-  return "EVENT";
+  if (type === "SUSTAINED_HEAD_REST") return "GỤC ĐẦU";
+  if (type === "PHONE_ASSOCIATED") return "ĐIỆN THOẠI";
+  if (type === "SUSTAINED_LATERAL_HEAD_ORIENTATION") return "QUAY ĐẦU";
+  if (type === "STANDING") return "ĐỨNG DẬY";
+  if (type === "DISCUSSION_CANDIDATE") return "TRAO ĐỔI";
+  return "SỰ KIỆN";
 }

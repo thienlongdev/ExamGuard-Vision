@@ -88,16 +88,25 @@ class ReliabilityModel:
         return max(0.1, min(1.0, weight))
 
     def evaluate_phone_reliability(self, phone: PhoneCue) -> float:
-        """Compute reliability weight for phone/contraband association."""
+        """Compute reliability weight for phone/contraband association.
+        
+        Strict V4D Rule:
+        A clearly associated phone object (CLEAR_ASSOCIATION) carries high evidential weight.
+        Ambiguous associations are strongly discounted.
+        """
         if phone.status != ObservationStatus.AVAILABLE or not phone.detected:
             return 0.0
 
+        status_val = phone.association_status.value if hasattr(phone.association_status, "value") else str(phone.association_status)
         weight = self.phone_base
-        if phone.association_status == "AMBIGUOUS_ASSOCIATION":
+        if status_val == "AMBIGUOUS_ASSOCIATION":
             weight -= self.phone_ambiguous_penalty
+            conf = max(0.0, min(1.0, phone.association_confidence))
+            return max(0.1, min(1.0, weight * conf))
 
+        # Clear association: high reliable evidence (bounded between 0.85 and 1.0)
         conf = max(0.0, min(1.0, phone.association_confidence))
-        return max(0.1, min(1.0, weight * conf))
+        return max(0.85, min(1.0, weight * (0.80 + 0.20 * conf)))
 
     def compute_turn_fusion_evidence(
         self,

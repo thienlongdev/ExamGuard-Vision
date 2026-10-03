@@ -6,6 +6,13 @@
 import { appState } from "../state.js";
 import { formatRelativeTime, formatDuration } from "../adapter.js";
 import { ApiClient } from "../api.js";
+import {
+  EVENT_NAMES_VI,
+  SEVERITY_BANDS_VI,
+  REVIEW_STATUS_VI,
+  ALERT_SEMANTICS_TOOLTIP,
+  formatDurationVi
+} from "../localization.js";
 
 export class ReviewViewComponent {
   constructor(containerId) {
@@ -42,8 +49,8 @@ export class ReviewViewComponent {
         <!-- 1. Header Toolbar -->
         <div class="review-toolbar">
           <div>
-            <h2>Exam Event Review Log</h2>
-            <p>Historical record of all AI-detected observable behavior evidence for invigilator adjudication.</p>
+            <h2>Nhật ký sự kiện</h2>
+            <p>Lịch sử các sự kiện quan sát được để giám thị rà soát và đối chiếu bằng chứng.</p>
           </div>
 
           <div class="review-filters">
@@ -51,21 +58,21 @@ export class ReviewViewComponent {
               type="text" 
               class="review-search-input" 
               id="input-review-search" 
-              placeholder="Search student #, event name…" 
+              placeholder="Tìm thí sinh hoặc sự kiện…" 
             />
 
             <select class="review-select" id="select-review-status">
-              <option value="all">All Review Statuses</option>
-              <option value="awaiting">Awaiting Review</option>
-              <option value="confirmed">Human Confirmed</option>
-              <option value="dismissed">Dismissed</option>
+              <option value="all">Tất cả trạng thái</option>
+              <option value="awaiting">Chờ duyệt</option>
+              <option value="confirmed">Đã xác nhận</option>
+              <option value="dismissed">Đã bỏ qua</option>
             </select>
 
             <select class="review-select" id="select-review-risk">
-              <option value="all">All Risk Levels</option>
-              <option value="high">High Risk</option>
-              <option value="medium">Medium Risk</option>
-              <option value="low">Low Risk</option>
+              <option value="all">Tất cả mức cảnh báo</option>
+              <option value="high">Cảnh báo cao</option>
+              <option value="medium">Cần chú ý</option>
+              <option value="low">Thông tin</option>
             </select>
           </div>
         </div>
@@ -81,15 +88,15 @@ export class ReviewViewComponent {
             <table class="review-table">
               <thead>
                 <tr>
-                  <th style="width: 70px;">Evidence</th>
-                  <th>Observable Event</th>
-                  <th>Student Track</th>
+                  <th style="width: 70px;">Bằng chứng</th>
+                  <th>Sự kiện quan sát</th>
+                  <th>Thí sinh</th>
                   <th>Camera</th>
-                  <th>Time</th>
-                  <th>Duration</th>
-                  <th>Evidence Risk</th>
-                  <th>Review Status</th>
-                  <th style="text-align: right; width: 100px;">Action</th>
+                  <th>Thời điểm</th>
+                  <th>Thời lượng</th>
+                  <th title="${ALERT_SEMANTICS_TOOLTIP}">Mức cảnh báo</th>
+                  <th>Trạng thái duyệt</th>
+                  <th style="text-align: right; width: 110px;">Thao tác</th>
                 </tr>
               </thead>
               <tbody id="review-table-tbody">
@@ -102,25 +109,25 @@ export class ReviewViewComponent {
         <!-- 4. Session Adjudication Status Card (fills lower space meaningfully) -->
         <div class="review-session-adjudication-card" id="review-session-card">
           <div class="session-adjudication-header">
-            <h4>Invigilator Adjudication Summary</h4>
-            <span class="session-badge">AUDIT READY</span>
+            <h4>Tổng hợp xử lý của giám thị</h4>
+            <span class="session-badge">SẴN SÀNG RÀ SOÁT</span>
           </div>
           <div class="session-adjudication-body">
             <div class="adjudication-stat-box">
               <span class="stat-box-num" id="stat-total-events">0</span>
-              <span class="stat-box-desc">Total Recorded Anomalies</span>
+              <span class="stat-box-desc">Tổng sự kiện ghi nhận</span>
             </div>
             <div class="adjudication-stat-box">
               <span class="stat-box-num" id="stat-awaiting-review" style="color: var(--color-medium);">0</span>
-              <span class="stat-box-desc">Pending Adjudication</span>
+              <span class="stat-box-desc">Chờ giám thị duyệt</span>
             </div>
             <div class="adjudication-stat-box">
               <span class="stat-box-num" id="stat-confirmed-review" style="color: var(--color-live);">0</span>
-              <span class="stat-box-desc">Confirmed Observations</span>
+              <span class="stat-box-desc">Đã xác nhận</span>
             </div>
             <div class="adjudication-stat-box">
               <span class="stat-box-num" id="stat-dismissed-review" style="color: var(--color-dismissed);">0</span>
-              <span class="stat-box-desc">Dismissed Anomalies</span>
+              <span class="stat-box-desc">Đã bỏ qua</span>
             </div>
           </div>
         </div>
@@ -163,20 +170,20 @@ export class ReviewViewComponent {
     const row = document.getElementById("review-kpi-summary-row");
     if (row) {
       row.innerHTML = `
-        <div class="review-kpi-card">
-          <span class="review-kpi-label">TOTAL EVENTS</span>
+        <div class="review-kpi-card" title="Tổng số sự kiện = Chờ duyệt + Đã xác nhận + Đã bỏ qua">
+          <span class="review-kpi-label">TỔNG SỰ KIỆN</span>
           <span class="review-kpi-val">${kpis.total}</span>
         </div>
         <div class="review-kpi-card awaiting">
-          <span class="review-kpi-label">AWAITING REVIEW</span>
+          <span class="review-kpi-label">CHỜ DUYỆT</span>
           <span class="review-kpi-val">${kpis.awaiting}</span>
         </div>
         <div class="review-kpi-card confirmed">
-          <span class="review-kpi-label">HUMAN CONFIRMED</span>
+          <span class="review-kpi-label">ĐÃ XÁC NHẬN</span>
           <span class="review-kpi-val">${kpis.confirmed}</span>
         </div>
         <div class="review-kpi-card dismissed">
-          <span class="review-kpi-label">DISMISSED</span>
+          <span class="review-kpi-label">ĐÃ BỎ QUA</span>
           <span class="review-kpi-val">${kpis.dismissed}</span>
         </div>
       `;
@@ -215,7 +222,8 @@ export class ReviewViewComponent {
 
     if (this.searchTerm) {
       events = events.filter((e) => {
-        const text = `${e.displayName} ${e.canonicalType} student #${e.trackId} ${e.trackId}`.toLowerCase();
+        const viName = EVENT_NAMES_VI[e.canonicalType] || e.displayName;
+        const text = `${e.displayName} ${viName} ${e.canonicalType} thí sinh #${e.trackId} student #${e.trackId} ${e.trackId}`.toLowerCase();
         return text.includes(this.searchTerm);
       });
     }
@@ -224,7 +232,7 @@ export class ReviewViewComponent {
       tbody.innerHTML = `
         <tr>
           <td colspan="9" style="text-align: center; padding: 48px; color: var(--text-dim); font-size: 0.85rem;">
-            No events match the selected criteria.
+            Không tìm thấy sự kiện phù hợp với tiêu chí đã chọn.
           </td>
         </tr>
       `;
@@ -233,20 +241,22 @@ export class ReviewViewComponent {
 
     tbody.innerHTML = events
       .map((ev) => {
+        const sevInfo = SEVERITY_BANDS_VI[ev.riskLevel] || { label: ev.riskLevel, color: "var(--text-secondary)" };
         const riskLower = ev.riskLevel.toLowerCase();
         const timeStr = new Date(ev.timestamp * 1000).toLocaleTimeString([], { hour12: false });
         const thumbHtml = ev.snapshotUrl
-          ? `<img src="${ev.snapshotUrl}" class="review-table-thumb" alt="Snap" loading="lazy" onerror="this.style.display='none'; const el = this.parentElement.querySelector('.thumb-empty'); if (el) el.style.display='flex';" />
+          ? `<img src="${ev.snapshotUrl}" class="review-table-thumb" alt="Ảnh bằng chứng" loading="lazy" onerror="this.style.display='none'; const el = this.parentElement.querySelector('.thumb-empty'); if (el) el.style.display='flex';" />
              <div class="thumb-empty" style="display: none;">—</div>`
           : `<div class="thumb-empty">—</div>`;
 
         const rStatus = ev.reviewStatus || "awaiting";
-        let statusBadge = `<span class="status-tag awaiting">Awaiting Review</span>`;
+        const revInfo = REVIEW_STATUS_VI[rStatus] || { label: "Chờ duyệt", class: "awaiting" };
+        let statusBadge = `<span class="status-tag ${revInfo.class}">${revInfo.label}</span>`;
         if (rStatus === "confirmed") {
-          statusBadge = `<span class="status-tag confirmed">✓ Confirmed</span>`;
-        } else if (rStatus === "dismissed") {
-          statusBadge = `<span class="status-tag dismissed">Dismissed</span>`;
+          statusBadge = `<span class="status-tag confirmed">✓ ${revInfo.label}</span>`;
         }
+
+        const displayNameVi = EVENT_NAMES_VI[ev.canonicalType] || ev.displayName;
 
         return `
           <tr class="review-table-row" data-id="${ev.eventId}">
@@ -255,12 +265,12 @@ export class ReviewViewComponent {
             </td>
             <td>
               <div class="review-cell-event">
-                <strong>${ev.displayName}</strong>
+                <strong>${displayNameVi}</strong>
                 <span class="cell-subtext">${ev.canonicalType}</span>
               </div>
             </td>
             <td>
-              <span class="student-track-badge">Student #${ev.trackId}</span>
+              <span class="student-track-badge">Thí sinh #${ev.trackId}</span>
             </td>
             <td>
               <span style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary);">${ev.cameraId}</span>
@@ -269,11 +279,11 @@ export class ReviewViewComponent {
               <span style="font-family: var(--font-mono); font-size: 0.78rem;">${timeStr}</span>
             </td>
             <td>
-              <span>${formatDuration(ev.duration)}</span>
+              <span>${formatDurationVi(ev.duration)}</span>
             </td>
             <td>
-              <div class="review-risk-cell">
-                <span class="risk-pill ${riskLower}">${ev.riskLevel}</span>
+              <div class="review-risk-cell" title="${ALERT_SEMANTICS_TOOLTIP}">
+                <span class="risk-pill ${riskLower}">${sevInfo.label}</span>
                 <span class="risk-score-num">${ev.score}/100</span>
               </div>
             </td>
@@ -281,7 +291,7 @@ export class ReviewViewComponent {
               ${statusBadge}
             </td>
             <td style="text-align: right;">
-              <button class="btn-inspect-row" data-inspect="${ev.eventId}">Inspect</button>
+              <button class="btn-inspect-row" data-inspect="${ev.eventId}">Xem chi tiết</button>
             </td>
           </tr>
         `;

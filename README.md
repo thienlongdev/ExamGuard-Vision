@@ -272,13 +272,17 @@ Dựa trên dữ liệu chuỗi thời gian, động cơ `EventEngine` sẽ kíc
 6. **`MULTI_CUE_ATTENTION_SHIFT` (Chuyển hướng chú ý đa tín hiệu)**:
    - Sự kết hợp đồng thời giữa nhiều tín hiệu bất thường trong cùng một khoảng thời gian.
 
-### 5.3 Thang đo rủi ro bằng chứng (Evidence Risk Scoring)
+### 5.3 Thang đo mức cảnh báo bằng chứng (Evidence Alert Levels)
 
-Mức rủi ro trong hệ thống đại diện cho **mức độ đầy đủ và sự bền bỉ của bằng chứng quan sát được**, hoàn toàn không mang ý nghĩa phán xét tội lỗi:
+Hệ thống áp dụng 3 mức cảnh báo trực quan dựa trên **mức độ đầy đủ và sự bền bỉ của bằng chứng quan sát được**, hoàn toàn không mang ý nghĩa phán xét tội lỗi:
 
-- **`LOW` (Rủi ro thấp, 0 – 39 điểm)**: Tín hiệu xuất hiện thoáng qua hoặc ở ngưỡng biên của sự kiện.
-- **`MEDIUM` (Rủi ro trung bình, 40 – 74 điểm)**: Hành vi diễn ra rõ ràng trong một khoảng thời gian, cần giám thị lưu tâm quan sát.
-- **`HIGH` (Rủi ro cao, 75 – 100 điểm)**: Có sự kết hợp của nhiều bằng chứng mạnh mẽ (ví dụ: phát hiện điện thoại di động hoặc quay đầu liên tục kèm góc lệch lớn).
+- **`GREEN` (BÌNH THƯỜNG / THẤP, 0 – 39 điểm)**: Thí sinh duy trì tư thế đọc/viết hoặc ngồi thẳng bình thường, hoặc tín hiệu xuất hiện thoáng qua dưới ngưỡng sự kiện.
+- **`AMBER` (CẦN CHÚ Ý / TRUNG BÌNH, 40 – 74 điểm)**: Hành vi diễn ra rõ ràng trong một khoảng thời gian (gục đầu kéo dài, quay đầu kéo dài, đứng dậy rời chỗ được kiểm chứng hình học), cần giám thị lưu tâm quan sát.
+- **`RED` (CẢNH BÁO CAO / CAO, 75 – 100 điểm)**: Phát hiện điện thoại di động có liên kết không gian rõ ràng và kéo dài (`PHONE_ASSOCIATED` với `CLEAR_ASSOCIATION`), hoặc có sự kết hợp của nhiều dấu hiệu bất thường đồng thời.
+
+> [!NOTE]
+> **Quy tắc ngữ nghĩa cốt lõi:**
+> *"Mức cảnh báo là mức ưu tiên rà soát bằng chứng, không phải xác suất gian lận."* AI chỉ quan sát và tổng hợp bằng chứng hành vi theo chuỗi thời gian; việc kết luận hoàn toàn thuộc thẩm quyền của giám thị phòng thi.
 
 ---
 

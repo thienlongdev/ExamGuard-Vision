@@ -4,29 +4,13 @@
  * Strictly adheres to observable behavior semantics (No cheating words).
  */
 
-const EVENT_DISPLAY_NAMES = {
-  SUSTAINED_HEAD_REST: "Head Rest",
-  SUSTAINED_LATERAL_HEAD_ORIENTATION: "Lateral Head Orientation",
-  PHONE_ASSOCIATED: "Phone Detected Near Student",
-  DISCUSSION_CANDIDATE: "Discussion Candidate",
-  STANDING: "Standing",
-  turn_head: "Head Orientation Shift",
-  leaning: "Posture Shift / Leaning",
-  look_around: "Gaze / Orientation Shift",
-  prolonged_phone_use: "Phone Detected Near Student",
-};
+import { getEventNameVi, formatRelativeTimeVi, formatDurationVi } from "./localization.js";
 
 /**
- * Convert canonical or rule string into a polished display title.
+ * Convert canonical or rule string into a polished Vietnamese display title.
  */
 export function getEventDisplayName(rawType) {
-  if (!rawType) return "Observable Event";
-  if (EVENT_DISPLAY_NAMES[rawType]) return EVENT_DISPLAY_NAMES[rawType];
-  return rawType
-    .replace(/^ORIENTATION_/, "")
-    .replace(/_/g, " ")
-    .toLowerCase()
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return getEventNameVi(rawType);
 }
 
 /**
@@ -164,21 +148,12 @@ export function normalizeEvent(raw) {
  * Format relative seconds into human-readable compact string.
  */
 export function formatRelativeTime(timestampSec) {
-  if (!timestampSec) return "—";
-  const now = Date.now() / 1000;
-  const diff = Math.max(0, now - timestampSec);
-
-  if (diff < 5) return "Just now";
-  if (diff < 60) return `${Math.floor(diff)}s ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-  const d = new Date(timestampSec * 1000);
-  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  return formatRelativeTimeVi(timestampSec);
 }
 
 /**
  * Format duration in seconds.
  */
 export function formatDuration(sec) {
-  if (!sec || sec < 0.1) return "< 1s";
-  return `${sec.toFixed(1)}s`;
+  return formatDurationVi(sec);
 }
