@@ -608,6 +608,6 @@ flipud: 0.0
 ## Giấy phép và Tác giả
 
 - **Dự án**: ExamGuard Vision
-- **Tác giả / Nhóm phát triển**: Nguyễn Tú Thiên Long - Thái Văn Thái - Nguyễn Minh Đức
+- **Tác giả / Nhóm phát triển**: Nguyễn Tú Thiên Long - Hoàng Văn Thái - Nguyễn Minh Đức
 - **Mục đích**: Nghiên cứu khoa học, chuyển đổi số giáo dục và hỗ trợ nâng cao tính trung thực trong thi cử.
 - **Giấy phép**: Đề tài nghiên cứu ứng dụng — Chưa công bố giấy phép mã nguồn mở chính thức. Vui lòng ghi rõ nguồn khi tham khảo hoặc tái sử dụng.
