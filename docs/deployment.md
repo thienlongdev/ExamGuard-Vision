@@ -101,3 +101,56 @@ Once the launcher displays `Dashboard: http://127.0.0.1:8000/`:
 ### Model Checkpoint File Size Small (~130 bytes)
 - **Cause:** Git LFS pointers were cloned without the actual binary payloads.
 - **Resolution:** Run `git lfs pull` from the repository root. Ensure `models/trained/v4_headpose_yaw_best.pt` is ~284 MB.
+
+---
+
+## 6. Hướng dẫn vận hành một click trên Windows (One-Click Operations)
+
+ExamGuard Vision cung cấp trải nghiệm khởi động và dừng một click hoàn chỉnh trên Windows, phục vụ trình diễn và vận hành thực tế tại phòng thi mà không cần gõ lệnh dòng lệnh hay kích hoạt môi trường ảo thủ công.
+
+### 6.1 Khởi động một click (Start ExamGuard Vision)
+- **Cách thực hiện:** Double-click file `Start ExamGuard Vision.bat` tại thư mục gốc repository (hoặc shortcut **ExamGuard Vision** trên Desktop).
+- **Quy trình tự động:**
+  1. Kiểm tra môi trường Python `.venv`, file cấu hình `configs/runtime/asus_a17_demo.yaml` và sự hiện diện của 7 checkpoint mô hình AI.
+  2. Kiểm tra tính khả dụng của cổng 8000 và phát hiện nếu hệ thống đã đang chạy (tránh xung đột tạo 2 phiên bản).
+  3. Khởi động runtime camera (DirectShow 1280x720 @ 30 FPS) và pipeline nhận diện AI trên card đồ họa rời NVIDIA RTX 3050.
+  4. Lắng nghe endpoint `/health`. Ngay khi hệ thống sẵn sàng, trình duyệt mặc định sẽ tự động mở trang Bảng điều khiển: `http://127.0.0.1:8000/`.
+
+### 6.2 Dừng an toàn một click (Stop ExamGuard Vision)
+- **Cách thực hiện:** Double-click file `Stop ExamGuard Vision.bat` (hoặc shortcut **Stop ExamGuard Vision** trên Desktop).
+- **Quy trình tự động:**
+  1. Đọc PID đã ghi nhận trong `.runtime/examguard.pid` và xác minh đúng tiến trình ExamGuard.
+  2. Gửi tín hiệu dừng an toàn (graceful stop) qua file cờ `.runtime/stop.signal` và thông điệp đóng cửa sổ.
+  3. Runtime tiến hành đóng luồng camera vật lý, giải phóng handle phần cứng, dừng backend FastAPI, dọn dẹp bộ nhớ VRAM CUDA và lưu trữ bằng chứng.
+  4. Sau khi tiến trình dừng hoàn toàn, cổng 8000 được giải phóng và dọn sạch file trạng thái tạm thời.
+  5. Tuyệt đối không can thiệp hay buộc dừng các tiến trình Python khác trên máy tính.
+
+### 6.3 Cài đặt lối tắt ra màn hình Desktop (Desktop Shortcuts)
+- **Cách thực hiện:** Double-click file `Install ExamGuard Shortcuts.bat` (chỉ cần chạy một lần duy nhất).
+- **Kết quả:** Tự động tạo 2 lối tắt chuẩn Windows trên Desktop của người dùng:
+  - `ExamGuard Vision.lnk`: Trỏ vào `Start ExamGuard Vision.bat` với Working Directory chuẩn.
+  - `Stop ExamGuard Vision.lnk`: Trỏ vào `Stop ExamGuard Vision.bat`.
+- **Lưu ý:** Không yêu cầu quyền Administrator.
+
+### 6.4 Xử lý sự cố thường gặp (Troubleshooting)
+
+#### 1. Xung đột cổng 8000 (Port 8000 Occupied)
+- **Hiện tượng:** Launcher báo `[LỖI] Không thể khởi động ExamGuard Vision vì cổng 8000 đang được chương trình khác sử dụng.` kèm PID chiếm cổng.
+- **Bảo vệ an toàn:** Hệ thống **tuyệt đối không tự ý ngắt (kill)** tiến trình lạ này.
+- **Xử lý:** Kiểm tra PID được hiển thị trong thông báo lỗi (ví dụ dùng Task Manager hoặc `Get-Process -Id <PID>`) để tắt ứng dụng xung đột, hoặc khởi chạy với cổng khác.
+
+#### 2. Camera đang bị ứng dụng khác khóa (Camera Occupied)
+- **Hiện tượng:** Log báo lỗi `Could not open physical webcam index 0`.
+- **Nguyên nhân:** Windows Camera, Teams, Zoom hoặc trình duyệt đang chiếm giữ camera UVC.
+- **Xử lý:** Đóng các ứng dụng đang dùng webcam. Double-click `Stop ExamGuard Vision.bat` để đảm bảo sạch trạng thái, sau đó double-click `Start ExamGuard Vision.bat` lại.
+
+#### 3. Tra cứu nhật ký runtime (Startup Logs)
+- File nhật ký hoạt động được tự động ghi tại:
+  `.runtime/logs/examguard-runtime.log`
+- Khi gặp sự cố khởi động, launcher sẽ tự động trích xuất 15 dòng log gần nhất để người dùng nắm được nguyên nhân trực tiếp.
+
+#### 4. Chẩn đoán phần cứng toàn diện (Full Preflight Certification)
+- Khi cần kiểm tra SHA-256 toàn vẹn của tất cả 7 model, đo đạc thông số phần cứng CPU/RAM/VRAM chi tiết và kiểm tra khả năng DirectShow:
+  ```powershell
+  .\.venv\Scripts\python.exe scripts\laptop_preflight.py
+  ```

@@ -24,21 +24,55 @@
 
 ## Mục lục
 
-1. [Bắt đầu nhanh trong 5 phút (Dành cho người mới clone repo)](#1-bắt-đầu-nhanh-trong-5-phút-dành-cho-người-mới-clone-repo)
-2. [Xử lý sự cố thường gặp lần đầu chạy](#2-xử-lý-sự-cố-thường-gặp-lần-đầu-chạy)
-3. [Tổng quan hệ thống](#3-tổng-quan-hệ-thống)
-4. [Kiến trúc luồng xử lý (Pipeline Architecture)](#4-kiến-trúc-luồng-xử-lý-pipeline-architecture)
-5. [Danh mục hành vi và tư thế quan sát](#5-danh-mục-hành-vi-và-tư-thế-quan-sát)
-6. [Nguồn video hỗ trợ và tính trung thực nguồn gốc](#6-nguồn-video-hỗ-trợ-và-tính-trung-thực-nguồn-gốc)
-7. [Bảng điều khiển ExamGuard Vision Control Center](#7-bảng-điều-khiển-examguard-vision-control-center)
-8. [Hệ thống API và WebSocket](#8-hệ-thống-api-và-websocket)
-9. [Danh mục Checkpoint và Model Registry](#9-danh-mục-checkpoint-và-model-registry)
-10. [Quản lý bằng chứng và An toàn bảo mật](#10-quản-lý-bằng-chứng-và-an-toàn-bảo-mật)
-11. [Cấu trúc thư mục repository](#11-cấu-trúc-thư-mục-repository)
-12. [Kiểm thử và Đánh giá tính toàn vẹn](#12-kiểm-thử-và-đánh-giá-tính-toàn-vẹn)
-13. [Kết quả xác thực trên cấu hình ASUS TUF Gaming A17](#13-kết-quả-xác-thực-trên-cấu-hình-asus-tuf-gaming-a17)
-14. [Đánh giá tính sẵn sàng: Demo trường học vs Sản xuất](#14-đánh-giá-tính-sẵn-sàng-demo-trường-học-vs-sản-xuất)
-15. [Nghiên cứu và Huấn luyện ngoại tuyến](#15-nghiên-cứu-và-huấn-luyện-ngoại-tuyến)
+1. [Chạy nhanh trên Windows (One-Click)](#chạy-nhanh-trên-windows-one-click)
+2. [Bắt đầu nhanh trong 5 phút (Dành cho người mới clone repo)](#1-bắt-đầu-nhanh-trong-5-phút-dành-cho-người-mới-clone-repo)
+3. [Xử lý sự cố thường gặp lần đầu chạy](#2-xử-lý-sự-cố-thường-gặp-lần-đầu-chạy)
+4. [Tổng quan hệ thống](#3-tổng-quan-hệ-thống)
+5. [Kiến trúc luồng xử lý (Pipeline Architecture)](#4-kiến-trúc-luồng-xử-lý-pipeline-architecture)
+6. [Danh mục hành vi và tư thế quan sát](#5-danh-mục-hành-vi-và-tư-thế-quan-sát)
+7. [Nguồn video hỗ trợ và tính trung thực nguồn gốc](#6-nguồn-video-hỗ-trợ-và-tính-trung-thực-nguồn-gốc)
+8. [Bảng điều khiển ExamGuard Vision Control Center](#7-bảng-điều-khiển-examguard-vision-control-center)
+9. [Hệ thống API và WebSocket](#8-hệ-thống-api-và-websocket)
+10. [Danh mục Checkpoint và Model Registry](#9-danh-mục-checkpoint-và-model-registry)
+11. [Quản lý bằng chứng và An toàn bảo mật](#10-quản-lý-bằng-chứng-và-an-toàn-bảo-mật)
+12. [Cấu trúc thư mục repository](#11-cấu-trúc-thư-mục-repository)
+13. [Kiểm thử và Đánh giá tính toàn vẹn](#12-kiểm-thử-và-đánh-giá-tính-toàn-vẹn)
+14. [Kết quả xác thực trên cấu hình ASUS TUF Gaming A17](#13-kết-quả-xác-thực-trên-cấu-hình-asus-tuf-gaming-a17)
+15. [Đánh giá tính sẵn sàng: Demo trường học vs Sản xuất](#14-đánh-giá-tính-sẵn-sàng-demo-trường-học-vs-sản-xuất)
+16. [Nghiên cứu và Huấn luyện ngoại tuyến](#15-nghiên-cứu-và-huấn-luyện-ngoại-tuyến)
+
+---
+
+## Chạy nhanh trên Windows (One-Click)
+
+Dành cho laptop demo hoặc máy trạm đã cài đặt sẵn môi trường (`.venv`):
+
+1. **Khởi động một click:**
+   Double-click:
+   `Start ExamGuard Vision.bat`
+   
+   - Tự động nhận diện thư mục dự án và kiểm tra môi trường `.venv`.
+   - Kiểm tra nhanh cấu hình và sự hiện diện của 7 checkpoint mô hình (không tốn thời gian tính lại SHA).
+   - Tự động khởi động camera vật lý (DirectShow) và pipeline nhận diện AI trên RTX 3050 CUDA.
+   - Bảng điều khiển tự động mở trên trình duyệt mặc định tại:
+     `http://127.0.0.1:8000/`
+
+2. **Dừng an toàn:**
+   Khi kết thúc phiên giám sát, double-click:
+   `Stop ExamGuard Vision.bat`
+   
+   - Gửi tín hiệu dừng an toàn (graceful stop) đến đúng tiến trình ExamGuard.
+   - Giải phóng tài nguyên camera, dọn dẹp bộ nhớ CUDA và đóng cổng 8000.
+   - Tuyệt đối không can thiệp hay tắt các tiến trình Python khác của hệ điều hành.
+
+> [!TIP]
+> **Cài đặt lối tắt ngoài màn hình Desktop (Chạy 1 lần duy nhất):**
+> Double-click file `Install ExamGuard Shortcuts.bat`. Hệ thống sẽ tạo 2 icon **ExamGuard Vision** và **Stop ExamGuard Vision** trực tiếp trên Desktop.
+> 
+> **Chẩn đoán chuyên sâu & kiểm tra phần cứng khi cần:**
+> ```powershell
+> .\.venv\Scripts\python.exe scripts\laptop_preflight.py
+> ```
 
 ---
 

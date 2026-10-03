@@ -19,14 +19,31 @@ import json
 import logging
 import os
 import sys
+import threading
 import time
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from scripts.run_local_live_validation import LiveValidationOrchestrator
 
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+RUNTIME_DIR = os.path.join(REPO_ROOT, ".runtime")
+LOGS_DIR = os.path.join(RUNTIME_DIR, "logs")
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("asus_a17_demo")
+
+# Ensure .runtime/logs/ exists and attach file handler for persistent logs
+try:
+    os.makedirs(LOGS_DIR, exist_ok=True)
+    runtime_log_path = os.path.join(LOGS_DIR, "examguard-runtime.log")
+    file_handler = logging.FileHandler(runtime_log_path, encoding="utf-8")
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+    logger.addHandler(file_handler)
+    logging.getLogger().addHandler(file_handler)
+except Exception:
+    pass
 
 DEMO_CONFIG_PATH = "configs/runtime/asus_a17_demo.yaml"
 
@@ -59,6 +76,29 @@ def main():
         config_path=DEMO_CONFIG_PATH,
         burn_in_web_hud=args.burn_in_web_hud,
     )
+
+    # Background watcher for graceful shutdown signal from Windows launcher
+    stop_signal_file = os.path.join(RUNTIME_DIR, "stop.signal")
+    if os.path.exists(stop_signal_file):
+        try:
+            os.remove(stop_signal_file)
+        except Exception:
+            pass
+
+    def _watch_stop_signal():
+        while not orch.stop_event.is_set():
+            if os.path.exists(stop_signal_file):
+                logger.info("Graceful stop signal received from launcher. Stopping pipeline...")
+                orch.stop_event.set()
+                try:
+                    os.remove(stop_signal_file)
+                except Exception:
+                    pass
+                break
+            time.sleep(0.3)
+
+    stop_watcher = threading.Thread(target=_watch_stop_signal, daemon=True)
+    stop_watcher.start()
 
     if not orch.setup_pipeline():
         logger.error("ERROR: Could not open physical webcam. Please verify webcam connection.")
