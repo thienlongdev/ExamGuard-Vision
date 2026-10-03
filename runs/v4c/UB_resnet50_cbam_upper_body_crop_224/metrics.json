@@ -1,7 +1,0 @@
-{
-  "status": "OPTIONAL_FOLLOWUP_SKIPPED_NOT_NEEDED",
-  "reason": "Posture winner already satisfies all V4C readiness criteria. Upper-body follow-up skipped per Section 10 speed policy.",
-  "same_domain_val": {
-    "macro_f1": 0.8847
-  }
-}

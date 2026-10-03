@@ -1,24 +1,29 @@
-# Byte-compiled / optimized / DLL files
+# ==============================================================================
+# ExamGuard Vision — Git Ignore Configuration
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Python & Byte-compiled files
+# ------------------------------------------------------------------------------
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-
-# Environments
-.venv/
-env/
-venv/
-ENV/
 build/
 dist/
 *.egg-info/
 
-# Testing & Coverage
-.pytest_cache/
-.coverage
-htmlcov/
+# ------------------------------------------------------------------------------
+# Virtual Environments
+# ------------------------------------------------------------------------------
+.venv/
+env/
+venv/
+ENV/
 
-# IDE & OS files
+# ------------------------------------------------------------------------------
+# IDE & Operating System Caches
+# ------------------------------------------------------------------------------
 .idea/
 .vscode/
 *.swp
@@ -26,48 +31,87 @@ htmlcov/
 *~
 .DS_Store
 Thumbs.db
+desktop.ini
 
-# Sensitive & Local Configuration
+# ------------------------------------------------------------------------------
+# Testing & Coverage Caches
+# ------------------------------------------------------------------------------
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ------------------------------------------------------------------------------
+# Sensitive & Local Configuration Secrets
+# ------------------------------------------------------------------------------
 .env
 *.env
 *.pem
 *.key
 *.token
 
-# Datasets, Raw Imagery, and Storage
+# ------------------------------------------------------------------------------
+# Datasets, Raw Imagery, and Scratch Directories
+# ------------------------------------------------------------------------------
 datasets/
 storage/
 training/
 scratch/
 
-# Temporary video outputs and camera recordings
+# ------------------------------------------------------------------------------
+# Camera Recordings & Raw Video Outputs
+# ------------------------------------------------------------------------------
 recordings/
 *.mp4
 *.avi
 *.mov
 *.mkv
 
-# Local physical-camera evidence - never commit
-evidence/asus_a17_demo/
-evidence/local_validation/
+# ------------------------------------------------------------------------------
+# Runtime Evidence — Never Commit Personal / Webcam Data
+# ------------------------------------------------------------------------------
+evidence/
 
-# Local live validation runtime outputs
-runs/local_live/
-
-# Visual QA screenshots may contain personal webcam imagery
+# ------------------------------------------------------------------------------
+# Generated Machine Telemetry Reports & Visual Images
+# ------------------------------------------------------------------------------
+reports/ASUS_A17_*.json
+reports/FINAL_CERTIFICATION_AUDIT.json
 reports/final_*.png
 reports/screen_*.png
+reports/**/*.jpg
+reports/**/*.png
+reports/**/*.jpeg
 
-# Large intermediate runs artifacts: ignore heavy training images, logs, intermediate checkpoints
+# ------------------------------------------------------------------------------
+# Local Validation Runtime Outputs
+# ------------------------------------------------------------------------------
+runs/local_live/
+
+# ------------------------------------------------------------------------------
+# Training Outputs & Intermediate Checkpoints
+# ------------------------------------------------------------------------------
+runs/detect/
+runs/pilot/
+runs/stage1_5/
+runs/stage1_v3/
+runs/stage2/
+runs/v4d/
+runs/stage2_integrity/*.json
+!runs/stage2_integrity/v4_checkpoint_identity.json
+
+runs/v4c/**
+!runs/v4c/
+!runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/
+!runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt
+!runs/v4c/headpose_resnet18_yaw/
+!runs/v4c/headpose_resnet18_yaw/best_model.pt
+
 runs/**/weights/
 runs/**/*.png
 runs/**/*.jpg
 runs/**/*.jpeg
 runs/**/*.csv
 runs/**/*.log
-runs/**/*.pt
-!runs/v4c/C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt
-!runs/v4c/headpose_resnet18_yaw/best_model.pt
 
 # Intermediate weights outside models/trained
 weights/

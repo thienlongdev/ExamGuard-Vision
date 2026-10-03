@@ -169,10 +169,10 @@ Khi muốn kết thúc phiên giám sát:
 
 ### Điểm nổi bật về mặt công nghệ:
 1. **Phân tách rành mạch giữa Nhận diện và Kết luận**: AI phát hiện cử chỉ, vật thể, góc quay đầu; động cơ suy luận tổng hợp độ nghi vấn theo thời gian; giám thị là người quyết định.
-2. **Khắc phục triệt để nhược điểm Single-frame**: Loại bỏ hoàn toàn việc "bắt quả tang sai" do thí sinh chỉ vô tình ngẩng đầu hay cử động chớp nhoáng nhờ máy trạng thái thời gian và bộ đệm trượt 30 giây.
+2. **Khắc phục nhược điểm Single-frame**: Giảm cảnh báo do chuyển động thoáng qua thông qua temporal fusion, debounce và hysteresis, kết hợp máy trạng thái thời gian và bộ đệm trượt 30 giây.
 3. **Luồng video độc lập (Single-Camera Ownership)**: Camera vật lý chỉ mở một lần duy nhất trong toàn hệ thống bởi pipeline chính. Luồng video hiển thị trên Web tiêu thụ frame đã qua xử lý downstream, không gây xung đột cổng USB/driver webcam.
 4. **Giao diện thương mại sạch (Clean Product Stream)**: Luồng video trên web hoàn toàn sạch sẽ, không bị vẽ đè chữ debug khó nhìn; khung bounding box và thông số được vẽ mượt mà ở phía client (trình duyệt).
-5. **Khả năng hoạt động 100% Offline**: Không phụ thuộc vào CDN bên ngoài, không gửi dữ liệu ra Internet, bảo đảm bảo mật tuyệt đối cho kỳ thi.
+5. **Vận hành hoàn toàn Offline**: Hệ thống có thể vận hành offline và không yêu cầu CDN/cloud trong luồng runtime chính, không gửi dữ liệu ra ngoài môi trường mạng nội bộ.
 
 ---
 
@@ -416,15 +416,22 @@ ExamGuard-Vision/
 │   └── runtime/              # Cấu hình hồ sơ thực thi đã chứng thực
 │       └── asus_a17_demo.yaml # Hồ sơ vận hành chuẩn cho ASUS TUF Gaming A17
 │
+├── docs/                     # Tài liệu kỹ thuật chi tiết
+│   ├── validation.md         # Báo cáo kiểm định phần cứng và chứng thực hệ thống
+│   ├── architecture.md       # Thiết kế kiến trúc luồng xử lý và hợp nhất đa tín hiệu
+│   └── deployment.md         # Hướng dẫn chi tiết triển khai và vận hành hệ thống
+│
 ├── models/                   # Thư mục lưu trữ model
 │   └── trained/              # Các model đã huấn luyện và đóng băng
 │       ├── stage1_5_best.pt        # Model hành vi macro Stage 1.5
 │       ├── v4_posture_best.pt      # Model phân loại tư thế 4 lớp (MobileNetV3)
 │       └── v4_headpose_yaw_best.pt # Model ước lượng góc quay đầu (HopeNet - Git LFS)
 │
-├── runs/v4c/                 # Checkpoint dự phòng và cấu trúc bổ trợ
-│   ├── C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt
-│   └── headpose_resnet18_yaw/best_model.pt (Git LFS)
+├── runs/                     # Checkpoint dự phòng và manifest kiểm định
+│   ├── stage2_integrity/v4_checkpoint_identity.json
+│   └── v4c/
+│       ├── C1_mobilenet_v3_small_tight_person_crop_320/best_model.pt
+│       └── headpose_resnet18_yaw/best_model.pt (Git LFS)
 │
 ├── src/                      # Mã nguồn logic cốt lõi
 │   ├── api/                  # Tầng Backend FastAPI & Giao tiếp
@@ -457,9 +464,13 @@ ExamGuard-Vision/
 │   ├── laptop_preflight.py   # Công cụ tiền kiểm tra phần cứng, GPU, model và cổng mạng
 │   └── run_local_live_validation.py # Bộ công cụ kiểm định sâu các thành phần
 │
-├── tests/                    # Bộ kiểm thử tự động (Unit & Integration tests)
-└── reports/                  # Báo cáo kiểm định chứng thực và viễn trắc đo đạc
+└── tests/                    # Bộ kiểm thử tự động (Unit & Integration tests)
 ```
+
+### Tài liệu kỹ thuật chuyên sâu (Technical Documentation)
+- **[Báo cáo Kiểm định Phần cứng & Chứng thực (docs/validation.md)](docs/validation.md)**: Toàn văn kết quả kiểm định soak test 10 phút, đo lường an toàn bộ nhớ VRAM, độ trễ từng module và ma trận sẵn sàng phần cứng.
+- **[Kiến trúc Hệ thống & Hợp nhất Đa tín hiệu (docs/architecture.md)](docs/architecture.md)**: Sơ đồ chi tiết quy trình xử lý luồng, máy trạng thái sự kiện Observable Event Engine và cơ chế chống đếm trùng tín hiệu.
+- **[Hướng dẫn Triển khai & Vận hành (docs/deployment.md)](docs/deployment.md)**: Hướng dẫn cài đặt từ đầu, tham số dòng lệnh launcher và danh mục xử lý sự cố thường gặp.
 
 ---
 
@@ -508,9 +519,9 @@ Hệ thống đã trải qua quá trình đo đạc thực nghiệm vật lý kh
 - **Số khung hình xử lý qua AI**: 646 khung hình
 - **Số khung hình bị rớt**: **0 khung hình (Tỷ lệ rớt 0.0%)** nhờ cơ chế điều tiết hàng đợi giải mã.
 - **Tốc độ suy luận AI thực tế**: ~10,0 FPS (Phù hợp định thời cadence tiết kiệm năng lượng).
-- **Độ trễ trung vị xử lý (p50 Latency)**: **93,0 – 96,8 ms** (Đảm bảo độ phản hồi dưới 100 ms).
-- **Bộ nhớ VRAM GPU cấp phát**: **289,3 MB** trên tổng dung lượng 4.096 MB (Dư thừa hơn 3.800 MB VRAM an toàn, không có nguy cơ tràn bộ nhớ OOM).
-- **Bộ nhớ RAM hệ thống chiếm dụng**: 1.745,8 MB RSS (Không ghi nhận hiện tượng rò rỉ bộ nhớ).
+- **Độ trễ trung vị xử lý (p50 Latency)**: Ghi nhận p50 khoảng 93–96.8 ms trong phiên kiểm thử trên ASUS A17.
+- **Bộ nhớ VRAM GPU cấp phát**: **289,3 MB** trên tổng dung lượng 4.096 MB (dư thừa hơn 3.800 MB VRAM an toàn, không ghi nhận CUDA OOM trong phiên kiểm thử).
+- **Bộ nhớ RAM hệ thống chiếm dụng**: 1.745,8 MB RSS (Không ghi nhận xu hướng tăng bộ nhớ bất thường trong phiên smoke test).
 - **Tính ổn định của WebSocket**: Kết nối liên tục, đã kiểm thử ngắt kết nối và tự động kết nối lại thành công mà không phát sinh sự kiện rác hay trùng lặp.
 
 ---
@@ -577,4 +588,4 @@ flipud: 0.0
 - **Dự án**: ExamGuard Vision
 - **Tác giả / Nhóm phát triển**: Nguyễn Tú Thiên Long - Thái Văn Thái - Nguyễn Minh Đức
 - **Mục đích**: Nghiên cứu khoa học, chuyển đổi số giáo dục và hỗ trợ nâng cao tính trung thực trong thi cử.
-- **Giấy phép**: Đề tài nghiên cứu ứng dụng — Vui lòng ghi rõ nguồn khi tham khảo hoặc tái sử dụng.
+- **Giấy phép**: Đề tài nghiên cứu ứng dụng — Chưa công bố giấy phép mã nguồn mở chính thức. Vui lòng ghi rõ nguồn khi tham khảo hoặc tái sử dụng.

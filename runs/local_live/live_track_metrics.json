@@ -1,9 +1,0 @@
-{
-  "tracking_engine": "ByteTrack",
-  "active_tracks_distribution": {},
-  "track_loss_count": null,
-  "track_recovery_count": null,
-  "identity_continuity_rate": null,
-  "tracking_measurement_status": "DEFERRED_NO_PHYSICAL_CAMERA",
-  "note": "Zero physical camera frames existed. Metrics are null rather than zero to avoid misrepresenting absence as zero loss."
-}
