@@ -8,15 +8,22 @@ export class CameraViewComponent {
     this.streamImg = null;
     this.overlaysLayer = null;
     this.placeholderEl = null;
+    this.sessionStartOverlay = null;
     this.isStreaming = false;
     this.isFullscreen = false;
-    this.sessionStartOverlay = null;
+    this.streamState = "CONNECTING"; // CONNECTING | LIVE | RECONNECTING | ERROR
+    this.canonicalCameraId = "webcam_0";
+    this.cameraLabel = "CAM 01";
+    this.reconnectTimer = null;
+    this.healthMonitorTimer = null;
+    this.reconnectAttempts = 0;
     this.init();
   }
 
   init() {
     this.render();
     this.bindEvents();
+    this.startHealthMonitor();
 
     appState.subscribe((type, payload) => {
       if (type === "TRACKS_UPDATED") {
@@ -33,12 +40,89 @@ export class CameraViewComponent {
     this.updateSessionState(appState.currentSession);
   }
 
+  setStreamState(state, message = null) {
+    this.streamState = state;
+    const titleEl = document.getElementById("camera-placeholder-title");
+    const descEl = document.getElementById("camera-placeholder-desc");
+    const idChip = document.getElementById("cam-id-chip");
+
+    if (state === "LIVE") {
+      this.isStreaming = true;
+      this.reconnectAttempts = 0;
+      if (this.placeholderEl) this.placeholderEl.style.display = "none";
+      if (idChip) {
+        idChip.className = "cam-chip highlight";
+        idChip.innerHTML = `<span style="color: var(--color-live, #10b981)">●</span><span>${this.cameraLabel} (TRỰC TIẾP)</span>`;
+        idChip.title = `Camera ID gốc: ${this.canonicalCameraId}`;
+      }
+    } else if (state === "CONNECTING") {
+      this.isStreaming = false;
+      if (this.placeholderEl) this.placeholderEl.style.display = "flex";
+      if (titleEl) titleEl.innerText = "Đang kết nối camera trực tiếp…";
+      if (descEl) descEl.innerText = message || "Đang kết nối webcam vật lý trên ASUS TUF Gaming A17";
+      if (idChip) {
+        idChip.className = "cam-chip";
+        idChip.innerHTML = `<span style="color: var(--color-warning, #f59e0b)">●</span><span>${this.cameraLabel} (ĐANG KẾT NỐI)</span>`;
+      }
+    } else if (state === "RECONNECTING") {
+      this.isStreaming = false;
+      if (this.placeholderEl) this.placeholderEl.style.display = "flex";
+      if (titleEl) titleEl.innerText = "Không thể hiển thị luồng trực tiếp — đang kết nối lại";
+      if (descEl) descEl.innerText = message || `Đang tự động thử lại luồng video (lần ${this.reconnectAttempts})…`;
+      if (idChip) {
+        idChip.className = "cam-chip";
+        idChip.innerHTML = `<span style="color: var(--color-danger, #ef4444)">●</span><span>${this.cameraLabel} (KẾT NỐI LẠI)</span>`;
+      }
+    } else if (state === "ERROR") {
+      this.isStreaming = false;
+      if (this.placeholderEl) this.placeholderEl.style.display = "flex";
+      if (titleEl) titleEl.innerText = "Mất kết nối camera";
+      if (descEl) descEl.innerText = message || "Không tìm thấy thiết bị webcam khả dụng";
+      if (idChip) {
+        idChip.className = "cam-chip";
+        idChip.innerHTML = `<span style="color: var(--text-dim, #64748b)">○</span><span>${this.cameraLabel} (NGOẠI TUYẾN)</span>`;
+      }
+    }
+  }
+
+  reconnectStream(reason = "auto") {
+    if (!this.streamImg) return;
+    this.reconnectAttempts++;
+    this.setStreamState("RECONNECTING", `Đang tự động kết nối lại luồng video (lần ${this.reconnectAttempts})…`);
+    const ts = Date.now();
+    this.streamImg.src = `/api/cameras/stream?t=${ts}`;
+  }
+
+  startHealthMonitor() {
+    if (this.healthMonitorTimer) clearInterval(this.healthMonitorTimer);
+    this.healthMonitorTimer = setInterval(() => {
+      // 1. If stream image has decoded pixels in DOM, transition to LIVE
+      if (this.streamImg && this.streamImg.naturalWidth > 0) {
+        if (this.streamState !== "LIVE") {
+          this.setStreamState("LIVE");
+        }
+        return;
+      }
+
+      // 2. Check if backend reports capture is active, but DOM stream is not rendering
+      const cam = appState.cameraInfo;
+      const isBackendActive = cam && (cam.streaming || cam.connected || cam.is_active);
+
+      if (isBackendActive) {
+        if (this.streamState !== "RECONNECTING") {
+          this.setStreamState("RECONNECTING", "Không thể hiển thị luồng trực tiếp — đang kết nối lại");
+        }
+        this.reconnectStream("backend_active_dom_empty");
+      }
+    }, 1500);
+  }
+
   render() {
     this.container.innerHTML = `
       <div class="camera-viewport-card" id="camera-card">
         <div class="camera-top-bar">
           <div class="camera-meta-chips">
-            <div class="cam-chip highlight" id="cam-id-chip">
+            <div class="cam-chip highlight" id="cam-id-chip" title="Camera ID gốc: ${this.canonicalCameraId}">
               <span style="color: var(--color-live)">●</span>
               <span>CAM 01 (TRỰC TIẾP)</span>
             </div>
@@ -73,13 +157,13 @@ export class CameraViewComponent {
               </svg>
             </div>
             <div class="camera-placeholder-text">
-              <h3>Đang chờ luồng camera trực tiếp…</h3>
-              <p>Đang kết nối webcam vật lý trên ASUS TUF Gaming A17</p>
+              <h3 id="camera-placeholder-title">Đang kết nối camera trực tiếp…</h3>
+              <p id="camera-placeholder-desc">Đang kết nối webcam vật lý trên ASUS TUF Gaming A17</p>
             </div>
           </div>
 
           <!-- Start Monitoring Session Overlay (Workstream 4) -->
-          <div class="camera-no-session-overlay" id="camera-no-session-overlay" style="display: none; position: absolute; inset: 0; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(8px); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px;">
+          <div class="camera-no-session-overlay" id="camera-no-session-overlay" style="display: none; position: absolute; inset: 0; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(8px); z-index: 50; align-items: center; justify-content: center; padding: 20px;">
             <div style="background: #0f172a; border: 1px solid #1e293b; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); border-radius: 12px; width: 100%; max-width: 480px; padding: 24px;">
               <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
                 <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(2, 132, 199, 0.15); border: 1px solid rgba(2, 132, 199, 0.3); display: flex; align-items: center; justify-content: center; color: #38bdf8;">
@@ -143,18 +227,23 @@ export class CameraViewComponent {
 
     // Handle stream load & error events
     this.streamImg.onload = () => {
-      this.placeholderEl.style.display = "none";
-      this.isStreaming = true;
+      if (this.streamImg.naturalWidth > 0) {
+        this.setStreamState("LIVE");
+      }
     };
 
     this.streamImg.onerror = () => {
-      this.placeholderEl.style.display = "flex";
-      this.isStreaming = false;
-      setTimeout(() => {
-        if (!this.isStreaming && this.streamImg) {
-          this.streamImg.src = `/api/cameras/stream?t=${Date.now()}`;
-        }
-      }, 3000);
+      const cam = appState.cameraInfo;
+      const isBackendActive = cam && (cam.streaming || cam.connected);
+      if (isBackendActive) {
+        this.setStreamState("RECONNECTING", "Không thể hiển thị luồng trực tiếp — đang kết nối lại");
+      } else {
+        this.setStreamState("ERROR", "Lỗi luồng webcam vật lý");
+      }
+      if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = setTimeout(() => {
+        this.reconnectStream("onerror");
+      }, 1500);
     };
   }
 
@@ -174,9 +263,8 @@ export class CameraViewComponent {
 
     if (btnRefresh) {
       btnRefresh.addEventListener("click", () => {
-        if (this.streamImg) {
-          this.streamImg.src = `/api/cameras/stream?t=${Date.now()}`;
-        }
+        this.reconnectAttempts = 0;
+        this.reconnectStream("manual_refresh");
       });
     }
 
@@ -189,6 +277,21 @@ export class CameraViewComponent {
         }
       });
     }
+
+    // Reconnect on tab visibility change or window focus
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) {
+        if (!this.streamImg || this.streamImg.naturalWidth === 0) {
+          this.reconnectStream("visibility_change");
+        }
+      }
+    });
+
+    window.addEventListener("focus", () => {
+      if (!this.streamImg || this.streamImg.naturalWidth === 0) {
+        this.reconnectStream("window_focus");
+      }
+    });
 
     const startForm = document.getElementById("cam-start-session-form");
     if (startForm) {
@@ -233,18 +336,32 @@ export class CameraViewComponent {
 
   updateCameraMeta(cam) {
     if (!cam) return;
+    if (cam.camera_id) {
+      this.canonicalCameraId = cam.camera_id;
+    }
     const resEl = document.getElementById("cam-res-chip");
     const fpsEl = document.getElementById("cam-fps-chip");
     const tracksEl = document.getElementById("cam-tracks-chip");
+    const idChip = document.getElementById("cam-id-chip");
 
     if (resEl) {
       resEl.innerText = cam.observed_resolution || cam.configured_resolution || "1280x720";
     }
     if (fpsEl) {
-      fpsEl.innerText = cam.observed_capture_fps ? `${cam.observed_capture_fps.toFixed(1)} FPS` : "30.0 FPS";
+      const fpsVal = cam.observed_capture_fps || cam.fps || 30.0;
+      fpsEl.innerText = `${fpsVal.toFixed(1)} FPS`;
     }
     if (tracksEl) {
       tracksEl.innerText = `${appState.activeTracks.length} THÍ SINH`;
+    }
+    if (idChip) {
+      idChip.title = `Camera ID gốc: ${this.canonicalCameraId}`;
+    }
+
+    if (cam.streaming === false && cam.connected === false && this.streamState !== "ERROR") {
+      this.setStreamState("ERROR", "Webcam vật lý ngoại tuyến");
+    } else if (cam.streaming && this.streamImg && this.streamImg.naturalWidth > 0 && this.streamState !== "LIVE") {
+      this.setStreamState("LIVE");
     }
   }
 

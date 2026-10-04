@@ -925,52 +925,75 @@ def create_app(
 
     @app.get("/api/cameras/stream")
     @app.get("/api/cameras/{cam_id}/stream")
-    async def get_camera_stream(request: Request, cam_id: Optional[str] = None):
+    async def get_camera_stream(request: Request, cam_id: Optional[str] = None, max_frames: int = 0):
         """MJPEG video stream downstream of active perception pipeline."""
         if enforce_auth:
             _require_permission(request, Permission.MONITOR_VIEW)
 
+        stream_headers = {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+            "X-Accel-Buffering": "no",
+        }
+
         if camera_manager is not None:
-            target_cam = cam_id or camera_manager.hero_camera_id
+            target_cam = camera_manager.resolve_canonical_camera_id(cam_id)
             async def multi_frame_gen():
-                while True:
-                    frame_bytes = camera_manager.get_camera_frame(target_cam)
-                    if frame_bytes is not None:
-                        yield (
-                            b"--frame\r\n"
-                            b"Content-Type: image/jpeg\r\n"
-                            b"Content-Length: " + str(len(frame_bytes)).encode() + b"\r\n\r\n" +
-                            frame_bytes + b"\r\n"
-                        )
-                    await asyncio.sleep(0.04)
+                yielded = 0
+                try:
+                    while True:
+                        if await request.is_disconnected():
+                            break
+                        frame_bytes = camera_manager.get_camera_frame(target_cam)
+                        if frame_bytes is not None:
+                            yield (
+                                b"--frame\r\n"
+                                b"Content-Type: image/jpeg\r\n"
+                                b"Content-Length: " + str(len(frame_bytes)).encode() + b"\r\n\r\n" +
+                                frame_bytes + b"\r\n"
+                            )
+                            yielded += 1
+                            if max_frames > 0 and yielded >= max_frames:
+                                break
+                        await asyncio.sleep(0.04)
+                except (asyncio.CancelledError, GeneratorExit):
+                    pass
 
             return StreamingResponse(
                 multi_frame_gen(),
                 media_type="multipart/x-mixed-replace; boundary=frame",
+                headers=stream_headers,
             )
 
         if stage2_pipeline is None:
             raise HTTPException(status_code=503, detail="Camera pipeline is not initialized.")
 
         async def frame_generator():
-            while True:
-                if hasattr(stage2_pipeline, "source") and hasattr(stage2_pipeline.source, "is_opened"):
-                    if not stage2_pipeline.source.is_opened():
+            yielded = 0
+            try:
+                while True:
+                    if await request.is_disconnected():
                         break
-
-                jpeg_data = getattr(stage2_pipeline, "_latest_jpeg_frame", None)
-                if jpeg_data is not None:
-                    yield (
-                        b"--frame\r\n"
-                        b"Content-Type: image/jpeg\r\n"
-                        b"Content-Length: " + str(len(jpeg_data)).encode() + b"\r\n\r\n" +
-                        jpeg_data + b"\r\n"
-                    )
-                await asyncio.sleep(0.04)
+                    jpeg_data = getattr(stage2_pipeline, "_latest_jpeg_frame", None)
+                    if jpeg_data is not None:
+                        yield (
+                            b"--frame\r\n"
+                            b"Content-Type: image/jpeg\r\n"
+                            b"Content-Length: " + str(len(jpeg_data)).encode() + b"\r\n\r\n" +
+                            jpeg_data + b"\r\n"
+                        )
+                        yielded += 1
+                        if max_frames > 0 and yielded >= max_frames:
+                            break
+                    await asyncio.sleep(0.04)
+            except (asyncio.CancelledError, GeneratorExit):
+                pass
 
         return StreamingResponse(
             frame_generator(),
             media_type="multipart/x-mixed-replace; boundary=frame",
+            headers=stream_headers,
         )
 
     @app.get("/api/cameras/frame")
@@ -980,16 +1003,22 @@ def create_app(
         if enforce_auth:
             _require_permission(request, Permission.MONITOR_VIEW)
 
+        frame_headers = {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        }
+
         if camera_manager is not None:
-            target_cam = cam_id or camera_manager.hero_camera_id
+            target_cam = camera_manager.resolve_canonical_camera_id(cam_id)
             frame_bytes = camera_manager.get_camera_frame(target_cam)
             if frame_bytes is None:
                 raise HTTPException(status_code=404, detail=f"No active frame for camera '{target_cam}'.")
-            return Response(content=frame_bytes, media_type="image/jpeg")
+            return Response(content=frame_bytes, media_type="image/jpeg", headers=frame_headers)
 
         if stage2_pipeline is None or getattr(stage2_pipeline, "_latest_jpeg_frame", None) is None:
             raise HTTPException(status_code=404, detail="No active camera frame available.")
-        return Response(content=stage2_pipeline._latest_jpeg_frame, media_type="image/jpeg")
+        return Response(content=stage2_pipeline._latest_jpeg_frame, media_type="image/jpeg", headers=frame_headers)
 
     @app.get("/api/cameras/tracks")
     @app.get("/api/cameras/{cam_id}/tracks")
@@ -998,8 +1027,11 @@ def create_app(
         if enforce_auth:
             _require_permission(request, Permission.MONITOR_VIEW)
 
+        if cam_id == "tracks":
+            cam_id = None
+
         if camera_manager is not None:
-            target_cam = cam_id or camera_manager.hero_camera_id
+            target_cam = camera_manager.resolve_canonical_camera_id(cam_id)
             return camera_manager.get_camera_tracks(target_cam)
 
         if stage2_pipeline is None:

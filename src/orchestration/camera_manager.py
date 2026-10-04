@@ -348,7 +348,7 @@ class CameraPipelineWorker:
                         self._latest_tracks = [
                             {
                                 "track_id": t.track_id,
-                                "bbox": list(t.bbox.to_xyxy()),
+                                "bbox": list(t.bbox.as_int_tuple() if hasattr(t.bbox, "as_int_tuple") else t.bbox),
                                 "camera_id": self.camera_id,
                             }
                             for t in result.tracks
@@ -676,18 +676,57 @@ class CameraManager:
                     })
             return results
 
+    def resolve_canonical_camera_id(self, camera_id: Optional[str] = None) -> str:
+        """Resolve any user/alias camera ID (e.g. CAM 01, webcam_0, camera_0) to canonical worker ID."""
+        if not camera_id:
+            return self.hero_camera_id
+        if camera_id in self.workers:
+            return camera_id
+        norm = camera_id.lower().replace(" ", "").replace("_", "").replace("-", "")
+        for cid in self.workers:
+            if cid.lower().replace(" ", "").replace("_", "").replace("-", "") == norm:
+                return cid
+        for cfg in self.ps.cameras.list_cameras():
+            cid = cfg.camera_id
+            if cid.lower().replace(" ", "").replace("_", "").replace("-", "") == norm:
+                return cid
+        return self.hero_camera_id
+
+    def get_all_statuses(self) -> List[Dict[str, Any]]:
+        """Return status telemetry for all configured cameras (endpoint compatibility)."""
+        return self.get_telemetry_list()
+
     def get_preview_jpeg(self, camera_id: Optional[str] = None) -> Optional[bytes]:
-        """Return latest preview frame for requested camera (or hero camera)."""
-        cid = camera_id or self.hero_camera_id
+        """Return latest preview frame for requested camera (or hero camera) with fallback."""
+        cid = self.resolve_canonical_camera_id(camera_id)
         worker = self.workers.get(cid)
         if worker:
-            return worker.get_latest_jpeg()
+            frame = worker.get_latest_jpeg()
+            if frame is not None:
+                return frame
+        # Fallback to any active worker that has a frame
+        for w in self.workers.values():
+            buf = w.get_latest_jpeg()
+            if buf is not None:
+                return buf
         return None
+
+    def get_camera_frame(self, camera_id: Optional[str] = None) -> Optional[bytes]:
+        """Alias for get_preview_jpeg matching main.py endpoint calls."""
+        return self.get_preview_jpeg(camera_id)
 
     def get_tracks_summary(self, camera_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """Return latest tracks summary for requested camera."""
-        cid = camera_id or self.hero_camera_id
+        cid = self.resolve_canonical_camera_id(camera_id)
         worker = self.workers.get(cid)
         if worker:
             return worker.get_latest_tracks()
+        for w in self.workers.values():
+            t = w.get_latest_tracks()
+            if t:
+                return t
         return []
+
+    def get_camera_tracks(self, camera_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Alias for get_tracks_summary matching main.py endpoint calls."""
+        return self.get_tracks_summary(camera_id)
