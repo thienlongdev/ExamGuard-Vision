@@ -146,6 +146,7 @@ class PhoneCue:
     spatial_relation: str = "NONE"   # DIRECT_CONTACT, DESK_PROXIMITY, NONE
     phone_bbox: Optional[Tuple[float, float, float, float]] = None
     reliability_weight: float = 1.0
+    is_candidate_only: bool = False
 
 
 @dataclass

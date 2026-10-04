@@ -145,19 +145,21 @@ class ReliabilityModel:
                 fused = max(yaw_evidence * 0.90, 0.52)
 
             # Normal read/write paper reading protection:
-            # When a student is strongly engaged in normal reading/writing on their desk (rw_score >= 0.60),
+            # When a student is engaged in normal reading/writing on their desk (rw_score >= 0.35),
             # natural downward/diagonal paper glance (abs_yaw < 36 deg) is part of reading paper,
             # NOT a suspicious lateral head turn away from desk.
             # However, if abs_yaw >= 36 deg, it is a clear lateral look towards another seat.
-            if posture_rw_score >= 0.60 and abs_yaw < 36.0:
-                rw_attenuation = max(0.35, 1.0 - (posture_rw_score - 0.50) * 1.2)
-                fused = min(fused * rw_attenuation, 0.45)
+            if posture_rw_score >= 0.35 and abs_yaw < 36.0:
+                rw_attenuation = max(0.30, 1.0 - (posture_rw_score - 0.25) * 1.4)
+                fused = min(fused * rw_attenuation, 0.40)
         elif abs_yaw < 20.0:
-            # Head-pose indicates frontal face (|yaw| < 20 deg); attenuates false posture turn
-            fused = posture_turn_score * 0.85
+            # Head-pose indicates frontal face (|yaw| < 20 deg); face is facing desk/forward.
+            # Attenuates false posture turn below candidate enter threshold (0.50).
+            fused = min(0.35, posture_turn_score * 0.40)
         else:
-            # Transition zone [20, 24) deg
+            # Transition zone [20, 24) deg: scale from attenuated to standalone
             yaw_frac = (abs_yaw - 20.0) / 4.0
-            fused = (1.0 - yaw_frac) * (posture_turn_score * 0.85) + yaw_frac * max(posture_turn_score, 0.42)
+            base_attenuated = min(0.35, posture_turn_score * 0.40)
+            fused = (1.0 - yaw_frac) * base_attenuated + yaw_frac * max(posture_turn_score * 0.85, 0.52)
 
         return max(0.0, min(1.0, fused))

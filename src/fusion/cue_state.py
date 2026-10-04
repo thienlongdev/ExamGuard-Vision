@@ -51,6 +51,7 @@ class PerTrackCueState:
     phone_confidence: float = 0.0
     phone_association_status: str = "NO_PHONE"
     phone_reliability: float = 1.0
+    phone_is_candidate_only: bool = False
 
     # Macro Behavior Evidence (Stage 1.5)
     macro_status: ObservationStatus = ObservationStatus.NOT_EVALUATED
@@ -63,6 +64,8 @@ class PerTrackCueState:
     read_write_suppression_active: bool = False
     read_write_score: float = 0.0
 
-    # Turn Multi-Cue Agreement Metric
+    # Turn Multi-Cue Agreement Metric & Reviewability
     turn_fused_evidence: float = 0.0
     turn_multi_cue_agreement: bool = False
+    glance_count: int = 0
+    glance_burst_active: bool = False

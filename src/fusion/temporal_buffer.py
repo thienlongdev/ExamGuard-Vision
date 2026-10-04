@@ -176,8 +176,8 @@ class TrackObservationBuffer:
     def detect_glance_burst(
         self,
         window_seconds: float = 3.5,
-        yaw_thresh: float = 24.0,
-        min_glances: int = 2,
+        yaw_thresh: float = 28.0,
+        min_glances: int = 3,
     ) -> Tuple[bool, int]:
         """Detect burst of repeated quick lateral glances within sliding window.
         
@@ -343,8 +343,8 @@ class TemporalBuffer:
         track_id: int,
         current_timestamp: float = 0.0,
         glance_window_sec: float = 3.5,
-        yaw_thresh: float = 24.0,
-        min_glances: int = 2,
+        yaw_thresh: float = 28.0,
+        min_glances: int = 3,
         camera_id: str = "cam_0",
     ) -> bool:
         """Detect bursts of repeated lateral glances for a track."""

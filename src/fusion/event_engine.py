@@ -185,7 +185,7 @@ class TrackEventStateMachine:
                     },
                     status="active",
                     lifecycle_status="open",
-                    review_status="awaiting",
+                    review_status="internal" if self.event_family in (EventFamily.PHONE_VISUAL_CANDIDATE, EventFamily.MULTI_CUE_ATTENTION_SHIFT) else "awaiting",
                     fusion_config_version=self.config_version,
                     event_origin=resolved_origin,
                 )
@@ -452,6 +452,7 @@ class EventEngine:
             emitted.append((ev_sleep, act_sleep))
 
         # -------------------------------------------------------------
+        # -------------------------------------------------------------
         # 2. Event: SUSTAINED_LATERAL_HEAD_ORIENTATION
         # -------------------------------------------------------------
         turn_evidence = cue_state.turn_fused_evidence
@@ -470,35 +471,76 @@ class EventEngine:
                 "smoothed_yaw_deg": round(cue_state.smoothed_yaw_deg, 2) if cue_state.smoothed_yaw_deg is not None else None,
                 "multi_cue_agreement": cue_state.turn_multi_cue_agreement,
                 "headpose_source": cue_state.headpose_source_model,
+                "glance_burst": getattr(cue_state, "glance_burst_active", False),
+                "glance_count": getattr(cue_state, "glance_count", 0),
             },
         )
         if ev_turn is not None and act_turn != "NONE":
             emitted.append((ev_turn, act_turn))
 
         # -------------------------------------------------------------
-        # 3. Event: PHONE_ASSOCIATED
+        # 3. Event: PHONE_ASSOCIATED vs PHONE_VISUAL_CANDIDATE
         # -------------------------------------------------------------
         phone_ev = cue_state.phone_confidence if cue_state.phone_detected else 0.0
         phone_ambiguous = (cue_state.phone_association_status == "AMBIGUOUS_ASSOCIATION")
-        # Ambiguous association is NOT positive
-        phone_machine = self._get_machine(track_id, EventFamily.PHONE_ASSOCIATED, camera_id=camera_id)
-        ev_phone, act_phone = phone_machine.process_frame(
-            timestamp=t,
-            evidence_score=phone_ev,
-            is_vetoed=phone_ambiguous,
-            cue_state=cue_state,
-            camera_id=camera_id,
-            supporting_details={
-                "phone_confidence": round(cue_state.phone_confidence, 4),
-                "phone_status": cue_state.phone_association_status,
-                "association_status": cue_state.phone_association_status,
-                "phone_detected": cue_state.phone_detected,
-                "has_phone": cue_state.phone_detected,
-                "ambiguous_association": phone_ambiguous,
-            },
-        )
-        if ev_phone is not None and act_phone != "NONE":
-            emitted.append((ev_phone, act_phone))
+        is_candidate_only = getattr(cue_state, "phone_is_candidate_only", False)
+
+        if cue_state.phone_detected and is_candidate_only:
+            # Weak one-off candidate: route to internal candidate state machine
+            cand_machine = self._get_machine(track_id, EventFamily.PHONE_VISUAL_CANDIDATE, camera_id=camera_id)
+            ev_cand, act_cand = cand_machine.process_frame(
+                timestamp=t,
+                evidence_score=phone_ev,
+                is_vetoed=phone_ambiguous,
+                cue_state=cue_state,
+                camera_id=camera_id,
+                supporting_details={
+                    "phone_confidence": round(cue_state.phone_confidence, 4),
+                    "phone_status": "PHONE_VISUAL_CANDIDATE",
+                    "association_status": cue_state.phone_association_status,
+                    "phone_detected": True,
+                    "has_phone": True,
+                    "ambiguous_association": phone_ambiguous,
+                    "is_candidate_only": True,
+                },
+            )
+            if ev_cand is not None and act_cand != "NONE":
+                emitted.append((ev_cand, act_cand))
+
+            # Ensure reviewable phone machine is idle
+            assoc_key = (camera_id, track_id, EventFamily.PHONE_ASSOCIATED)
+            if assoc_key in self._machines and self._machines[assoc_key].state == EventLifecycleState.ACTIVE:
+                ev_close, act_close = self._machines[assoc_key].process_frame(t, 0.0, False, cue_state, camera_id=camera_id)
+                if ev_close is not None and act_close != "NONE":
+                    emitted.append((ev_close, act_close))
+        else:
+            # Confirmed or strong phone observation (or no phone): route to reviewable machine
+            phone_machine = self._get_machine(track_id, EventFamily.PHONE_ASSOCIATED, camera_id=camera_id)
+            ev_phone, act_phone = phone_machine.process_frame(
+                timestamp=t,
+                evidence_score=phone_ev,
+                is_vetoed=phone_ambiguous,
+                cue_state=cue_state,
+                camera_id=camera_id,
+                supporting_details={
+                    "phone_confidence": round(cue_state.phone_confidence, 4),
+                    "phone_status": cue_state.phone_association_status,
+                    "association_status": cue_state.phone_association_status,
+                    "phone_detected": cue_state.phone_detected,
+                    "has_phone": cue_state.phone_detected,
+                    "ambiguous_association": phone_ambiguous,
+                    "is_candidate_only": False,
+                },
+            )
+            if ev_phone is not None and act_phone != "NONE":
+                emitted.append((ev_phone, act_phone))
+
+            # Cleanly close any open candidate machine if phone confirmed or cleared
+            cand_key = (camera_id, track_id, EventFamily.PHONE_VISUAL_CANDIDATE)
+            if cand_key in self._machines and self._machines[cand_key].state == EventLifecycleState.ACTIVE:
+                ev_close, act_close = self._machines[cand_key].process_frame(t, 0.0, False, cue_state, camera_id=camera_id)
+                if ev_close is not None and act_close != "NONE":
+                    emitted.append((ev_close, act_close))
 
         # -------------------------------------------------------------
         # 4. Event: DISCUSSION_CANDIDATE

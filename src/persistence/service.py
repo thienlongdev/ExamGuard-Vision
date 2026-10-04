@@ -337,9 +337,14 @@ class PersistenceService:
         obs_json = json.dumps(getattr(event, "observation_snapshot", {}), ensure_ascii=False)
         ev_sum_json = json.dumps(getattr(event, "evidence_summary", {}), ensure_ascii=False)
 
-        # Check existing review status if already adjudicated
+        ev_type = getattr(event, "event_type", "OBSERVABLE_EVENT")
         existing_ev = self.events.get_event(eid)
-        review_st = existing_ev.review_status if existing_ev else getattr(event, "review_status", "awaiting")
+        if existing_ev and existing_ev.review_status in ("confirmed", "dismissed"):
+            review_st = existing_ev.review_status
+        elif ev_type in ("PHONE_VISUAL_CANDIDATE", "MULTI_CUE_ATTENTION_SHIFT"):
+            review_st = "internal"
+        else:
+            review_st = getattr(event, "review_status", "awaiting")
         created_at_iso = existing_ev.created_at if existing_ev else opened_iso
 
         persisted = PersistedEvent(

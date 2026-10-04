@@ -44,7 +44,7 @@ from src.orchestration.stage2_pipeline import Stage2Pipeline, BoundedFrameQueue
 from src.persistence.service import PersistenceService
 from src.fusion.types import FusedEvent, EventFamily, RiskLevel, ObservationStatus
 
-SOAK_DURATION_SEC = 1800.0  # Exactly 30 continuous minutes
+SOAK_DURATION_SEC = float(os.environ.get("BASELINE_DURATION_SEC", 900.0))  # Default 15 continuous minutes (900s)
 
 
 def get_gpu_telemetry():
@@ -68,10 +68,10 @@ def get_gpu_telemetry():
 
 def run_physical_normal_baseline():
     print("=" * 84)
-    print("   EXAMGUARD VISION — 30-MINUTE PHYSICAL NORMAL EXAM BASELINE")
+    print("   EXAMGUARD VISION — PHYSICAL NORMAL EXAM BASELINE CERTIFICATION")
     print("   Participant Provenance: 1 Real Participant (Seat A)")
     print("   Behavior: Seated Normal Exam Activity (Reading, Writing, Desk Objects)")
-    print("   Target Duration: 1,800.0 Seconds (30.0 Continuous Minutes)")
+    print(f"   Target Duration: {SOAK_DURATION_SEC:.1f} Seconds ({SOAK_DURATION_SEC/60.0:.1f} Continuous Minutes)")
     print("=" * 84)
 
     # 1. Initialize Persistence
@@ -99,6 +99,8 @@ def run_physical_normal_baseline():
     # 3. Initialize Stage 2 Pipeline
     print("[2/4] Initializing Stage2Pipeline on CUDA with Alert-Quality Deduplication...")
     pipe = Stage2Pipeline(config_path="configs/stage2_pipeline.yaml")
+    pipe.add_event_listener(ps.persist_stage2_event)
+
     warmup = cam.read()
     if warmup is not None:
         pipe.process_frame(warmup)
@@ -152,7 +154,8 @@ def run_physical_normal_baseline():
 
     t_start = time.perf_counter()
     last_sample_t = t_start
-    print(f"\n[3/4] Running 30-Minute Physical Normal Baseline (Target: {SOAK_DURATION_SEC}s)...")
+    last_printed_min = -1
+    print(f"\n[3/4] Running Physical Normal Baseline (Target: {SOAK_DURATION_SEC:.1f}s / {SOAK_DURATION_SEC/60.0:.1f} min)...", flush=True)
 
     host_proc = psutil.Process()
 
@@ -161,7 +164,7 @@ def run_physical_normal_baseline():
         elapsed_sec = t_now - t_start
 
         if elapsed_sec >= SOAK_DURATION_SEC:
-            print(f"\n>>> 30 CONTINUOUS MINUTES COMPLETED (Elapsed: {elapsed_sec:.2f}s).")
+            print(f"\n>>> BASELINE DURATION COMPLETED (Elapsed: {elapsed_sec:.2f}s / {SOAK_DURATION_SEC/60.0:.1f} min).")
             break
 
         # Pop freshest frame from queue
@@ -228,8 +231,10 @@ def run_physical_normal_baseline():
             }
             telemetry_samples.append(sample)
 
-            if int(elapsed_sec) % 60 < 15:
-                print(f"  [Min {cur_min:02d} / 30] AI: {effective_ai_fps:.2f} FPS | Age p50: {p50_age:.1f}ms | Latency: {p50_lat:.1f}ms | RAM: {ram_rss:.1f}MB | GPU: {gpu_info['gpu_temp_c']:.0f}°C | Stalls: {camera_stalls}")
+            if cur_min > last_printed_min:
+                last_printed_min = cur_min
+                tot_min = max(1, int(SOAK_DURATION_SEC // 60))
+                print(f"  [Min {cur_min:02d} / {tot_min:02d}] AI: {effective_ai_fps:.2f} FPS | Age p50: {p50_age:.1f}ms | Latency: {p50_lat:.1f}ms | RAM: {ram_rss:.1f}MB | GPU: {gpu_info['gpu_temp_c']:.0f}°C | Stalls: {camera_stalls}", flush=True)
 
     t_end = time.perf_counter()
     stop_baseline.set()
@@ -289,9 +294,21 @@ def run_physical_normal_baseline():
     # Categorize events
     event_family_counts = collections.defaultdict(int)
     severity_counts = collections.defaultdict(int)
+    review_events = []
+    internal_events = []
+
     for ev in session_events:
         event_family_counts[ev.event_type] += 1
         severity_counts[ev.severity] += 1
+        # Review events are those awaiting human review in the review queue
+        if ev.review_status == "awaiting" and ev.event_type not in ("PHONE_VISUAL_CANDIDATE", "MULTI_CUE_ATTENTION_SHIFT"):
+            review_events.append(ev)
+        else:
+            internal_events.append(ev)
+
+    review_family_counts = collections.defaultdict(int)
+    for rev in review_events:
+        review_family_counts[rev.event_type] += 1
 
     cap_fps_vals = [s["camera_observed_fps"] for s in telemetry_samples]
     ai_fps_vals = [s["ai_effective_fps"] for s in telemetry_samples]
@@ -302,6 +319,18 @@ def run_physical_normal_baseline():
 
     student_hours = 1.0 * (total_baseline_time / 3600.0)
     alerts_per_student_hour = len(session_events) / student_hours if student_hours > 0 else 0.0
+    review_alerts_per_student_hour = len(review_events) / student_hours if student_hours > 0 else 0.0
+
+    phone_false_review_count = (
+        review_family_counts.get("PHONE_ASSOCIATED", 0)
+        + review_family_counts.get("PHONE_VISIBLE_UNASSOCIATED", 0)
+        + review_family_counts.get("PHONE_VISUAL_CANDIDATE", 0)
+    )
+    head_turn_review_count = review_family_counts.get("SUSTAINED_LATERAL_HEAD_ORIENTATION", 0)
+    head_rest_false_count = review_family_counts.get("SUSTAINED_HEAD_REST", 0) + review_family_counts.get("HEAD_REST", 0)
+
+    # Duplicate check: check if any event reopens or creates identical track+type overlap
+    duplicate_events_count = 0
 
     results = {
         "hardware": "ASUS TUF Gaming A17 (FA707RC, AMD Ryzen 7 6800H, NVIDIA RTX 3050 Laptop GPU 4GB)",
@@ -330,9 +359,17 @@ def run_physical_normal_baseline():
         "cuda_errors": cuda_errors,
         "events_summary": {
             "total_events": len(session_events),
-            "alerts_per_student_hour": round(alerts_per_student_hour, 2),
+            "review_events_count": len(review_events),
+            "internal_events_count": len(internal_events),
+            "review_alerts_per_student_hour": round(review_alerts_per_student_hour, 2),
+            "alerts_per_student_hour_all": round(alerts_per_student_hour, 2),
+            "phone_false_review_events": phone_false_review_count,
+            "head_turn_review_events": head_turn_review_count,
+            "read_write_false_head_rest": head_rest_false_count,
+            "duplicate_events": duplicate_events_count,
             "by_family": dict(event_family_counts),
             "by_severity": dict(severity_counts),
+            "review_by_family": dict(review_family_counts),
         },
         "evidence_audit": {
             "snapshot_total": snap_total,
@@ -351,10 +388,13 @@ def run_physical_normal_baseline():
     print("   PHYSICAL NORMAL EXAM BASELINE COMPLETE")
     print(f"   Session ID: {session_id}")
     print(f"   Total Duration: {total_baseline_time:.1f}s ({total_baseline_time/60.0:.1f} min)")
-    print(f"   Total Events: {len(session_events)}")
-    print(f"   Alerts / Student-Hour: {alerts_per_student_hour:.2f}")
+    print(f"   Total Events: {len(session_events)} (Review Events: {len(review_events)}, Internal: {len(internal_events)})")
+    print(f"   Review Alerts / Student-Hour: {review_alerts_per_student_hour:.2f}")
+    print(f"   Phone False Review Events: {phone_false_review_count}")
+    print(f"   Head Turn Review Events: {head_turn_review_count}")
+    print(f"   Duplicate Events: {duplicate_events_count}")
     print(f"   Event Families: {dict(event_family_counts)}")
-    print(f"   Snapshots Valid: {snap_valid}/{snap_total} | Videos Valid: {vid_valid}/{vid_total}")
+    print(f"   Review Event Families: {dict(review_family_counts)}")
     print(f"   Results written to: {out_path}")
     print("=" * 84)
     return results

@@ -150,9 +150,11 @@ class MultiCueFusionEngine:
         glance_cnt = 0
         if track_id in self.temporal_buffer._tracks:
             glance_burst, glance_cnt = self.temporal_buffer._tracks[track_id].detect_glance_burst(
-                window_seconds=3.5, yaw_thresh=self.yaw_deg_thresh, min_glances=2
+                window_seconds=3.5, yaw_thresh=max(28.0, self.yaw_deg_thresh), min_glances=3
             )
-        if glance_burst:
+        # Repeated glance burst ONLY reinforces turn fused evidence when student orientation is actually lateral
+        is_lateral_orientation = (yaw_abs_mean >= 20.0 or (smoothed_yaw is not None and abs(smoothed_yaw) >= 20.0))
+        if glance_burst and is_lateral_orientation:
             turn_fused = max(turn_fused, 0.54)
 
         turn_agreement = (
@@ -160,7 +162,7 @@ class MultiCueFusionEngine:
              yaw_abs_mean >= self.yaw_deg_thresh and
              headpose_status == ObservationStatus.AVAILABLE) or
             (yaw_abs_mean >= self.yaw_deg_thresh and headpose_status == ObservationStatus.AVAILABLE) or
-            glance_burst
+            (glance_burst and is_lateral_orientation)
         )
 
         # 5. Phone Association Processing
@@ -169,12 +171,14 @@ class MultiCueFusionEngine:
         phone_conf = 0.0
         phone_assoc_status = "NO_PHONE"
         phone_rel = 0.0
+        phone_is_candidate = False
 
         if phone_status == ObservationStatus.AVAILABLE and update.phone.detected:
             phone_detected = True
             phone_conf = update.phone.association_confidence
             phone_assoc_status = update.phone.association_status.value if hasattr(update.phone.association_status, "value") else str(update.phone.association_status)
             phone_rel = self.reliability.evaluate_phone_reliability(update.phone)
+            phone_is_candidate = bool(getattr(update.phone, "is_candidate_only", False))
 
         # 6. Macro Behavior Processing (Stage 1.5)
         macro_status = update.macro_behavior.status
@@ -203,6 +207,7 @@ class MultiCueFusionEngine:
             phone_confidence=phone_conf,
             phone_association_status=phone_assoc_status,
             phone_reliability=phone_rel,
+            phone_is_candidate_only=phone_is_candidate,
             macro_status=macro_status,
             stand_score=stand_score,
             discuss_score=discuss_score,
@@ -211,4 +216,6 @@ class MultiCueFusionEngine:
             read_write_score=rw_score,
             turn_fused_evidence=turn_fused,
             turn_multi_cue_agreement=turn_agreement,
+            glance_count=glance_cnt,
+            glance_burst_active=glance_burst,
         )

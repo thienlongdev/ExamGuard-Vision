@@ -34,6 +34,7 @@ class TrackPhoneAssociation:
     spatial_relation: str               # "DIRECT_CONTACT", "DESK_PROXIMITY", "NONE"
     phone_bbox: Optional[Tuple[float, float, float, float]] = None
     competing_track_ids: List[int] = None
+    is_candidate_only: bool = False
 
     def to_phone_cue(self) -> PhoneCue:
         """Convert into V4D canonical PhoneCue."""
@@ -52,6 +53,7 @@ class TrackPhoneAssociation:
             spatial_relation=self.spatial_relation,
             phone_bbox=self.phone_bbox,
             reliability_weight=rel_weight,
+            is_candidate_only=self.is_candidate_only,
         )
 
 
@@ -66,8 +68,10 @@ class PhoneAssociator:
         min_iou_overlap: float = 0.03,
         ambiguity_margin: float = 0.15,
         phone_strong_confidence: float = 0.35,
-        phone_candidate_window_sec: float = 2.5,
-        phone_candidate_gap_tolerance_sec: float = 0.8,
+        phone_candidate_window_sec: float = 3.0,
+        phone_candidate_gap_tolerance_sec: float = 1.0,
+        weak_candidate_min_hits: int = 10,
+        weak_candidate_min_duration_sec: float = 2.0,
     ):
         self.expand_ratio = expand_ratio
         self.expand_ratio_down = expand_ratio_down
@@ -77,6 +81,8 @@ class PhoneAssociator:
         self.phone_strong_confidence = phone_strong_confidence
         self.phone_candidate_window_sec = phone_candidate_window_sec
         self.phone_candidate_gap_tolerance_sec = phone_candidate_gap_tolerance_sec
+        self.weak_candidate_min_hits = weak_candidate_min_hits
+        self.weak_candidate_min_duration_sec = weak_candidate_min_duration_sec
 
         # Temporal accumulation store: track_id -> List[(timestamp, conf, bbox)]
         self._recent_track_hits: Dict[int, List[Tuple[float, float, Tuple[float, float, float, float]]]] = {}
@@ -147,11 +153,15 @@ class PhoneAssociator:
             else:
                 norm_dets.append(d)
 
-        # Filter detections for phones
-        phone_dets = [
-            d for d in norm_dets
-            if d.class_name in ("cell phone", "phone", "mobile phone") or d.class_id == 67
-        ]
+        # Filter detections for phones with handheld dimensions sanity check
+        phone_dets = []
+        for d in norm_dets:
+            if d.class_name in ("cell phone", "phone", "mobile phone") or d.class_id == 67:
+                bw = float(d.bbox.width)
+                bh = float(d.bbox.height)
+                # Filter out giant boxes (desk surfaces, TV/screens, chair backs > 220x250 px or area > 35,000)
+                if bw <= 220.0 and bh <= 250.0 and (bw * bh) <= 35000.0:
+                    phone_dets.append(d)
 
         now_ts = timestamp_sec if timestamp_sec is not None else time.time()
 
@@ -167,7 +177,13 @@ class PhoneAssociator:
                     if valid_hits:
                         last_hit_ts, last_conf, last_bbox = valid_hits[-1]
                         gap = now_ts - last_hit_ts
-                        if gap <= self.phone_candidate_gap_tolerance_sec and len(valid_hits) >= 2:
+                        has_strong = any(h[1] >= self.phone_strong_confidence for h in valid_hits)
+                        hit_span = (valid_hits[-1][0] - valid_hits[0][0]) if len(valid_hits) >= 2 else 0.0
+                        is_temporal_supported = (
+                            has_strong or
+                            (len(valid_hits) >= self.weak_candidate_min_hits and hit_span >= self.weak_candidate_min_duration_sec)
+                        )
+                        if gap <= self.phone_candidate_gap_tolerance_sec and len(valid_hits) >= 2 and is_temporal_supported:
                             # Bridge intermittent gap using accumulated evidence
                             results[tid] = TrackPhoneAssociation(
                                 track_id=tid,
@@ -178,6 +194,7 @@ class PhoneAssociator:
                                 spatial_relation="DESK_PROXIMITY",
                                 phone_bbox=last_bbox,
                                 competing_track_ids=[tid],
+                                is_candidate_only=False,
                             )
             return results
 
@@ -218,11 +235,14 @@ class PhoneAssociator:
             if not candidate_scores:
                 # Phone detected but no student track close enough: retain as unassociated observable
                 if phone.confidence >= self.phone_strong_confidence:
-                    self.unassociated_phones.append(phone)
-                    if diag_mode:
-                        logger.info(
-                            f"[DIAGNOSTIC_CUES] Unassociated phone preserved: conf={phone.confidence:.3f} bbox={phone.bbox.as_tuple()}"
-                        )
+                    bw = float(phone.bbox.width)
+                    bh = float(phone.bbox.height)
+                    if bw <= 180.0 and bh <= 200.0:
+                        self.unassociated_phones.append(phone)
+                        if diag_mode:
+                            logger.info(
+                                f"[DIAGNOSTIC_CUES] Unassociated phone preserved: conf={phone.confidence:.3f} bbox={phone.bbox.as_tuple()}"
+                            )
                 continue
 
             # Sort candidate tracks by association score descending
@@ -252,11 +272,27 @@ class PhoneAssociator:
                             spatial_relation="DESK_PROXIMITY",
                             phone_bbox=phone.bbox.as_tuple(),
                             competing_track_ids=competing_ids,
+                            is_candidate_only=True,
                         )
             else:
                 # Clear association for best track: takes precedence over UNASSOCIATED or AMBIGUOUS
+                hits = self._recent_track_hits.setdefault(best_track_id, [])
+                hits.append((now_ts, phone.confidence, phone.bbox.as_tuple()))
+                valid_hits = [
+                    h for h in hits if (now_ts - h[0]) <= self.phone_candidate_window_sec
+                ]
+                self._recent_track_hits[best_track_id] = valid_hits
+
+                has_strong_hit = any(h[1] >= self.phone_strong_confidence for h in valid_hits)
+                hit_span = (valid_hits[-1][0] - valid_hits[0][0]) if len(valid_hits) >= 2 else 0.0
+                is_temporal_supported = (
+                    has_strong_hit or
+                    (len(valid_hits) >= self.weak_candidate_min_hits and hit_span >= self.weak_candidate_min_duration_sec)
+                )
+                is_cand = not is_temporal_supported
+
                 prev = results[best_track_id]
-                if prev.status != "ASSOCIATED" or phone.confidence > prev.confidence:
+                if prev.status != "ASSOCIATED" or phone.confidence > prev.confidence or (prev.is_candidate_only and not is_cand):
                     results[best_track_id] = TrackPhoneAssociation(
                         track_id=best_track_id,
                         status="ASSOCIATED",
@@ -266,14 +302,7 @@ class PhoneAssociator:
                         spatial_relation=best_relation,
                         phone_bbox=phone.bbox.as_tuple(),
                         competing_track_ids=[best_track_id],
+                        is_candidate_only=is_cand,
                     )
-
-                    # Update temporal memory
-                    hits = self._recent_track_hits.setdefault(best_track_id, [])
-                    hits.append((now_ts, phone.confidence, phone.bbox.as_tuple()))
-                    # Prune older than window
-                    self._recent_track_hits[best_track_id] = [
-                        h for h in hits if (now_ts - h[0]) <= self.phone_candidate_window_sec
-                    ]
 
         return results

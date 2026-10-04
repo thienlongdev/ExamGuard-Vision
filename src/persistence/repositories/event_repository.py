@@ -30,6 +30,7 @@ class EventRepository:
             severity = excluded.severity,
             score = excluded.score,
             lifecycle_status = excluded.lifecycle_status,
+            review_status = CASE WHEN events.review_status IN ('confirmed', 'dismissed') THEN events.review_status ELSE excluded.review_status END,
             closed_at = CASE WHEN excluded.closed_at IS NOT NULL THEN excluded.closed_at ELSE events.closed_at END,
             observation_snapshot_json = CASE WHEN excluded.observation_snapshot_json IS NOT NULL THEN excluded.observation_snapshot_json ELSE events.observation_snapshot_json END,
             evidence_summary_json = CASE WHEN excluded.evidence_summary_json IS NOT NULL THEN excluded.evidence_summary_json ELSE events.evidence_summary_json END,

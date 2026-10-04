@@ -96,17 +96,26 @@ provisional_thresholds:
     exit_grace_seconds: 1.2          # Retains ACTIVE during momentary frame flutter
     cooldown_seconds: 3.0
     normal_reset_seconds: 3.5        # Real recovery required before opening new turn event
+    sustained_turn_min_duration_sec: 1.2 # Isolated glance < 1.2s remains internal; >= 1.2s or repeated glances is reviewable
 
   phone_associated:
     min_candidate_duration_sec: 0.75  # Brief plausible detection captured without micro-event noise
-    evidence_enter_threshold: 0.25
-    evidence_exit_threshold: 0.18
-    min_phone_confidence: 0.25
+    evidence_enter_threshold: 0.35
+    evidence_exit_threshold: 0.25
+    min_phone_confidence: 0.35
     min_association_confidence: 0.35
     desk_proximity_bonus: 0.15
     exit_grace_seconds: 1.2
     cooldown_seconds: 3.5
     normal_reset_seconds: 3.5
+
+  phone_visual_candidate:
+    min_candidate_duration_sec: 0.50
+    evidence_enter_threshold: 0.20
+    evidence_exit_threshold: 0.15
+    exit_grace_seconds: 1.0
+    cooldown_seconds: 2.5
+    normal_reset_seconds: 2.5
 
   phone_visible_unassociated:
     min_candidate_duration_sec: 0.60
@@ -131,9 +140,9 @@ provisional_thresholds:
     cooldown_seconds: 4.0
     normal_reset_seconds: 4.0
 
-# ---------------------------------------------------------------------
+# -------------------------------------------------------------
 # 5. MULTI-CUE CORRELATION & RELIABILITY WEIGHTS
-# ---------------------------------------------------------------------
+# -------------------------------------------------------------
 reliability_weights:
   posture:
     base_weight: 1.0
@@ -146,9 +155,9 @@ reliability_weights:
     base_weight: 1.0
     ambiguous_association_penalty: 0.50
 
-# ---------------------------------------------------------------------
+# -------------------------------------------------------------
 # 6. RISK SCORING & POLICY
-# ---------------------------------------------------------------------
+# -------------------------------------------------------------
 risk_policy:
   thresholds:
     low_to_medium: 40.0             # Score >= 40 -> MEDIUM risk
@@ -158,7 +167,6 @@ risk_policy:
   phone_high_min_duration_sec: 2.5  # Authoritative threshold for clear phone association to reach HIGH
   event_min_severity_active:
     SUSTAINED_HEAD_REST: "MEDIUM"
-    SUSTAINED_LATERAL_HEAD_ORIENTATION: "MEDIUM"
     STANDING: "MEDIUM"
     DISCUSSION_CANDIDATE: "MEDIUM"
-    MULTI_CUE_ATTENTION_SHIFT: "MEDIUM"
+    PHONE_ASSOCIATED: "MEDIUM"

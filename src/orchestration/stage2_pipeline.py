@@ -613,9 +613,14 @@ class Stage2Pipeline:
             if expired_ids:
                 closed_events = self.event_engine.handle_track_expiration(expired_ids, ts, camera_id=cam_id)
                 for ev in closed_events:
-                    self.evidence_manager.handle_event_lifecycle(ev, "CLOSE", frame, ts, fps=getattr(self.source, "fps", 30.0))
-                    self._active_events_map.pop(ev.event_id, None)
-                    self._broadcast_event(ev, "CLOSE")
+                    active_ev = self._active_events_map.pop(ev.event_id, None)
+                    ev_to_close = active_ev or ev
+                    ev_to_close.status = "closed"
+                    ev_to_close.lifecycle_status = "closed"
+                    ev_to_close.end_timestamp = ts
+                    ev_to_close.duration = max(0.0, ts - getattr(ev_to_close, "start_timestamp", ts))
+                    self.evidence_manager.handle_event_lifecycle(ev_to_close, "CLOSE", frame, ts, fps=getattr(self.source, "fps", 30.0))
+                    self._broadcast_event(ev_to_close, "CLOSE")
                 for eid in expired_ids:
                     self._track_metadata.pop(eid, None)
 
@@ -735,11 +740,11 @@ class Stage2Pipeline:
                     conf = float(macro_det.confidence)
                     is_stand_valid = (conf >= 0.55)
 
-                    # Posture veto: reading/writing or head on desk is not standing
+                    # Posture veto: reading/writing, upright seated, or head on desk is not standing
                     if pos_cue and pos_cue.status == ObservationStatus.AVAILABLE:
                         rw_score = pos_cue.probabilities.get("NORMAL_READ_WRITE", 0.0)
                         sleep_score = pos_cue.probabilities.get("HEAD_REST_SLEEP", 0.0)
-                        if rw_score >= 0.35 or sleep_score >= 0.35:
+                        if rw_score >= 0.30 or sleep_score >= 0.30:
                             is_stand_valid = False
 
                     # Geometry gate: Leaning forward towards camera lowers head; actual standing extends upward!
@@ -747,10 +752,13 @@ class Stage2Pipeline:
                     base_h = t_meta.get("baseline_height")
                     base_ar = t_meta.get("baseline_aspect")
                     samples_cnt = len(t_meta.get("baseline_y1_samples", []))
-                    if base_y1 is not None and base_h is not None and samples_cnt >= 8:
+                    if base_y1 is not None and base_h is not None and samples_cnt >= 4:
                         head_rose = (cur_y1 < base_y1 - 0.12 * base_h)
                         aspect_tall = (base_ar is not None and cur_ar > base_ar * 1.30)
                         if not (head_rose or aspect_tall):
+                            is_stand_valid = False
+                    elif pos_cue and pos_cue.status == ObservationStatus.AVAILABLE:
+                        if pos_cue.predicted_class in ("NORMAL_READ_WRITE", "NORMAL_UPRIGHT", "HEAD_REST_SLEEP"):
                             is_stand_valid = False
 
                     macro_cue.stand_score = conf if is_stand_valid else 0.0
@@ -1177,8 +1185,11 @@ class Stage2Pipeline:
         if expired:
             closed = self.event_engine.handle_track_expiration(expired, time.time(), camera_id=camera_id)
             for ev in closed:
-                self._active_events_map.pop(ev.event_id, None)
-                self._broadcast_event(ev, "CLOSE")
+                active_ev = self._active_events_map.pop(ev.event_id, None)
+                ev_to_close = active_ev or ev
+                ev_to_close.status = "closed"
+                ev_to_close.lifecycle_status = "closed"
+                self._broadcast_event(ev_to_close, "CLOSE")
             for eid in expired:
                 self._track_metadata.pop(eid, None)
         self.temporal_buffer.clear(camera_id=camera_id)
