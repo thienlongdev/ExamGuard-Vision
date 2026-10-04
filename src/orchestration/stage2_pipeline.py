@@ -984,7 +984,7 @@ class Stage2Pipeline:
                     hp = headpose_cues.get(tid)
                     ph = phone_associations.get(tid)
                     track_events = [e for e in self._active_events_map.values() if e.track_id == tid]
-                    max_risk = "LOW"
+                    max_risk = "SAFE" if not track_events else "LOW"
                     primary_ev = None
                     for e in track_events:
                         if e.risk_level == "HIGH":
@@ -994,13 +994,61 @@ class Stage2Pipeline:
                         elif e.risk_level == "MEDIUM" and max_risk != "HIGH":
                             max_risk = "MEDIUM"
                             primary_ev = e
+                        elif primary_ev is None:
+                            primary_ev = e
+
+                    turn_key = (cam_id, tid, EventFamily.SUSTAINED_LATERAL_HEAD_ORIENTATION)
+                    turn_machine = self.event_engine._machines.get(turn_key)
+                    is_turn_candidate = (turn_machine is not None and turn_machine.state == EventLifecycleState.CANDIDATE)
+                    turn_cand_dur = (ts - turn_machine.candidate_start_time) if (is_turn_candidate and turn_machine.candidate_start_time) else 0.0
+
+                    hp_status_str = getattr(hp.status, "value", str(hp.status)) if (hp and hasattr(hp, "status")) else "UNAVAILABLE"
+                    yaw_val = round(float(hp.yaw_deg), 1) if (hp and hasattr(hp, "yaw_deg") and hp.yaw_deg is not None) else None
+                    yaw_abs_val = round(abs(yaw_val), 1) if yaw_val is not None else None
+
+                    # PART 1 Head Turn temporary diagnostic telemetry
+                    h_crop_w, h_crop_h = int(bx[2] - bx[0]), int(bx[3] - bx[1])
+                    if h_crop_w > 0:
+                        h_crop_w = int(h_crop_w * 0.70)
+                        h_crop_h = int(h_crop_h * 0.32)
+
+                    rep_glance = 0
+                    if tid in self.temporal_buffer._tracks:
+                        rep_glance = getattr(self.temporal_buffer._tracks[tid], "glance_count", 0)
+
+                    head_reviewable = (primary_ev is not None and primary_ev.evidence_summary.get("is_reviewable", False))
+                    head_suppress = "NONE"
+                    if hp_status_str != "AVAILABLE":
+                        head_suppress = "HEADPOSE_UNAVAILABLE"
+                    elif yaw_abs_val is not None and yaw_abs_val < 24.0:
+                        head_suppress = "YAW_BELOW_THRESHOLD"
+                    elif is_turn_candidate:
+                        head_suppress = "ACCUMULATING_CANDIDATE"
+
+                    sev_str = "GREEN"
+                    if max_risk == "HIGH":
+                        sev_str = "HIGH"
+                    elif max_risk == "MEDIUM":
+                        sev_str = "AMBER"
+                    elif is_turn_candidate or (yaw_abs_val is not None and yaw_abs_val >= 24.0):
+                        sev_str = "LOW"
+
+                    if os.environ.get("EXAMGUARD_DIAGNOSTIC_CUES") == "1" or logger.isEnabledFor(logging.DEBUG):
+                        logger.debug(
+                            f"[HEAD_TURN] HEADPOSE_STATUS={hp_status_str} yaw={yaw_val} yaw_abs={yaw_abs_val} "
+                            f"head_crop={h_crop_w}x{h_crop_h} turn_candidate={'yes' if is_turn_candidate else 'no'} "
+                            f"turn_candidate_duration={turn_cand_dur:.2f} repeated_glance_count={rep_glance} "
+                            f"reviewable={'yes' if head_reviewable else 'no'} severity={sev_str} suppression_reason={head_suppress}"
+                        )
 
                     tracks_summary.append({
                         "track_id": tid,
                         "bbox": bx,
                         "posture": pos.predicted_class if (pos and hasattr(pos, "predicted_class") and pos.predicted_class) else "N/A",
                         "posture_conf": round(float(pos.confidence), 2) if (pos and hasattr(pos, "confidence") and pos.confidence is not None) else None,
-                        "yaw_deg": round(float(hp.yaw_deg), 1) if (hp and hasattr(hp, "yaw_deg") and hp.yaw_deg is not None) else None,
+                        "yaw_deg": yaw_val,
+                        "headpose_status": hp_status_str,
+                        "turn_candidate": is_turn_candidate,
                         "phone_status": ph.status if ph and hasattr(ph, "status") else "NONE",
                         "active_events": [e.event_type for e in track_events],
                         "primary_event_type": primary_ev.event_type if primary_ev else None,

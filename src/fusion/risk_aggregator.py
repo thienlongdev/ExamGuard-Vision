@@ -42,7 +42,7 @@ class RiskAggregator:
         self.max_single_frame_score = float(risk_cfg.get("max_single_frame_score", 25.0))
         self.phone_high_min_duration_sec = float(risk_cfg.get("phone_high_min_duration_sec", 2.5))
         turn_cfg = self.config.get("provisional_thresholds", {}).get("sustained_lateral_head_orientation", {})
-        self.sustained_turn_duration_sec = float(turn_cfg.get("sustained_turn_min_duration_sec", 1.2))
+        self.sustained_turn_duration_sec = float(turn_cfg.get("sustained_turn_min_duration_sec", 0.85))
         self.event_min_severity_active = dict(self.EVENT_MIN_SEVERITY_ACTIVE)
         if "event_min_severity_active" in risk_cfg:
             self.event_min_severity_active.update(risk_cfg["event_min_severity_active"])
@@ -150,7 +150,7 @@ class RiskAggregator:
                 event.review_status = "awaiting"
                 event.evidence_summary["is_reviewable"] = True
                 event.evidence_summary["glance_classification"] = (
-                    "SUSTAINED_LATERAL_TURN" if is_sustained else ("REPEATED_GLANCES" if is_repeated else "MULTI_CUE_TURN")
+                    "REPEATED_GLANCES" if is_repeated else ("SUSTAINED_LATERAL_TURN" if is_sustained else "MULTI_CUE_TURN")
                 )
             else:
                 # Brief isolated glance (< sustained_turn_duration_sec, no repetition): internal cue only!

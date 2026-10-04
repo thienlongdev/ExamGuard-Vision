@@ -88,18 +88,19 @@ provisional_thresholds:
     normal_reset_seconds: 4.0        # Sustained normal behavior required for real recovery
 
   sustained_lateral_head_orientation:
-    min_candidate_duration_sec: 0.75  # Clear lateral turn sustained ~0.75s promotes to ACTIVE
+    min_candidate_duration_sec: 0.60  # Clear lateral turn sustained ~0.60s promotes to ACTIVE
     posture_turn_enter_threshold: 0.50
     posture_turn_exit_threshold: 0.30
     supporting_yaw_deg_threshold: 24.0 # Continuous yaw orientation threshold
+    supporting_yaw_deg_exit_threshold: 18.0 # Hysteresis exit threshold
     yaw_consistency_weight: 0.35     # Yaw weight in multi-cue evidence
-    exit_grace_seconds: 1.2          # Retains ACTIVE during momentary frame flutter
-    cooldown_seconds: 3.0
-    normal_reset_seconds: 3.5        # Real recovery required before opening new turn event
-    sustained_turn_min_duration_sec: 1.2 # Isolated glance < 1.2s remains internal; >= 1.2s or repeated glances is reviewable
+    exit_grace_seconds: 1.0          # Retains ACTIVE during momentary frame flutter
+    cooldown_seconds: 2.5
+    normal_reset_seconds: 3.0        # Real recovery required before opening new turn event
+    sustained_turn_min_duration_sec: 0.85 # Sustained turn >= 0.85s or repeated glances is reviewable
 
   phone_associated:
-    min_candidate_duration_sec: 0.75  # Brief plausible detection captured without micro-event noise
+    min_candidate_duration_sec: 0.60  # Fast promotion within 0.5-1.0s for clear phone
     evidence_enter_threshold: 0.35
     evidence_exit_threshold: 0.25
     min_phone_confidence: 0.35

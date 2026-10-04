@@ -403,6 +403,18 @@ html, body {
   border-bottom: 2.5px solid; border-right: 2.5px solid;
 }
 
+/* State 0: CANDIDATE / OBSERVABLE (Blue) */
+.track-box.state-candidate,
+.track-box.state-low {
+  border: 1.5px solid rgba(56, 189, 248, 0.75);
+  background: rgba(56, 189, 248, 0.08);
+  box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+}
+.track-box.state-candidate .track-box-corner,
+.track-box.state-low .track-box-corner {
+  border-color: #38bdf8;
+}
+
 /* State 1: SAFE (Green) */
 .track-box.risk-low,
 .track-box.risk-normal,
@@ -501,6 +513,13 @@ html, body {
   font-size: 0.68rem;
   font-weight: 800;
   letter-spacing: 0.02em;
+}
+
+.track-tag-badge.candidate,
+.track-tag-badge.low {
+  background: rgba(56, 189, 248, 0.22);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.45);
 }
 
 .track-tag-badge.safe {

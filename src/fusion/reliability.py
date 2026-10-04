@@ -144,22 +144,24 @@ class ReliabilityModel:
                 # Pure lateral head turn with upright torso: body lean NOT required!
                 fused = max(yaw_evidence * 0.90, 0.52)
 
-            # Normal read/write paper reading protection:
-            # When a student is engaged in normal reading/writing on their desk (rw_score >= 0.35),
-            # natural downward/diagonal paper glance (abs_yaw < 36 deg) is part of reading paper,
-            # NOT a suspicious lateral head turn away from desk.
-            # However, if abs_yaw >= 36 deg, it is a clear lateral look towards another seat.
-            if posture_rw_score >= 0.35 and abs_yaw < 36.0:
-                rw_attenuation = max(0.30, 1.0 - (posture_rw_score - 0.25) * 1.4)
-                fused = min(fused * rw_attenuation, 0.40)
-        elif abs_yaw < 20.0:
-            # Head-pose indicates frontal face (|yaw| < 20 deg); face is facing desk/forward.
-            # Attenuates false posture turn below candidate enter threshold (0.50).
-            fused = min(0.35, posture_turn_score * 0.40)
+            # Normal read/write desk reading protection:
+            # Only apply when the student is heavily engaged in desk reading/writing (rw_score >= 0.60)
+            # and looking downward at paper (abs_yaw < 30.0 deg).
+            # When abs_yaw >= 30.0 or posture is upright, it is a clear lateral turn towards another seat.
+            if posture_rw_score >= 0.60 and abs_yaw < 30.0:
+                rw_attenuation = max(0.35, 1.0 - (posture_rw_score - 0.40) * 1.2)
+                fused = min(fused * rw_attenuation, 0.42)
+        elif abs_yaw < 18.0:
+            # Head-pose indicates frontal face (|yaw| < 18 deg); face is facing desk/forward.
+            # Attenuates posture turn below candidate exit threshold (0.30).
+            fused = min(0.28, posture_turn_score * 0.35)
         else:
-            # Transition zone [20, 24) deg: scale from attenuated to standalone
-            yaw_frac = (abs_yaw - 20.0) / 4.0
-            base_attenuated = min(0.35, posture_turn_score * 0.40)
-            fused = (1.0 - yaw_frac) * base_attenuated + yaw_frac * max(posture_turn_score * 0.85, 0.52)
+            # Hysteresis transition zone [18.0, 24.0) deg:
+            # Maintains active state above exit threshold (0.30) until head returns to frontal (< 18 deg)
+            yaw_frac = (abs_yaw - 18.0) / 6.0
+            # Scales evidence smoothly between 0.32 (above 0.30 exit) and 0.52 (enter)
+            fused = 0.32 + 0.20 * yaw_frac
+            if posture_turn_score >= 0.40:
+                fused = max(fused, posture_turn_score * 0.85)
 
         return max(0.0, min(1.0, fused))

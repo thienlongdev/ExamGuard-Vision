@@ -305,12 +305,12 @@ export class CameraViewComponent {
 
       if (w <= 0 || h <= 0) return;
 
-      // Determine 3-state per-track visual severity
+      // Determine 4-state per-track visual severity: SAFE (Green) | CANDIDATE (Blue) | ATTENTION (Amber) | HIGH_ALERT (Red)
       const trackEvents = activeEventsByTrack.get(t.track_id) || [];
-      let visualState = "SAFE"; // SAFE | ATTENTION | HIGH_ALERT
+      let visualState = "SAFE"; // SAFE | CANDIDATE | ATTENTION | HIGH_ALERT
       let activePrimaryEvent = null;
 
-      // Check active events first
+      // 1. Check active events first
       for (const ev of trackEvents) {
         if (ev.riskLevel === "HIGH") {
           visualState = "HIGH_ALERT";
@@ -319,24 +319,43 @@ export class CameraViewComponent {
         } else if (ev.riskLevel === "MEDIUM" && visualState !== "HIGH_ALERT") {
           visualState = "ATTENTION";
           activePrimaryEvent = ev;
+        } else if (ev.riskLevel === "LOW" && visualState === "SAFE") {
+          if (ev.reviewStatus === "awaiting") {
+            visualState = "ATTENTION";
+          } else {
+            visualState = "CANDIDATE";
+          }
+          activePrimaryEvent = ev;
         }
       }
 
-      // Check telemetry cues if no active event escalated
-      if (visualState === "SAFE") {
+      // 2. Check telemetry cues / candidate flags if not escalated by confirmed event
+      const yawAbs = (t.yaw_deg !== null && t.yaw_deg !== undefined) ? Math.abs(t.yaw_deg) : null;
+      if (visualState === "SAFE" || visualState === "CANDIDATE") {
         if (t.risk_level === "HIGH") {
           visualState = "HIGH_ALERT";
         } else if (
           t.risk_level === "MEDIUM" ||
-          t.posture === "TURN_HEAD_CLEAR" ||
           t.posture === "HEAD_REST_SLEEP" ||
-          (t.yaw_deg !== null && t.yaw_deg !== undefined && Math.abs(t.yaw_deg) >= 28.0)
+          (activePrimaryEvent && (activePrimaryEvent.reviewStatus === "awaiting" || activePrimaryEvent.riskLevel === "MEDIUM"))
         ) {
           visualState = "ATTENTION";
+        } else if (
+          t.turn_candidate ||
+          t.posture === "TURN_HEAD_CLEAR" ||
+          (yawAbs !== null && yawAbs >= 24.0)
+        ) {
+          // Clear lateral head turn: leave GREEN immediately!
+          // If turn is already confirmed sustained or awaiting review: AMBER; else preliminary observable: BLUE
+          if (activePrimaryEvent && (activePrimaryEvent.duration >= 0.85 || activePrimaryEvent.reviewStatus === "awaiting")) {
+            visualState = "ATTENTION";
+          } else {
+            visualState = "CANDIDATE";
+          }
         }
       }
 
-      // Badge config and cue texts
+      // 3. Badge config and cue texts
       let boxClass = "track-box state-safe";
       let badgeHtml = `<span class="track-tag-badge safe">✓ BÌNH THƯỜNG</span>`;
       let bottomText = "Tư thế bình thường";
@@ -349,16 +368,26 @@ export class CameraViewComponent {
         boxClass = "track-box state-attention";
         badgeHtml = `<span class="track-tag-badge attention">! CẦN CHÚ Ý</span>`;
         if (activePrimaryEvent) {
-          const yawExtra = (t.yaw_deg !== null && t.yaw_deg !== undefined && activePrimaryEvent.canonicalType.includes("LATERAL"))
+          const yawExtra = (yawAbs !== null && activePrimaryEvent.canonicalType && activePrimaryEvent.canonicalType.includes("LATERAL"))
             ? ` • ${t.yaw_deg}°`
             : "";
           bottomText = `${activePrimaryEvent.displayName}${yawExtra}`;
-        } else if (t.posture === "TURN_HEAD_CLEAR" || (t.yaw_deg !== null && Math.abs(t.yaw_deg) >= 25.0)) {
+        } else if (t.posture === "TURN_HEAD_CLEAR" || (yawAbs !== null && yawAbs >= 24.0)) {
           bottomText = `Quay đầu • ${t.yaw_deg !== null ? `${t.yaw_deg}°` : "rõ"}`;
         } else if (t.posture === "HEAD_REST_SLEEP") {
           bottomText = "Gục đầu";
         } else {
           bottomText = "Cần chú ý";
+        }
+      } else if (visualState === "CANDIDATE") {
+        boxClass = "track-box state-candidate";
+        badgeHtml = `<span class="track-tag-badge candidate">👁 ĐANG QUAY ĐẦU</span>`;
+        if (yawAbs !== null) {
+          bottomText = `Góc quay • ${t.yaw_deg}°`;
+        } else if (t.turn_candidate) {
+          bottomText = "Đang quay đầu";
+        } else {
+          bottomText = "Quan sát";
         }
       } else {
         // SAFE / NORMAL

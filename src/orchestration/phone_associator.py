@@ -159,8 +159,8 @@ class PhoneAssociator:
             if d.class_name in ("cell phone", "phone", "mobile phone") or d.class_id == 67:
                 bw = float(d.bbox.width)
                 bh = float(d.bbox.height)
-                # Filter out giant boxes (desk surfaces, TV/screens, chair backs > 220x250 px or area > 35,000)
-                if bw <= 220.0 and bh <= 250.0 and (bw * bh) <= 35000.0:
+                # Filter out giant boxes (desk surfaces, TV/screens, chair backs > 350x420 px or area > 90,000)
+                if bw <= 350.0 and bh <= 420.0 and (bw * bh) <= 90000.0:
                     phone_dets.append(d)
 
         now_ts = timestamp_sec if timestamp_sec is not None else time.time()
@@ -178,10 +178,21 @@ class PhoneAssociator:
                         last_hit_ts, last_conf, last_bbox = valid_hits[-1]
                         gap = now_ts - last_hit_ts
                         has_strong = any(h[1] >= self.phone_strong_confidence for h in valid_hits)
+                        
+                        # Spatial consistency check for accumulated hits
+                        spatially_consistent = True
+                        if len(valid_hits) >= 2 and not has_strong:
+                            prev_centers = [((h[2][0] + h[2][2]) / 2.0, (h[2][1] + h[2][3]) / 2.0) for h in valid_hits]
+                            max_jitter = max(
+                                np.hypot(p1[0] - p2[0], p1[1] - p2[1])
+                                for p1 in prev_centers for p2 in prev_centers
+                            )
+                            spatially_consistent = (max_jitter <= 85.0)
+
                         hit_span = (valid_hits[-1][0] - valid_hits[0][0]) if len(valid_hits) >= 2 else 0.0
                         is_temporal_supported = (
                             has_strong or
-                            (len(valid_hits) >= self.weak_candidate_min_hits and hit_span >= self.weak_candidate_min_duration_sec)
+                            (len(valid_hits) >= self.weak_candidate_min_hits and hit_span >= self.weak_candidate_min_duration_sec and spatially_consistent)
                         )
                         if gap <= self.phone_candidate_gap_tolerance_sec and len(valid_hits) >= 2 and is_temporal_supported:
                             # Bridge intermittent gap using accumulated evidence, preserving candidate status
@@ -213,10 +224,10 @@ class PhoneAssociator:
 
             for track in tracks:
                 student_box = track.bbox
-                # Asymmetric expansion: generous downward into lap/desk region
-                exp_x1 = student_box.x1 - self.expand_ratio * student_box.width
-                exp_x2 = student_box.x2 + self.expand_ratio * student_box.width
-                exp_y1 = student_box.y1 - self.expand_ratio * student_box.height
+                # Asymmetric expansion: generous downward into lap/desk region, and up/lateral for face/chest
+                exp_x1 = student_box.x1 - (self.expand_ratio + 0.05) * student_box.width
+                exp_x2 = student_box.x2 + (self.expand_ratio + 0.05) * student_box.width
+                exp_y1 = student_box.y1 - (self.expand_ratio + 0.05) * student_box.height
                 exp_y2 = student_box.y2 + self.expand_ratio_down * student_box.height
 
                 is_inside = (exp_x1 <= phone_center[0] <= exp_x2 and exp_y1 <= phone_center[1] <= exp_y2)
@@ -228,9 +239,10 @@ class PhoneAssociator:
                 dist = np.sqrt((phone_center[0] - s_center[0]) ** 2 + (phone_center[1] - s_center[1]) ** 2)
                 normalized_dist = dist / diag
 
-                if (is_inside or iou >= self.min_iou or overlap >= self.min_iou) and normalized_dist <= self.max_distance_ratio:
+                max_dist_limit = max(0.80, self.max_distance_ratio + 0.15)
+                if (is_inside or iou >= self.min_iou or overlap >= self.min_iou or normalized_dist <= self.max_distance_ratio) and normalized_dist <= max_dist_limit:
                     score = (1.0 - normalized_dist) + (iou * 2.0)
-                    relation = "DIRECT_CONTACT" if (iou > 0.10 or overlap > 0.15) else "DESK_PROXIMITY"
+                    relation = "DIRECT_CONTACT" if (iou > 0.10 or overlap > 0.15 or (is_inside and normalized_dist <= 0.50)) else "DESK_PROXIMITY"
                     candidate_scores.append((track.track_id, score, relation))
 
             if not candidate_scores:
@@ -238,7 +250,7 @@ class PhoneAssociator:
                 if phone.confidence >= self.phone_strong_confidence:
                     bw = float(phone.bbox.width)
                     bh = float(phone.bbox.height)
-                    if bw <= 180.0 and bh <= 200.0:
+                    if bw <= 280.0 and bh <= 320.0:
                         self.unassociated_phones.append(phone)
                         if diag_mode:
                             logger.info(
@@ -285,12 +297,39 @@ class PhoneAssociator:
                 self._recent_track_hits[best_track_id] = valid_hits
 
                 has_strong_hit = (phone.confidence >= self.phone_strong_confidence)
+                
+                # Spatial consistency check for weak hits
+                spatially_consistent = True
+                if len(valid_hits) >= 2 and not has_strong_hit:
+                    curr_cx = (phone.bbox.x1 + phone.bbox.x2) / 2.0
+                    curr_cy = (phone.bbox.y1 + phone.bbox.y2) / 2.0
+                    prev_centers = [((h[2][0] + h[2][2]) / 2.0, (h[2][1] + h[2][3]) / 2.0) for h in valid_hits[:-1]]
+                    mean_dist = sum(np.hypot(curr_cx - px, curr_cy - py) for px, py in prev_centers) / len(prev_centers)
+                    spatially_consistent = (mean_dist <= 75.0)
+
                 hit_span = (valid_hits[-1][0] - valid_hits[0][0]) if len(valid_hits) >= 2 else 0.0
                 is_temporal_supported = (
                     has_strong_hit or
-                    (len(valid_hits) >= self.weak_candidate_min_hits and hit_span >= self.weak_candidate_min_duration_sec)
+                    (len(valid_hits) >= self.weak_candidate_min_hits and hit_span >= self.weak_candidate_min_duration_sec and spatially_consistent)
                 )
                 is_cand = not is_temporal_supported
+
+                suppression_reason = "NONE"
+                if is_cand:
+                    if phone.confidence < self.phone_strong_confidence and not spatially_consistent:
+                        suppression_reason = "SPATIAL_JITTER_WEAK_HIT"
+                    elif phone.confidence < self.phone_strong_confidence:
+                        suppression_reason = "WEAK_HIT_ACCUMULATING"
+                    else:
+                        suppression_reason = "AWAITING_TEMPORAL_CONFIRMATION"
+
+                if diag_mode or logger.isEnabledFor(logging.DEBUG):
+                    logger.debug(
+                        f"[PHONE_RAW] conf={phone.confidence:.3f} bbox=({phone.bbox.x1:.0f},{phone.bbox.y1:.0f},{phone.bbox.width:.0f},{phone.bbox.height:.0f}) "
+                        f"associated_track={best_track_id} association_score={best_score:.3f} temporal_hits={len(valid_hits)} "
+                        f"candidate_state={'CANDIDATE' if is_cand else 'CONFIRMED'} reviewable={'no' if is_cand else 'yes'} "
+                        f"suppression_reason={suppression_reason}"
+                    )
 
                 prev = results[best_track_id]
                 if prev.status != "ASSOCIATED" or phone.confidence > prev.confidence or (prev.is_candidate_only and not is_cand):
