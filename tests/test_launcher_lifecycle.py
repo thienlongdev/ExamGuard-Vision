@@ -31,6 +31,10 @@ def _run_ps1(script_name: str, timeout: int = 90) -> subprocess.CompletedProcess
         "-File",
         str(ps1_path),
     ]
+    if script_name == "start_examguard.ps1":
+        cmd.append("-NoBrowser")
+    env = os.environ.copy()
+    env["EXAMGUARD_LAUNCHER_TEST_MODE"] = "1"
     return subprocess.run(
         cmd,
         capture_output=True,
@@ -39,6 +43,7 @@ def _run_ps1(script_name: str, timeout: int = 90) -> subprocess.CompletedProcess
         errors="replace",
         timeout=timeout,
         cwd=str(REPO_ROOT),
+        env=env,
     )
 
 

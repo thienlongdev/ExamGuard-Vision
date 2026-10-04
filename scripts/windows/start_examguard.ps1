@@ -4,6 +4,10 @@
 # waits for health readiness, and automatically opens the browser dashboard.
 # ==============================================================================
 
+param(
+    [switch]$NoBrowser
+)
+
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 $OutputEncoding = [System.Text.Encoding]::UTF8
 
@@ -108,12 +112,18 @@ $dashboardUrl = "http://127.0.0.1:8000/"
 
 function Test-ExamGuardHealth {
     param([string]$Url = "http://127.0.0.1:8000/health", [int]$TimeoutMs = 1500)
+    $req = $null
     try {
         $req = [System.Net.HttpWebRequest]::Create($Url)
         $req.Timeout = $TimeoutMs
         $req.ReadWriteTimeout = $TimeoutMs
         $req.Method = "GET"
-        $resp = $req.GetResponse()
+        $iar = $req.BeginGetResponse($null, $null)
+        if (-not $iar.AsyncWaitHandle.WaitOne($TimeoutMs, $false)) {
+            $req.Abort()
+            return $false
+        }
+        $resp = $req.EndGetResponse($iar)
         $stream = $resp.GetResponseStream()
         $reader = New-Object System.IO.StreamReader($stream)
         $body = $reader.ReadToEnd()
@@ -122,7 +132,11 @@ function Test-ExamGuardHealth {
         if ($body -like '*"status"*"ok"*' -and $body -like '*"version"*') {
             return $true
         }
-    } catch {}
+    } catch {
+        if ($req) {
+            try { $req.Abort() } catch {}
+        }
+    }
     return $false
 }
 
@@ -147,7 +161,9 @@ if ($portOccupied) {
         Write-Host ""
         Write-Host "[4/4] Mở bảng điều khiển..." -ForegroundColor White
         Write-Host "      ✓ Mở trình duyệt: $dashboardUrl" -ForegroundColor Green
-        Start-Process $dashboardUrl
+        if (-not $NoBrowser -and $env:EXAMGUARD_LAUNCHER_TEST_MODE -ne "1") {
+            Start-Process $dashboardUrl
+        }
         Start-Sleep -Seconds 2
         exit 0
     }
@@ -226,7 +242,9 @@ if ($ready) {
     Write-Host "[4/4] Mở bảng điều khiển..." -ForegroundColor White
     Write-Host "      ✓ ExamGuard Vision đã sẵn sàng" -ForegroundColor Green
     Write-Host "      Địa chỉ: $dashboardUrl" -ForegroundColor Cyan
-    Start-Process $dashboardUrl
+    if (-not $NoBrowser -and $env:EXAMGUARD_LAUNCHER_TEST_MODE -ne "1") {
+        Start-Process $dashboardUrl
+    }
     Start-Sleep -Seconds 2
     exit 0
 } else {

@@ -141,7 +141,7 @@ def test_port_collision_safety_behavior():
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server.bind(("127.0.0.1", 8000))
-    server.listen(1)
+    server.listen(5)
 
     try:
         cmd = [
@@ -151,8 +151,19 @@ def test_port_collision_safety_behavior():
             "Bypass",
             "-File",
             str(REPO_ROOT / "scripts" / "windows" / "start_examguard.ps1"),
+            "-NoBrowser",
         ]
-        res = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=25)
+        env = os.environ.copy()
+        env["EXAMGUARD_LAUNCHER_TEST_MODE"] = "1"
+        res = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=25,
+            env=env,
+        )
         assert res.returncode == 1
         assert "cổng 8000 đang được chương trình khác sử dụng" in res.stdout
     finally:
