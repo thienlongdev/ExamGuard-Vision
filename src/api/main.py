@@ -1030,13 +1030,21 @@ def create_app(
         if cam_id == "tracks":
             cam_id = None
 
+        tracks = []
         if camera_manager is not None:
             target_cam = camera_manager.resolve_canonical_camera_id(cam_id)
-            return camera_manager.get_camera_tracks(target_cam)
+            tracks = camera_manager.get_camera_tracks(target_cam)
+        elif stage2_pipeline is not None:
+            tracks = getattr(stage2_pipeline, "_latest_tracks_summary", [])
 
-        if stage2_pipeline is None:
-            return []
-        return getattr(stage2_pipeline, "_latest_tracks_summary", [])
+        return JSONResponse(
+            content=tracks,
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0",
+            },
+        )
 
     @app.post("/api/cameras/hero")
     async def set_hero_camera(payload: dict, request: Request):

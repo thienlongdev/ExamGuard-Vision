@@ -49,6 +49,7 @@ from src.fusion.types import (
     FusedEvent,
     RiskLevel,
     EventFamily,
+    EventLifecycleState,
 )
 from src.fusion.cue_state import PerTrackCueState
 from src.fusion.fusion_engine import MultiCueFusionEngine
@@ -992,7 +993,7 @@ class Stage2Pipeline:
                 for t in tracks:
                     try:
                         tid = t.track_id
-                        bx = t.bbox.as_int_tuple() if hasattr(t.bbox, "as_int_tuple") else list(t.bbox)
+                        bx = list(t.bbox.as_int_tuple() if hasattr(t.bbox, "as_int_tuple") else t.bbox)
                         pos = posture_cues.get(tid)
                         hp = headpose_cues.get(tid)
                         ph = phone_associations.get(tid)
@@ -1012,8 +1013,16 @@ class Stage2Pipeline:
 
                         turn_key = (canonical_cam, tid, EventFamily.SUSTAINED_LATERAL_HEAD_ORIENTATION)
                         turn_machine = self.event_engine._machines.get(turn_key)
-                        is_turn_candidate = (turn_machine is not None and turn_machine.state == EventLifecycleState.CANDIDATE)
-                        turn_cand_dur = (frame_ts - turn_machine.candidate_start_time) if (is_turn_candidate and turn_machine.candidate_start_time) else 0.0
+                        is_turn_candidate = False
+                        if turn_machine is not None:
+                            machine_st = getattr(turn_machine, "state", None)
+                            is_turn_candidate = (
+                                machine_st == EventLifecycleState.CANDIDATE
+                                or str(machine_st) == "CANDIDATE"
+                                or getattr(machine_st, "value", None) == "CANDIDATE"
+                            )
+                        cand_start = getattr(turn_machine, "candidate_start_time", None) if turn_machine else None
+                        turn_cand_dur = (frame_ts - cand_start) if (is_turn_candidate and cand_start is not None) else 0.0
 
                         hp_status_str = getattr(hp.status, "value", str(hp.status)) if (hp and hasattr(hp, "status")) else "UNAVAILABLE"
                         yaw_val = round(float(hp.yaw_deg), 1) if (hp and hasattr(hp, "yaw_deg") and hp.yaw_deg is not None) else None
@@ -1029,7 +1038,11 @@ class Stage2Pipeline:
                         if tid in self.temporal_buffer._tracks:
                             rep_glance = getattr(self.temporal_buffer._tracks[tid], "glance_count", 0)
 
-                        head_reviewable = (primary_ev is not None and primary_ev.evidence_summary.get("is_reviewable", False))
+                        head_reviewable = (
+                            primary_ev is not None
+                            and isinstance(getattr(primary_ev, "evidence_summary", None), dict)
+                            and primary_ev.evidence_summary.get("is_reviewable", False)
+                        )
                         head_suppress = "NONE"
                         if hp_status_str != "AVAILABLE":
                             head_suppress = "HEADPOSE_UNAVAILABLE"
@@ -1055,6 +1068,7 @@ class Stage2Pipeline:
                             )
 
                         tracks_summary.append({
+                            "camera_id": canonical_cam,
                             "track_id": tid,
                             "bbox": bx,
                             "posture": pos.predicted_class if (pos and hasattr(pos, "predicted_class") and pos.predicted_class) else "N/A",
@@ -1062,13 +1076,18 @@ class Stage2Pipeline:
                             "yaw_deg": yaw_val,
                             "headpose_status": hp_status_str,
                             "turn_candidate": is_turn_candidate,
+                            "candidate": is_turn_candidate,
+                            "is_reviewable": head_reviewable,
                             "phone_status": ph.status if ph and hasattr(ph, "status") else "NONE",
                             "active_events": [e.event_type for e in track_events],
+                            "active_event_family": getattr(primary_ev, "event_family", None) or (getattr(primary_ev, "canonical_type", None)),
                             "primary_event_type": primary_ev.event_type if primary_ev else None,
                             "risk_level": max_risk,
+                            "review_severity": sev_str,
+                            "severity": sev_str,
                         })
                     except Exception as track_err:
-                        logger.debug(f"Track summary error on track {getattr(t, 'track_id', 'unknown')}: {track_err}")
+                        logger.warning(f"Track summary error on track {getattr(t, 'track_id', 'unknown')}: {track_err}", exc_info=True)
                 with self._frame_lock:
                     self._latest_tracks_summary = tracks_summary
         except Exception as e:

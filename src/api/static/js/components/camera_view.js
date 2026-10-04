@@ -16,6 +16,8 @@ export class CameraViewComponent {
     this.cameraLabel = "CAM 01";
     this.reconnectTimer = null;
     this.healthMonitorTimer = null;
+    this.trackPollTimer = null;
+    this.resizeObserver = null;
     this.reconnectAttempts = 0;
     this.init();
   }
@@ -23,7 +25,9 @@ export class CameraViewComponent {
   init() {
     this.render();
     this.bindEvents();
+    this.setupResizeObserver();
     this.startHealthMonitor();
+    this.startTrackPolling();
 
     appState.subscribe((type, payload) => {
       if (type === "TRACKS_UPDATED") {
@@ -38,6 +42,52 @@ export class CameraViewComponent {
     });
 
     this.updateSessionState(appState.currentSession);
+    if (appState.activeTracks && appState.activeTracks.length > 0) {
+      this.renderTracks(appState.activeTracks);
+    }
+  }
+
+  startTrackPolling() {
+    if (this.trackPollTimer) clearInterval(this.trackPollTimer);
+    this.trackPollTimer = setInterval(async () => {
+      if (document.hidden) return;
+      if (this.streamState === "ERROR") return;
+      try {
+        const tracks = await ApiClient.getCameraTracks(this.canonicalCameraId);
+        if (tracks) {
+          appState.setActiveTracks(tracks);
+        }
+      } catch {
+        // Silently continue on transient poll hiccup
+      }
+    }, 150);
+  }
+
+  setupResizeObserver() {
+    if (window.ResizeObserver) {
+      this.resizeObserver = new ResizeObserver(() => {
+        if (appState.activeTracks && appState.activeTracks.length > 0) {
+          this.renderTracks(appState.activeTracks);
+        }
+      });
+      const feed = document.getElementById("feed-container");
+      if (feed) this.resizeObserver.observe(feed);
+      if (this.streamImg) this.resizeObserver.observe(this.streamImg);
+    }
+
+    window.addEventListener("resize", () => {
+      if (appState.activeTracks && appState.activeTracks.length > 0) {
+        this.renderTracks(appState.activeTracks);
+      }
+    });
+
+    document.addEventListener("fullscreenchange", () => {
+      setTimeout(() => {
+        if (appState.activeTracks && appState.activeTracks.length > 0) {
+          this.renderTracks(appState.activeTracks);
+        }
+      }, 50);
+    });
   }
 
   setStreamState(state, message = null) {
@@ -366,25 +416,42 @@ export class CameraViewComponent {
   }
 
   renderTracks(tracks) {
+    if (!this.overlaysLayer) {
+      this.overlaysLayer = document.getElementById("camera-overlays-layer");
+    }
+    if (!this.streamImg) {
+      this.streamImg = document.getElementById("camera-stream-img");
+    }
     if (!this.overlaysLayer || !this.streamImg) return;
     this.overlaysLayer.innerHTML = "";
 
+    // Deduplicate tracks by track_id to avoid duplicate boxes
+    const seenIds = new Set();
+    const uniqueTracks = (tracks || []).filter((t) => {
+      if (!t || t.track_id === undefined || t.track_id === null) return false;
+      if (seenIds.has(t.track_id)) return false;
+      seenIds.add(t.track_id);
+      return true;
+    });
+
     const tracksEl = document.getElementById("cam-tracks-chip");
     if (tracksEl) {
-      tracksEl.innerText = `${tracks.length} THÍ SINH`;
+      tracksEl.innerText = `${uniqueTracks.length} THÍ SINH`;
     }
 
-    if (!tracks || tracks.length === 0) return;
+    if (uniqueTracks.length === 0) return;
 
     // Get rendered dimensions of image inside container
     const imgRect = this.streamImg.getBoundingClientRect();
     const containerRect = this.overlaysLayer.getBoundingClientRect();
 
-    // Source resolution reference (1280x720 = 16:9)
-    const srcW = 1280;
-    const srcH = 720;
+    if (imgRect.width <= 0 || imgRect.height <= 0) return;
+
+    // Source resolution reference (1280x720 = 16:9 standard, or actual frame dimensions)
+    const srcW = (this.streamImg.naturalWidth && this.streamImg.naturalWidth > 0) ? this.streamImg.naturalWidth : 1280;
+    const srcH = (this.streamImg.naturalHeight && this.streamImg.naturalHeight > 0) ? this.streamImg.naturalHeight : 720;
     const srcAspect = srcW / srcH;
-    const containerAspect = imgRect.width / (imgRect.height || 1);
+    const containerAspect = imgRect.width / imgRect.height;
 
     let renderW = imgRect.width;
     let renderH = imgRect.height;
@@ -413,7 +480,7 @@ export class CameraViewComponent {
       }
     }
 
-    tracks.forEach((t) => {
+    uniqueTracks.forEach((t) => {
       const bbox = t.bbox || [0, 0, 0, 0];
       const x1 = bbox[0] * scaleX + offsetX;
       const y1 = bbox[1] * scaleY + offsetY;
@@ -449,21 +516,30 @@ export class CameraViewComponent {
       // 2. Check telemetry cues / candidate flags if not escalated by confirmed event
       const yawAbs = (t.yaw_deg !== null && t.yaw_deg !== undefined) ? Math.abs(t.yaw_deg) : null;
       if (visualState === "SAFE" || visualState === "CANDIDATE") {
-        if (t.risk_level === "HIGH") {
+        if (
+          t.risk_level === "HIGH" ||
+          t.review_severity === "HIGH" ||
+          t.severity === "HIGH" ||
+          t.phone_status === "CONFIRMED" ||
+          t.phone_status === "HIGH"
+        ) {
           visualState = "HIGH_ALERT";
         } else if (
           t.risk_level === "MEDIUM" ||
+          t.review_severity === "AMBER" ||
+          t.severity === "AMBER" ||
           t.posture === "HEAD_REST_SLEEP" ||
           (activePrimaryEvent && (activePrimaryEvent.reviewStatus === "awaiting" || activePrimaryEvent.riskLevel === "MEDIUM"))
         ) {
           visualState = "ATTENTION";
         } else if (
           t.turn_candidate ||
+          t.candidate ||
+          t.review_severity === "LOW" ||
+          t.severity === "LOW" ||
           t.posture === "TURN_HEAD_CLEAR" ||
           (yawAbs !== null && yawAbs >= 24.0)
         ) {
-          // Clear lateral head turn: leave GREEN immediately!
-          // If turn is already confirmed sustained or awaiting review: AMBER; else preliminary observable: BLUE
           if (activePrimaryEvent && (activePrimaryEvent.duration >= 0.85 || activePrimaryEvent.reviewStatus === "awaiting")) {
             visualState = "ATTENTION";
           } else {
@@ -501,7 +577,7 @@ export class CameraViewComponent {
         badgeHtml = `<span class="track-tag-badge candidate">👁 ĐANG QUAY ĐẦU</span>`;
         if (yawAbs !== null) {
           bottomText = `Góc quay • ${t.yaw_deg}°`;
-        } else if (t.turn_candidate) {
+        } else if (t.turn_candidate || t.candidate) {
           bottomText = "Đang quay đầu";
         } else {
           bottomText = "Quan sát";
@@ -526,7 +602,7 @@ export class CameraViewComponent {
       boxEl.style.height = `${Math.round(h)}px`;
 
       // Check for dense multi-student scene to prevent label collision
-      const isDense = tracks.length > 5 || w < 120;
+      const isDense = uniqueTracks.length > 5 || w < 120;
       const tagHtml = isDense
         ? `<div class="track-tag compact">
             <div class="track-tag-top">
@@ -536,7 +612,7 @@ export class CameraViewComponent {
           </div>`
         : `<div class="track-tag">
             <div class="track-tag-top">
-              <span class="track-tag-id">THÍ SINH #${t.track_id}</span>
+              <span class="track-tag-id">Thí sinh #${t.track_id}</span>
               ${badgeHtml}
             </div>
             <div class="track-tag-bottom">

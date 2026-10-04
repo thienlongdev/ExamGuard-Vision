@@ -79,12 +79,13 @@ class DashboardApp {
 
   async loadInitialData() {
     try {
-      const [eventsRaw, camsRaw, statusRaw, modelsRaw, currentSessionRaw] = await Promise.allSettled([
+      const [eventsRaw, camsRaw, statusRaw, modelsRaw, currentSessionRaw, tracksRaw] = await Promise.allSettled([
         ApiClient.getEvents(),
         ApiClient.getCameras(),
         ApiClient.getSystemStatus(),
         ApiClient.getSystemModels(),
         ApiClient.getCurrentSession(),
+        ApiClient.getCameraTracks(),
       ]);
 
       if (eventsRaw.status === "fulfilled" && Array.isArray(eventsRaw.value)) {
@@ -106,6 +107,10 @@ class DashboardApp {
 
       if (currentSessionRaw.status === "fulfilled" && currentSessionRaw.value) {
         appState.setCurrentSession(currentSessionRaw.value);
+      }
+
+      if (tracksRaw.status === "fulfilled" && Array.isArray(tracksRaw.value)) {
+        appState.setActiveTracks(tracksRaw.value);
       }
     } catch (err) {
       console.warn("Initial data load partial failure:", err);

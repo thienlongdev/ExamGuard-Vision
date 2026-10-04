@@ -328,31 +328,40 @@ class CameraPipelineWorker:
                 self.telemetry.active_tracks = len(result.tracks) if result else 0
 
                 # Throttled preview generation (max ~15 FPS for browser efficiency)
-                if now - last_preview_time >= 0.065 and result.annotated_frame is not None:
+                if now - last_preview_time >= 0.065:
                     last_preview_time = now
-                    # Annotate camera name banner on frame
-                    annotated = result.annotated_frame.copy()
-                    cv2.putText(
-                        annotated,
-                        f"CAM: {self.name}",
-                        (15, 30),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.7,
-                        (0, 255, 200),
-                        2,
-                        cv2.LINE_AA,
-                    )
-                    _, buf = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, 75])
-                    with self._preview_lock:
-                        self._latest_jpeg = buf.tobytes()
-                        self._latest_tracks = [
+                    pipe_tracks = []
+                    if self.pipeline and hasattr(self.pipeline, "_latest_tracks_summary"):
+                        with self.pipeline._frame_lock:
+                            pipe_tracks = list(self.pipeline._latest_tracks_summary)
+                    elif result and result.tracks:
+                        pipe_tracks = [
                             {
+                                "camera_id": self.camera_id,
                                 "track_id": t.track_id,
                                 "bbox": list(t.bbox.as_int_tuple() if hasattr(t.bbox, "as_int_tuple") else t.bbox),
-                                "camera_id": self.camera_id,
+                                "risk_level": "SAFE",
+                                "review_severity": "GREEN",
                             }
                             for t in result.tracks
                         ]
+
+                    with self._preview_lock:
+                        self._latest_tracks = pipe_tracks
+                        if result.annotated_frame is not None:
+                            annotated = result.annotated_frame.copy()
+                            cv2.putText(
+                                annotated,
+                                f"CAM: {self.name}",
+                                (15, 30),
+                                cv2.FONT_HERSHEY_SIMPLEX,
+                                0.7,
+                                (0, 255, 200),
+                                2,
+                                cv2.LINE_AA,
+                            )
+                            _, buf = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, 75])
+                            self._latest_jpeg = buf.tobytes()
             except Exception as e:
                 logger.error(f"Error processing frame on camera [{self.camera_id}]: {e}")
 
@@ -414,10 +423,19 @@ class CameraPipelineWorker:
     def get_latest_jpeg(self) -> Optional[bytes]:
         """Return latest encoded preview JPEG frame."""
         with self._preview_lock:
-            return self._latest_jpeg
+            if self._latest_jpeg is not None:
+                return self._latest_jpeg
+        if self.pipeline and hasattr(self.pipeline, "_latest_jpeg_frame"):
+            with self.pipeline._frame_lock:
+                return self.pipeline._latest_jpeg_frame
+        return None
 
     def get_latest_tracks(self) -> List[Dict[str, Any]]:
         """Return latest active tracks for this camera."""
+        if self.pipeline and hasattr(self.pipeline, "_latest_tracks_summary"):
+            with self.pipeline._frame_lock:
+                if self.pipeline._latest_tracks_summary:
+                    return list(self.pipeline._latest_tracks_summary)
         with self._preview_lock:
             return list(self._latest_tracks)
 
