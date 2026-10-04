@@ -4,11 +4,34 @@ Repository for exam_sessions table operations.
 
 from datetime import datetime
 import logging
+import re
+import unicodedata
 from typing import Optional, List, Dict, Any
 from src.persistence.database import DatabaseManager
 from src.persistence.models import ExamSession
 
 logger = logging.getLogger(__name__)
+
+# Display-only classification of development sessions; no stored record is altered.
+_TEST_NAME_RE = re.compile(r"\bTEST SESSION\b|^TEST\b|\bPYTEST\b")
+_VALIDATION_NAME_RE = re.compile(
+    r"\bBASELINE\b|\bSOAK\b|\bCARDINALITY\b|\bCERTIFICATION\b|\bSCALE SUITE\b|"
+    r"\bBENCHMARK\b|\bVALIDATION\b|\bKIEM THU\b"
+)
+
+
+def classify_session_kind(name: Optional[str]) -> str:
+    """Return OPERATIONAL, VALIDATION or TEST for a session name."""
+    if not name:
+        return "OPERATIONAL"
+    folded = unicodedata.normalize("NFD", name.replace("đ", "d").replace("Đ", "D"))
+    folded = "".join(ch for ch in folded if unicodedata.category(ch) != "Mn")
+    folded = re.sub(r"[_\-]+", " ", folded).upper()
+    if _TEST_NAME_RE.search(folded):
+        return "TEST"
+    if _VALIDATION_NAME_RE.search(folded):
+        return "VALIDATION"
+    return "OPERATIONAL"
 
 
 class SessionRepository:
@@ -182,12 +205,16 @@ class SessionRepository:
         offset: int = 0,
         status: Optional[str] = None,
         search: Optional[str] = None,
+        started_after: Optional[str] = None,
     ) -> List[ExamSession]:
         conditions = []
         params: List[Any] = []
         if status:
             conditions.append("status = ?")
             params.append(status.upper())
+        if started_after:
+            conditions.append("started_at >= ?")
+            params.append(started_after)
         if search:
             conditions.append("(name LIKE ? OR room LIKE ? OR invigilator_name LIKE ? OR class_name LIKE ? OR subject_code LIKE ?)")
             pattern = f"%{search.strip()}%"

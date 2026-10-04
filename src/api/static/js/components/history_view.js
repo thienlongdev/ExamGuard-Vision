@@ -25,6 +25,12 @@ export class HistoryViewComponent {
     this.sessionAudits = [];
     this.searchTerm = "";
     this.statusFilter = "all";
+    this.dateFilter = "all";
+    this.includeTest = false;
+    this.page = 1;
+    this.pageSize = 10;
+    this.searchDebounce = null;
+    this.loadSeq = 0;
     this.init();
   }
 
@@ -38,6 +44,8 @@ export class HistoryViewComponent {
         } else if (this.selectedSessionId) {
           this.loadSessionDetail(this.selectedSessionId);
         }
+      } else if (type === "EVENT_REVIEWED" && this.currentMode === "detail" && this.selectedSessionId) {
+        this.loadSessionDetail(this.selectedSessionId);
       }
     });
   }
@@ -62,24 +70,36 @@ export class HistoryViewComponent {
         <div class="history-toolbar">
           <div>
             <h2>Lịch sử phiên giám sát</h2>
-            <p>Hệ thống lưu trữ các buổi thi đã ghi nhận, bằng chứng số và nhật ký kiểm toán toàn vẹn.</p>
+            <p>Mỗi dòng là một phiên giám sát. Chọn "Xem lại" để mở sự kiện và bằng chứng của riêng phiên đó.</p>
           </div>
 
           <div class="history-filters">
-            <input 
-              type="text" 
-              class="history-search-input" 
-              id="input-history-search" 
-              placeholder="Tìm theo phòng hoặc tên kỳ thi…" 
+            <input
+              type="search"
+              class="history-search-input"
+              id="input-history-search"
+              placeholder="Tìm theo tên phiên hoặc phòng..."
               value="${escapeHtml(this.searchTerm)}"
             />
 
-            <select class="history-select" id="select-history-status">
-              <option value="all" ${this.statusFilter === "all" ? "selected" : ""}>Tất cả trạng thái</option>
-              <option value="ACTIVE" ${this.statusFilter === "ACTIVE" ? "selected" : ""}>Đang diễn ra</option>
+            <select class="history-select" id="select-history-status" aria-label="Lọc theo trạng thái">
+              <option value="all" ${this.statusFilter === "all" ? "selected" : ""}>Tất cả</option>
+              <option value="ACTIVE" ${this.statusFilter === "ACTIVE" ? "selected" : ""}>Đang hoạt động</option>
               <option value="CLOSED" ${this.statusFilter === "CLOSED" ? "selected" : ""}>Đã kết thúc</option>
               <option value="INTERRUPTED" ${this.statusFilter === "INTERRUPTED" ? "selected" : ""}>Bị gián đoạn</option>
             </select>
+
+            <select class="history-select" id="select-history-date" aria-label="Lọc theo thời gian">
+              <option value="today" ${this.dateFilter === "today" ? "selected" : ""}>Hôm nay</option>
+              <option value="7d" ${this.dateFilter === "7d" ? "selected" : ""}>7 ngày</option>
+              <option value="30d" ${this.dateFilter === "30d" ? "selected" : ""}>30 ngày</option>
+              <option value="all" ${this.dateFilter === "all" ? "selected" : ""}>Tất cả</option>
+            </select>
+
+            <label class="history-test-toggle">
+              <input type="checkbox" id="chk-history-include-test" ${this.includeTest ? "checked" : ""} />
+              Hiển thị phiên kiểm thử
+            </label>
 
             <button class="btn-history-refresh" id="btn-history-refresh" title="Tải lại danh sách">
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -90,33 +110,36 @@ export class HistoryViewComponent {
           </div>
         </div>
 
-        <!-- 2. Session Cards / Table -->
+        <!-- 2. One row per session -->
         <div class="history-table-card">
-          <div class="history-table-wrapper">
+          <div class="history-table-wrapper history-table-paged">
             <table class="history-table">
               <thead>
                 <tr>
-                  <th>Tên phiên giám sát</th>
+                  <th>Tên phiên</th>
                   <th>Phòng thi</th>
                   <th>Giám thị</th>
                   <th>Bắt đầu</th>
+                  <th>Kết thúc</th>
                   <th>Thời lượng</th>
-                  <th>Tổng sự kiện</th>
-                  <th>Cảnh báo cao</th>
-                  <th>Xử lý</th>
+                  <th title="Tổng sự kiện">Tổng</th>
+                  <th title="Chờ duyệt">Chờ</th>
+                  <th title="Đã xác nhận">Xác nhận</th>
+                  <th title="Đã bỏ qua">Bỏ qua</th>
                   <th>Trạng thái</th>
-                  <th style="text-align: right; width: 100px;">Thao tác</th>
+                  <th style="text-align: right; width: 90px;">Thao tác</th>
                 </tr>
               </thead>
               <tbody id="history-sessions-tbody">
                 <tr>
-                  <td colspan="10" style="text-align: center; padding: 48px; color: var(--text-dim);">
-                    Đang tải danh sách phiên giám sát từ cơ sở dữ liệu...
+                  <td colspan="12" style="text-align: center; padding: 48px; color: var(--text-dim);">
+                    Đang tải danh sách phiên giám sát…
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
+          <div class="history-pagination" id="history-pagination"></div>
         </div>
       </div>
     `;
@@ -128,42 +151,64 @@ export class HistoryViewComponent {
   bindListEvents() {
     const inputSearch = document.getElementById("input-history-search");
     const selStatus = document.getElementById("select-history-status");
+    const selDate = document.getElementById("select-history-date");
+    const chkTest = document.getElementById("chk-history-include-test");
     const btnRefresh = document.getElementById("btn-history-refresh");
 
-    if (inputSearch) {
-      inputSearch.addEventListener("input", (e) => {
-        this.searchTerm = e.target.value.toLowerCase().trim();
+    inputSearch?.addEventListener("input", (e) => {
+      this.searchTerm = e.target.value.trim();
+      clearTimeout(this.searchDebounce);
+      this.searchDebounce = setTimeout(() => {
+        this.page = 1;
         this.loadSessions();
-      });
-    }
+      }, 250);
+    });
 
-    if (selStatus) {
-      selStatus.addEventListener("change", (e) => {
-        this.statusFilter = e.target.value;
-        this.loadSessions();
-      });
-    }
+    selStatus?.addEventListener("change", (e) => {
+      this.statusFilter = e.target.value;
+      this.page = 1;
+      this.loadSessions();
+    });
 
-    if (btnRefresh) {
-      btnRefresh.addEventListener("click", () => {
-        this.loadSessions();
-      });
-    }
+    selDate?.addEventListener("change", (e) => {
+      this.dateFilter = e.target.value;
+      this.page = 1;
+      this.loadSessions();
+    });
+
+    chkTest?.addEventListener("change", (e) => {
+      this.includeTest = e.target.checked;
+      this.page = 1;
+      this.loadSessions();
+    });
+
+    btnRefresh?.addEventListener("click", () => this.loadSessions());
   }
 
   async loadSessions() {
     const tbody = document.getElementById("history-sessions-tbody");
     if (!tbody) return;
+    const seq = ++this.loadSeq;
 
     try {
-      const statusParam = this.statusFilter === "all" ? null : this.statusFilter;
-      const searchParam = this.searchTerm || null;
-      const sessions = await ApiClient.getSessions(statusParam, searchParam);
+      const result = await ApiClient.getSessionsPage({
+        page: this.page,
+        pageSize: this.pageSize,
+        status: this.statusFilter === "all" ? null : this.statusFilter,
+        search: this.searchTerm || null,
+        dateRange: this.dateFilter === "all" ? null : this.dateFilter,
+        includeTest: this.includeTest,
+      });
+      if (seq !== this.loadSeq || !result) return;
 
-      if (!sessions || sessions.length === 0) {
+      this.page = result.page;
+      const sessions = result.items || [];
+      this.renderPagination(result);
+
+      if (sessions.length === 0) {
         tbody.innerHTML = `
           <tr>
-            <td colspan="10" style="text-align: center; padding: 48px; color: var(--text-dim); font-size: 0.85rem;">
+            <td colspan="12" style="text-align: center; padding: 48px; color: var(--text-dim); font-size: 0.85rem;">
               Không tìm thấy phiên giám sát nào phù hợp.
             </td>
           </tr>
@@ -171,85 +216,99 @@ export class HistoryViewComponent {
         return;
       }
 
-      tbody.innerHTML = sessions
-        .map((s) => {
-          const statusInfo = SESSION_STATUS_VI[s.status] || {
-            label: s.status,
-            class: "status-active",
-            color: "var(--text-secondary)",
-          };
-          const startTime = new Date(s.started_at).toLocaleString("vi-VN", {
-            hour: "2-digit",
-            minute: "2-digit",
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-          });
-          const durationStr = s.duration_sec ? formatDurationVi(s.duration_sec) : (s.status === "ACTIVE" ? "Đang chạy" : "—");
-          const highCount = s.high_severity_count || 0;
-          const totalEvents = s.total_events || 0;
-          const confirmedCount = s.confirmed_count || 0;
-          const dismissedCount = s.dismissed_count || 0;
-          const awaitingCount = s.awaiting_count || 0;
-
-          return `
-            <tr class="history-table-row" data-session-id="${s.session_id}">
-              <td>
-                <div class="session-name-cell">
-                  <strong>${escapeHtml(s.name)}</strong>
-                  <span class="session-id-subtext">${s.session_id}</span>
-                </div>
-              </td>
-              <td><span class="session-room-badge">${escapeHtml(s.room || "Phòng chung")}</span></td>
-              <td><span class="session-invigilator-text">${escapeHtml(s.invigilator_name || "Chưa phân công")}</span></td>
-              <td style="font-family: var(--font-mono); font-size: 0.78rem;">${startTime}</td>
-              <td>${durationStr}</td>
-              <td><strong style="color: var(--text-primary);">${totalEvents}</strong></td>
-              <td>
-                <span class="stat-pill-high" style="${highCount > 0 ? 'color: var(--state-high); font-weight: 600;' : 'color: var(--text-dim);'}">
-                  ${highCount}
-                </span>
-              </td>
-              <td>
-                <div class="session-review-mini-kpi" title="Chờ: ${awaitingCount} | Xác nhận: ${confirmedCount} | Bỏ qua: ${dismissedCount}">
-                  <span style="color: var(--color-medium);">${awaitingCount} chờ</span> · 
-                  <span style="color: var(--color-live);">${confirmedCount} duyệt</span>
-                </div>
-              </td>
-              <td>
-                <span class="session-status-badge ${statusInfo.class}">${statusInfo.label}</span>
-              </td>
-              <td style="text-align: right;">
-                <button class="btn-inspect-session" data-reopen="${s.session_id}">Xem lại</button>
-              </td>
-            </tr>
-          `;
-        })
-        .join("");
+      tbody.innerHTML = sessions.map((s) => this.renderSessionRow(s)).join("");
 
       tbody.querySelectorAll("button[data-reopen]").forEach((btn) => {
         btn.addEventListener("click", (e) => {
           e.stopPropagation();
-          const sid = btn.dataset.reopen;
-          this.openSessionDetail(sid);
-        });
-      });
-
-      tbody.querySelectorAll(".history-table-row").forEach((row) => {
-        row.addEventListener("click", () => {
-          const sid = row.dataset.sessionId;
-          this.openSessionDetail(sid);
+          this.openSessionDetail(btn.dataset.reopen);
         });
       });
     } catch (err) {
+      if (seq !== this.loadSeq) return;
       tbody.innerHTML = `
         <tr>
-          <td colspan="10" style="text-align: center; padding: 48px; color: var(--state-high); font-size: 0.85rem;">
+          <td colspan="12" style="text-align: center; padding: 48px; color: var(--state-high); font-size: 0.85rem;">
             Lỗi khi tải lịch sử phiên: ${escapeHtml(err.message)}
           </td>
         </tr>
       `;
     }
+  }
+
+  renderSessionRow(s) {
+    const statusInfo = SESSION_STATUS_VI[s.status] || { label: s.status, class: "status-active" };
+    const sum = s.summary || {};
+    const fmt = (iso) =>
+      iso
+        ? new Date(iso).toLocaleString("vi-VN", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "2-digit", year: "numeric" })
+        : "—";
+    const kindBadge = s.session_kind && s.session_kind !== "OPERATIONAL"
+      ? `<span class="session-kind-badge">${s.session_kind === "TEST" ? "Kiểm thử" : "Thẩm định"}</span>`
+      : "";
+
+    return `
+      <tr class="history-table-row" data-session-id="${escapeHtml(s.session_id)}">
+        <td>
+          <div class="session-name-cell">
+            <strong>${escapeHtml(s.name)}</strong> ${kindBadge}
+            <span class="session-id-subtext">${escapeHtml(s.session_id)}</span>
+          </div>
+        </td>
+        <td><span class="session-room-badge">${escapeHtml(s.room || "—")}</span></td>
+        <td><span class="session-invigilator-text">${escapeHtml(s.invigilator_name || "Chưa phân công")}</span></td>
+        <td style="font-family: var(--font-mono); font-size: 0.76rem;">${fmt(s.started_at)}</td>
+        <td style="font-family: var(--font-mono); font-size: 0.76rem;">${s.status === "ACTIVE" ? "Đang chạy" : fmt(s.ended_at)}</td>
+        <td>${formatSessionDuration(sum.duration_sec)}</td>
+        <td><strong style="color: var(--text-primary);">${sum.total_events || 0}</strong></td>
+        <td style="color: var(--color-medium);">${sum.awaiting_count || 0}</td>
+        <td style="color: var(--color-live);">${sum.confirmed_count || 0}</td>
+        <td style="color: var(--text-dim);">${sum.dismissed_count || 0}</td>
+        <td><span class="session-status-badge ${statusInfo.class}">${statusInfo.label}</span></td>
+        <td style="text-align: right;">
+          <button class="btn-inspect-session" data-reopen="${escapeHtml(s.session_id)}">Xem lại</button>
+        </td>
+      </tr>
+    `;
+  }
+
+  renderPagination(result) {
+    const box = document.getElementById("history-pagination");
+    if (!box) return;
+    const { total, page, page_size: size, total_pages: pages, hidden_test_count: hidden } = result;
+    const from = total === 0 ? 0 : (page - 1) * size + 1;
+    const to = Math.min(total, page * size);
+
+    const nums = [];
+    for (let p = 1; p <= pages; p++) {
+      if (p === 1 || p === pages || Math.abs(p - page) <= 1) nums.push(p);
+      else if (nums[nums.length - 1] !== "…") nums.push("…");
+    }
+
+    const hiddenNote = hidden > 0 && !this.includeTest ? ` · đã ẩn ${hidden} phiên kiểm thử` : "";
+    box.innerHTML = `
+      <span class="history-page-info">Hiển thị ${from}–${to} / ${total} phiên${hiddenNote}</span>
+      <div class="history-page-controls">
+        <button class="history-page-btn" data-page="${page - 1}" ${page <= 1 ? "disabled" : ""}>Trước</button>
+        ${nums
+          .map((p) =>
+            p === "…"
+              ? `<span class="history-page-gap">…</span>`
+              : `<button class="history-page-btn ${p === page ? "active" : ""}" data-page="${p}" ${p === page ? 'aria-current="page"' : ""}>${p}</button>`
+          )
+          .join("")}
+        <button class="history-page-btn" data-page="${page + 1}" ${page >= pages ? "disabled" : ""}>Sau</button>
+      </div>
+    `;
+    box.querySelectorAll("button[data-page]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const target = Number(btn.dataset.page);
+        if (!target || target === this.page) return;
+        this.page = target;
+        this.loadSessions();
+        this.container.querySelector(".history-view-container")?.scrollTo(0, 0);
+      });
+    });
   }
 
   // ==========================================
@@ -442,7 +501,7 @@ export class HistoryViewComponent {
     const dismissed = events.filter((e) => (e.review_status || "").toLowerCase() === "dismissed").length;
     const awaiting = events.filter((e) => (e.review_status || "").toLowerCase() === "awaiting").length;
 
-    const dur = session.duration_sec ? formatDurationVi(session.duration_sec) : "—";
+    const dur = formatSessionDuration(session.summary?.duration_sec);
     const statusInfo = SESSION_STATUS_VI[session.status] || { label: session.status };
 
     kpiBox.innerHTML = `
@@ -558,9 +617,8 @@ export class HistoryViewComponent {
   openHistoricalEvent(eventId) {
     const rawEv = this.sessionEvents.find((e) => (e.event_id || e.eventId) === eventId);
     if (rawEv) {
-      const norm = normalizeEvent(rawEv);
-      appState.upsertEvent(norm);
-      appState.selectEvent(norm.eventId);
+      // Inspect only: a historical event must never enter the live session's state/KPIs
+      appState.inspectEvent(normalizeEvent(rawEv));
     }
   }
 
@@ -597,6 +655,17 @@ export class HistoryViewComponent {
       })
       .join("");
   }
+}
+
+function formatSessionDuration(sec) {
+  if (!sec || sec < 1) return "—";
+  const total = Math.floor(sec);
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (h > 0) return `${h}h ${String(m).padStart(2, "0")}m`;
+  if (m > 0) return `${m}m ${String(s).padStart(2, "0")}s`;
+  return `${s}s`;
 }
 
 function escapeHtml(text) {

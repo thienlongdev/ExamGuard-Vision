@@ -28,6 +28,10 @@ export class ApiClient {
 
   static async logout() {
     try {
+      // A fresh login must pass through the session gate again
+      sessionStorage.removeItem("eg_gate_session");
+    } catch {}
+    try {
       await fetch("/api/auth/logout", {
         method: "POST",
         headers: ApiClient._headers({}),
@@ -238,6 +242,24 @@ export class ApiClient {
     if (res.status === 401) {
       window.location.href = "/login";
       return [];
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch sessions`);
+    return await res.json();
+  }
+
+  static async getSessionsPage({ page = 1, pageSize = 10, status = null, search = null, dateRange = null, includeTest = false } = {}) {
+    const params = new URLSearchParams();
+    params.append("page", page);
+    params.append("page_size", pageSize);
+    if (status) params.append("status", status);
+    if (search) params.append("search", search);
+    if (dateRange) params.append("date_range", dateRange);
+    if (includeTest) params.append("include_test", "true");
+
+    const res = await fetch(`/api/sessions/page?${params.toString()}`);
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return null;
     }
     if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch sessions`);
     return await res.json();

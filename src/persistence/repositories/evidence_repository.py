@@ -110,6 +110,12 @@ class EvidenceRepository:
             )
             return cur.rowcount > 0
 
+    def update_artifact_state(self, evidence_id: str, artifact_state: str, error_message: Optional[str] = None) -> bool:
+        sql = "UPDATE event_evidence SET artifact_state = ?, error_message = ? WHERE evidence_id = ?;"
+        with self.db.transaction() as cur:
+            cur.execute(sql, (artifact_state, error_message, evidence_id))
+            return cur.rowcount > 0
+
     def get_evidence_by_id(self, evidence_id: str) -> Optional[EventEvidence]:
         sql = "SELECT * FROM event_evidence WHERE evidence_id = ?;"
         with self.db.cursor() as cur:

@@ -175,14 +175,15 @@ export class HeaderComponent {
       this.showSessionEditModal();
     });
 
+    // Start / end go through the session gate so the confirmation flow is identical everywhere
     document.getElementById("menu-end-session")?.addEventListener("click", () => {
       if (dropdown) dropdown.style.display = "none";
-      this.showEndSessionConfirm();
+      appState.requestSessionAction("end");
     });
 
     document.getElementById("menu-new-session")?.addEventListener("click", () => {
       if (dropdown) dropdown.style.display = "none";
-      this.showNewSessionPrompt();
+      appState.requestSessionAction("start");
     });
 
     // Safe Logout button (Workstream 9)
@@ -388,138 +389,6 @@ export class HeaderComponent {
         close();
       } catch (err) {
         alert(`Không thể cập nhật: ${err.message}`);
-      }
-    });
-  }
-
-  showEndSessionConfirm() {
-    const sess = appState.currentSession;
-    if (!sess) {
-      alert("Không có phiên giám sát nào đang hoạt động để kết thúc.");
-      return;
-    }
-    const host = document.getElementById("header-modals-host");
-    if (!host) return;
-
-    host.innerHTML = `
-      <div class="modal-backdrop" style="position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 2000; display: flex; align-items: center; justify-content: center;">
-        <div class="modal-card" style="background: #0f172a; border: 1px solid #ef4444; border-radius: 8px; width: 440px; padding: 20px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.6);">
-          <h3 style="font-size: 1.05rem; font-weight: 700; color: #f87171; margin-top: 0; margin-bottom: 12px;">Xác nhận kết thúc phiên giám sát</h3>
-          <p style="font-size: 0.85rem; color: #cbd5e1; line-height: 1.5; margin-bottom: 16px;">
-            Bạn có chắc chắn muốn kết thúc phiên <strong>${sess.name} (${sess.room})</strong>?<br/><br/>
-            Hệ thống sẽ hoàn tất các đoạn video bằng chứng còn dang dở, chốt nhật ký kiểm toán và lưu trữ an toàn vào cơ sở dữ liệu.
-          </p>
-          <div style="display: flex; justify-content: flex-end; gap: 8px;">
-            <button id="modal-end-cancel" style="background: transparent; color: #94a3b8; border: 1px solid #475569; border-radius: 4px; padding: 6px 12px; cursor: pointer;">Hủy</button>
-            <button id="modal-end-confirm" style="background: #dc2626; color: white; border: none; border-radius: 4px; padding: 6px 16px; cursor: pointer; font-weight: 600;">Kết thúc phiên</button>
-          </div>
-        </div>
-      </div>
-    `;
-
-    const close = () => { host.innerHTML = ""; };
-    document.getElementById("modal-end-cancel")?.addEventListener("click", close);
-
-    document.getElementById("modal-end-confirm")?.addEventListener("click", async () => {
-      const btn = document.getElementById("modal-end-confirm");
-      if (btn) { btn.disabled = true; btn.innerText = "Đang hoàn tất…"; }
-      try {
-        await ApiClient.endSession(sess.session_id, { reason: "COMPLETED" });
-        appState.setCurrentSession(null);
-        close();
-      } catch (err) {
-        alert(`Lỗi khi kết thúc phiên: ${err.message}`);
-        close();
-      }
-    });
-  }
-
-  showNewSessionPrompt() {
-    const active = appState.currentSession && appState.currentSession.status === "ACTIVE";
-    if (active) {
-      const confirmed = confirm(
-        "Phiên hiện tại sẽ được kết thúc và lưu toàn bộ sự kiện/bằng chứng trước khi bắt đầu phiên mới.\n\nBạn có muốn tiếp tục?"
-      );
-      if (!confirmed) return;
-    }
-    this.showStartSessionModal();
-  }
-
-  showStartSessionModal() {
-    const host = document.getElementById("header-modals-host");
-    if (!host) return;
-
-    host.innerHTML = `
-      <div class="modal-backdrop" style="position: fixed; inset: 0; background: rgba(0,0,0,0.65); z-index: 2000; display: flex; align-items: center; justify-content: center;">
-        <div class="modal-card" style="background: #0f172a; border: 1px solid #0284c7; border-radius: 8px; width: 480px; padding: 22px; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.6);">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <h3 style="font-size: 1.1rem; font-weight: 700; color: #f8fafc; margin: 0;">Bắt đầu phiên giám sát mới</h3>
-            <button id="modal-start-close" style="background: transparent; border: none; color: #94a3b8; font-size: 1.2rem; cursor: pointer;">✕</button>
-          </div>
-          <div style="display: flex; flex-direction: column; gap: 12px; font-size: 0.85rem;">
-            <div>
-              <label style="color: #94a3b8; display: block; margin-bottom: 4px;">Tên kỳ thi / Phiên (*):</label>
-              <input type="text" id="start-session-name" placeholder="Ví dụ: Thi Cuối Kỳ - Môn Cơ sở dữ liệu" style="width: 100%; background: #1e293b; border: 1px solid #475569; color: #f8fafc; padding: 8px 10px; border-radius: 4px; box-sizing: border-box;" />
-            </div>
-            <div>
-              <label style="color: #94a3b8; display: block; margin-bottom: 4px;">Phòng thi (*):</label>
-              <input type="text" id="start-session-room" value="Phòng A203" style="width: 100%; background: #1e293b; border: 1px solid #475569; color: #f8fafc; padding: 8px 10px; border-radius: 4px; box-sizing: border-box;" />
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-              <div>
-                <label style="color: #94a3b8; display: block; margin-bottom: 4px;">Lớp / Nhóm:</label>
-                <input type="text" id="start-session-class" placeholder="20DTH01" style="width: 100%; background: #1e293b; border: 1px solid #475569; color: #f8fafc; padding: 8px 10px; border-radius: 4px; box-sizing: border-box;" />
-              </div>
-              <div>
-                <label style="color: #94a3b8; display: block; margin-bottom: 4px;">Mã môn:</label>
-                <input type="text" id="start-session-subject" placeholder="CSDL101" style="width: 100%; background: #1e293b; border: 1px solid #475569; color: #f8fafc; padding: 8px 10px; border-radius: 4px; box-sizing: border-box;" />
-              </div>
-            </div>
-            <div>
-              <label style="color: #94a3b8; display: block; margin-bottom: 4px;">Ghi chú phòng thi (nếu có):</label>
-              <input type="text" id="start-session-notes" placeholder="Ghi chú thêm về ca thi..." style="width: 100%; background: #1e293b; border: 1px solid #475569; color: #f8fafc; padding: 8px 10px; border-radius: 4px; box-sizing: border-box;" />
-            </div>
-          </div>
-          <div style="margin-top: 22px; display: flex; justify-content: flex-end; gap: 8px;">
-            <button id="modal-start-cancel" style="background: transparent; color: #94a3b8; border: 1px solid #475569; border-radius: 4px; padding: 6px 12px; cursor: pointer;">Hủy</button>
-            <button id="modal-start-submit" style="background: #0284c7; color: white; border: none; border-radius: 4px; padding: 7px 18px; cursor: pointer; font-weight: 600;">Bắt đầu giám sát</button>
-          </div>
-        </div>
-      </div>
-    `;
-
-    const close = () => { host.innerHTML = ""; };
-    document.getElementById("modal-start-close")?.addEventListener("click", close);
-    document.getElementById("modal-start-cancel")?.addEventListener("click", close);
-
-    document.getElementById("modal-start-submit")?.addEventListener("click", async () => {
-      const name = document.getElementById("start-session-name")?.value.trim();
-      const room = document.getElementById("start-session-room")?.value.trim() || "Phòng thi chính";
-      const class_name = document.getElementById("start-session-class")?.value.trim() || null;
-      const subject_code = document.getElementById("start-session-subject")?.value.trim() || null;
-      const notes = document.getElementById("start-session-notes")?.value.trim() || null;
-
-      if (!name) {
-        alert("Vui lòng nhập tên phiên / kỳ thi.");
-        return;
-      }
-
-      const btn = document.getElementById("modal-start-submit");
-      if (btn) { btn.disabled = true; btn.innerText = "Đang khởi tạo…"; }
-
-      try {
-        const newSess = await ApiClient.startSession({
-          name,
-          room,
-          class_name,
-          subject_code,
-          notes,
-        });
-        appState.resetForNewSession(newSess);
-        close();
-      } catch (err) {
-        alert(`Không thể bắt đầu phiên: ${err.message}`);
-        if (btn) { btn.disabled = false; btn.innerText = "Bắt đầu giám sát"; }
       }
     });
   }

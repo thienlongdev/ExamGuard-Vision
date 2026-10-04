@@ -15,6 +15,7 @@ import hashlib
 import inspect
 import logging
 import os
+import threading
 import time
 from typing import Deque, List, Optional, Callable, Dict, Any, Tuple
 import cv2
@@ -42,6 +43,22 @@ class CodecCapability:
 
 
 _PROBED_CODEC: Optional[CodecCapability] = None
+
+# A clip below these bounds is not reviewable evidence and must never be marked READY.
+MIN_CLIP_FRAMES = 8
+MIN_CLIP_DURATION_SEC = 1.0
+
+
+def select_frames_for_fps(frames: List["BufferedFrame"], fps: float) -> List["BufferedFrame"]:
+    """Subsample frames so consecutive frames are at least 1/fps apart (keeps real-time playback speed)."""
+    if fps <= 0 or len(frames) < 2:
+        return list(frames)
+    min_gap = (1.0 / fps) * 0.9
+    selected = [frames[0]]
+    for bf in frames[1:]:
+        if bf.timestamp - selected[-1].timestamp >= min_gap:
+            selected.append(bf)
+    return selected
 
 
 def probe_video_codec() -> CodecCapability:
@@ -167,6 +184,8 @@ class RollingClipRecorder:
 
         # Active recording tasks awaiting post-event frames:
         self._active_recordings: List[Dict[str, Any]] = []
+        # Capture thread pushes frames while the pipeline thread triggers clips.
+        self._lock = threading.Lock()
 
         self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="clip_worker")
         os.makedirs(self.output_dir, exist_ok=True)
@@ -192,24 +211,28 @@ class RollingClipRecorder:
             height=h,
         )
 
-        # Enforce memory safety bound
-        while self._current_buffer_bytes + len(jpeg_data) > self.max_buffer_bytes and self._rolling_buffer:
-            evicted = self._rolling_buffer.popleft()
-            self._current_buffer_bytes -= len(evicted.jpeg_bytes)
-
-        self._rolling_buffer.append(buf_frame)
-        self._current_buffer_bytes += len(jpeg_data)
-
-        # Append to active clip jobs
         completed_jobs = []
-        for job in self._active_recordings:
-            job["frames"].append(buf_frame)
-            if timestamp >= job["end_timestamp"]:
-                completed_jobs.append(job)
+        with self._lock:
+            # Enforce memory safety bound
+            while self._current_buffer_bytes + len(jpeg_data) > self.max_buffer_bytes and self._rolling_buffer:
+                evicted = self._rolling_buffer.popleft()
+                self._current_buffer_bytes -= len(evicted.jpeg_bytes)
+
+            if len(self._rolling_buffer) == self._rolling_buffer.maxlen and self._rolling_buffer:
+                self._current_buffer_bytes -= len(self._rolling_buffer[0].jpeg_bytes)
+            self._rolling_buffer.append(buf_frame)
+            self._current_buffer_bytes += len(jpeg_data)
+
+            # Append to active clip jobs
+            for job in self._active_recordings:
+                job["frames"].append(buf_frame)
+                if timestamp >= job["end_timestamp"]:
+                    completed_jobs.append(job)
+            for job in completed_jobs:
+                self._active_recordings.remove(job)
 
         # Dispatch completed jobs to background encoding
         for job in completed_jobs:
-            self._active_recordings.remove(job)
             self._dispatch_encode(
                 job["event_id"],
                 job["filepath"],
@@ -234,30 +257,33 @@ class RollingClipRecorder:
 
         os.makedirs(os.path.dirname(os.path.abspath(filepath)), exist_ok=True)
 
-        # Collect pre-event frames from rolling buffer
-        cutoff = timestamp - self.pre_event_seconds
-        pre_frames = [
-            bf for bf in self._rolling_buffer
-            if bf.timestamp >= cutoff
-        ]
-
         clip_fps = min(fps, self.max_fps)
         end_time = timestamp + self.post_event_seconds
+        cutoff = timestamp - self.pre_event_seconds
 
-        job = {
-            "event_id": event_id,
-            "filepath": filepath,
-            "frames": list(pre_frames),
-            "end_timestamp": end_time,
-            "fps": clip_fps,
-        }
-        self._active_recordings.append(job)
+        with self._lock:
+            # One event = one clip: an already-recording event is never re-triggered
+            for existing in self._active_recordings:
+                if existing["event_id"] == event_id:
+                    return existing["filepath"]
+
+            # Collect pre-event frames from rolling buffer
+            pre_frames = [bf for bf in self._rolling_buffer if bf.timestamp >= cutoff]
+            job = {
+                "event_id": event_id,
+                "filepath": filepath,
+                "frames": pre_frames,
+                "end_timestamp": end_time,
+                "fps": clip_fps,
+            }
+            self._active_recordings.append(job)
         return filepath
 
     def finalize_all_active(self) -> None:
         """Immediately dispatch any remaining active recordings (e.g. on stream end or shutdown)."""
-        pending = list(self._active_recordings)
-        self._active_recordings.clear()
+        with self._lock:
+            pending = list(self._active_recordings)
+            self._active_recordings.clear()
         for job in pending:
             if job["frames"]:
                 self._dispatch_encode(
@@ -279,6 +305,8 @@ class RollingClipRecorder:
             if self.on_clip_failed:
                 self.on_clip_failed(event_id, filepath, RuntimeError("No frames available for video clip"))
             return
+
+        frames = select_frames_for_fps(frames, fps)
 
         def _encode():
             codec_info = probe_video_codec()
@@ -322,19 +350,24 @@ class RollingClipRecorder:
 
                 n_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
                 cap_fps = cap.get(cv2.CAP_PROP_FPS) or fps
+                decodable = 0
+                while decodable < MIN_CLIP_FRAMES and cap.read()[0]:
+                    decodable += 1
                 cap.release()
 
-                if n_frames <= 0 and written_count <= 0:
-                    raise RuntimeError(f"Encoded clip {tmp_path} has 0 frames")
+                # READY requires a finalized container with a real, playable duration.
+                if n_frames < MIN_CLIP_FRAMES or written_count < MIN_CLIP_FRAMES or decodable < MIN_CLIP_FRAMES:
+                    raise RuntimeError(
+                        f"Encoded clip {tmp_path} too short: {n_frames} container frames, "
+                        f"{written_count} written (min {MIN_CLIP_FRAMES})"
+                    )
 
-                # Measure actual duration from frames or timestamps
-                if len(frames) >= 2 and frames[-1].timestamp > frames[0].timestamp:
-                    duration_sec = round(frames[-1].timestamp - frames[0].timestamp, 2)
-                else:
-                    duration_sec = round(written_count / max(1.0, cap_fps), 2)
-
-                if duration_sec <= 0.0:
-                    duration_sec = 0.5
+                # Playable duration as the browser will see it (frames / container fps)
+                duration_sec = round(n_frames / max(1.0, cap_fps), 2)
+                if duration_sec < MIN_CLIP_DURATION_SEC:
+                    raise RuntimeError(
+                        f"Encoded clip {tmp_path} duration {duration_sec}s below minimum {MIN_CLIP_DURATION_SEC}s"
+                    )
 
                 # Atomic rename
                 if os.path.exists(filepath):

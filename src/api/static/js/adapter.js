@@ -97,6 +97,16 @@ export function getTrackDisplayName(trackId) {
 /**
  * Normalize an event object into safe, structured UI state.
  */
+/**
+ * Video evidence states: READY | PENDING | FAILED | LEGACY_INVALID.
+ * Only READY may be rendered as a playable player.
+ */
+export function normalizeClipStatus(status) {
+  const s = String(status || "").toUpperCase();
+  if (s === "READY" || s === "FAILED" || s === "LEGACY_INVALID") return s;
+  return "PENDING";
+}
+
 export function normalizeEvent(raw) {
   if (!raw) return null;
   const eid = String(raw.event_id || raw.eventId || raw.id || "");
@@ -135,7 +145,7 @@ export function normalizeEvent(raw) {
   const clipUrl = normalizeSnapshotUrl(rawClip);
 
   const snapshotStatus = raw.snapshot_status || raw.evidence_summary?.snapshot_status || (snapshotUrl ? "READY" : "PENDING");
-  const clipStatus = raw.clip_status || raw.evidence_summary?.clip_status || (clipUrl ? "READY" : "CLIP_FINALIZING");
+  const clipStatus = normalizeClipStatus(raw.clip_status || raw.evidence_summary?.clip_status || raw.evidence?.clip_status);
 
   // Event-time observation snapshot & cues
   const obs = raw.observation_snapshot || raw.observationSnapshot || {};

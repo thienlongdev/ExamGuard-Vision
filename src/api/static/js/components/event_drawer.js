@@ -37,6 +37,8 @@ export class EventDrawerComponent {
         } else {
           this.close();
         }
+      } else if (type === "EVENT_INSPECT" && payload) {
+        this.open(payload);
       } else if (
         (type === "EVENT_STATUS_CHANGED" || type === "EVENT_LIFECYCLE_CHANGED" || type === "EVENTS_UPDATED" || type === "EVIDENCE_UPDATED") &&
         this.currentEvent &&
@@ -181,29 +183,7 @@ export class EventDrawerComponent {
             </div>
           </div>
 
-          ${
-            ev.clipUrl && ev.clipStatus !== "FAILED"
-              ? `<div class="drawer-video-box" style="margin-bottom: 10px;">
-                   <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;">Video clip ngữ cảnh (Trước / Trong / Sau):</div>
-                   <video id="drawer-evidence-video" class="drawer-evidence-video" controls preload="metadata" style="width: 100%; border-radius: var(--radius-md); background: #000; max-height: 240px;" onloadedmetadata="if(this.duration <= 0){ this.style.display='none'; const el = document.getElementById('drawer-video-err'); if(el) el.style.display='block'; }" onerror="this.style.display='none'; const el = document.getElementById('drawer-video-err'); if(el) el.style.display='block';">
-                     <source src="${ev.clipUrl}" type="video/mp4">
-                     Trình duyệt không hỗ trợ xem video trực tiếp.
-                   </video>
-                   <div id="drawer-video-err" style="display: none; padding: 12px; background: rgba(239, 68, 68, 0.08); border: 1px dashed rgba(239, 68, 68, 0.3); border-radius: var(--radius-md); text-align: center; font-size: 0.8rem; color: #f87171;">
-                     Không thể phát video bằng chứng (thời lượng không hợp lệ hoặc lỗi định dạng)
-                   </div>
-                 </div>`
-              : (ev.clipStatus === "FAILED"
-                  ? `<div class="drawer-video-box" style="margin-bottom: 10px; padding: 12px; background: rgba(239, 68, 68, 0.08); border: 1px dashed rgba(239, 68, 68, 0.3); border-radius: var(--radius-md); text-align: center;">
-                       <span style="font-size: 0.8rem; color: #f87171;">Không thể hoàn tất video bằng chứng</span>
-                     </div>`
-                  : `<div class="drawer-video-box" style="margin-bottom: 10px; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 1px dashed rgba(6, 182, 212, 0.3); border-radius: var(--radius-md); text-align: center;">
-                       <span style="font-size: 0.8rem; color: var(--accent-cyan); display: flex; align-items: center; justify-content: center; gap: 8px;">
-                         <span class="live-pulse-dot small" style="background: var(--accent-cyan); width: 8px; height: 8px; border-radius: 50%; display: inline-block;"></span>
-                         Đang hoàn tất video bằng chứng…
-                       </span>
-                     </div>`)
-          }
+          ${renderClipSection(ev)}
 
           <div class="drawer-snapshot-box" id="drawer-snapshot-container">
             ${
@@ -304,7 +284,33 @@ export class EventDrawerComponent {
       this.handleAction("dismissed");
     });
 
+    this.bindClipPlayer();
     this.checkEvidenceIntegrity(ev);
+  }
+
+  // The player is only revealed once the browser has parsed real metadata with a playable duration
+  bindClipPlayer() {
+    const video = document.getElementById("drawer-evidence-video");
+    if (!video) return;
+    const loading = document.getElementById("drawer-video-loading");
+    const err = document.getElementById("drawer-video-err");
+    const fail = () => {
+      video.style.display = "none";
+      if (loading) loading.style.display = "none";
+      if (err) err.style.display = "block";
+    };
+    video.addEventListener("loadedmetadata", () => {
+      if (!Number.isFinite(video.duration) || video.duration < 0.5) {
+        fail();
+        return;
+      }
+      if (loading) loading.style.display = "none";
+      video.style.display = "block";
+      const durEl = document.getElementById("drawer-video-duration");
+      if (durEl) durEl.innerText = `${video.duration.toFixed(1)} giây`;
+    });
+    video.addEventListener("error", fail);
+    video.querySelector("source")?.addEventListener("error", fail);
   }
 
   async checkEvidenceIntegrity(ev) {
@@ -313,7 +319,7 @@ export class EventDrawerComponent {
 
     // Workstream 25: Never present missing/failed evidence as valid
     if (!ev.snapshotUrl && !ev.clipUrl) {
-      if (ev.snapshotStatus === "PENDING" || ev.clipStatus === "CLIP_FINALIZING") {
+      if (ev.snapshotStatus === "PENDING" || ev.clipStatus === "PENDING") {
         badge.className = "integrity-pill pending";
         badge.innerHTML = `<span class="integrity-dot pending">◌</span> <span class="integrity-text">Đang hoàn tất bằng chứng</span>`;
       } else if (ev.snapshotStatus === "FAILED" || ev.clipStatus === "FAILED") {
@@ -371,6 +377,7 @@ export class EventDrawerComponent {
     try {
       await ApiClient.updateEventStatus(eid, newStatus, notes);
       appState.updateEventReviewStatus(eid, newStatus, notes);
+      appState.notify("EVENT_REVIEWED", { eventId: eid, status: newStatus });
       this.close();
     } catch (err) {
       console.error("Failed to update status from drawer:", err);
@@ -379,6 +386,44 @@ export class EventDrawerComponent {
       alert(`Lỗi cập nhật trạng thái sự kiện: ${err.message}`);
     }
   }
+}
+
+const CLIP_NOTICE_STYLE = "margin-bottom: 10px; padding: 12px; border-radius: var(--radius-md); text-align: center; font-size: 0.8rem;";
+
+function renderClipSection(ev) {
+  const status = ev.clipStatus;
+  if (status === "READY" && ev.clipUrl) {
+    return `<div class="drawer-video-box" style="margin-bottom: 10px;">
+      <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px; display: flex; justify-content: space-between;">
+        <span>Video clip ngữ cảnh (Trước / Trong / Sau):</span>
+        <span id="drawer-video-duration" style="font-family: var(--font-mono);"></span>
+      </div>
+      <div id="drawer-video-loading" style="${CLIP_NOTICE_STYLE} background: rgba(15, 23, 42, 0.6); border: 1px dashed rgba(6, 182, 212, 0.3); color: var(--accent-cyan);">Đang tải video bằng chứng…</div>
+      <video id="drawer-evidence-video" class="drawer-evidence-video" controls preload="metadata" playsinline style="display: none; width: 100%; border-radius: var(--radius-md); background: #000; max-height: 240px;">
+        <source src="${ev.clipUrl}" type="video/mp4">
+        Trình duyệt không hỗ trợ xem video trực tiếp.
+      </video>
+      <div id="drawer-video-err" style="display: none; ${CLIP_NOTICE_STYLE} background: rgba(239, 68, 68, 0.08); border: 1px dashed rgba(239, 68, 68, 0.3); color: #f87171;">
+        Không thể phát video bằng chứng (tệp không hợp lệ hoặc lỗi định dạng)
+      </div>
+    </div>`;
+  }
+  if (status === "FAILED") {
+    return `<div class="drawer-video-box" style="${CLIP_NOTICE_STYLE} background: rgba(239, 68, 68, 0.08); border: 1px dashed rgba(239, 68, 68, 0.3);">
+      <span style="color: #f87171;">Không thể tạo video bằng chứng</span>
+    </div>`;
+  }
+  if (status === "LEGACY_INVALID") {
+    return `<div class="drawer-video-box" style="${CLIP_NOTICE_STYLE} background: rgba(148, 163, 184, 0.08); border: 1px dashed rgba(148, 163, 184, 0.3);">
+      <span style="color: var(--text-secondary);">Video cũ không khả dụng — sự kiện này không có video hợp lệ</span>
+    </div>`;
+  }
+  return `<div class="drawer-video-box" style="${CLIP_NOTICE_STYLE} background: rgba(15, 23, 42, 0.6); border: 1px dashed rgba(6, 182, 212, 0.3);">
+    <span style="color: var(--accent-cyan); display: flex; align-items: center; justify-content: center; gap: 8px;">
+      <span class="live-pulse-dot small" style="background: var(--accent-cyan); width: 8px; height: 8px; border-radius: 50%; display: inline-block;"></span>
+      Đang chuẩn bị video bằng chứng...
+    </span>
+  </div>`;
 }
 
 function escapeHtml(text) {

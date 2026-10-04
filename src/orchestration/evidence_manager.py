@@ -80,6 +80,9 @@ class IntegratedEvidenceManager:
         self._event_clip_paths: Dict[str, str] = {}
         self._event_hashes: Dict[str, Dict[str, str]] = {}
         self._event_evidence_status: Dict[str, Dict[str, str]] = {}
+        # Live evidence_summary dicts of events whose clip is still being produced, so a
+        # finished clip's READY/FAILED state reaches later EVENT_UPDATE broadcasts.
+        self._pending_clip_summaries: Dict[str, Dict[str, Any]] = {}
 
     def _get_event_dir(self, event_id: str) -> str:
         """Resolve session-isolated evidence folder for an event."""
@@ -142,6 +145,7 @@ class IntegratedEvidenceManager:
         self._event_hashes[event_id]["clip_path"] = filepath
 
         resolved_path = filepath
+        rec = None
         if self.persistence_service:
             try:
                 if hasattr(self.persistence_service, "events"):
@@ -172,21 +176,40 @@ class IntegratedEvidenceManager:
                     evidence_type="VIDEO_CLIP",
                     file_path=filepath,
                     mime_type=mime_type or "video/mp4",
-                    artifact_state="READY",
+                    artifact_state="PENDING",
                     codec=codec or "H264",
                     container="MP4",
                     duration_sec=duration_sec,
                     frame_count=frame_count,
                 )
-                if rec and (rec.relative_path or rec.file_path):
+                if rec is None:
+                    raise RuntimeError("Evidence record could not be written")
+                # READY only once the stored (encrypted) artifact decrypts back to the exact encoded bytes
+                decrypted, _ = self.persistence_service.load_and_decrypt_evidence(rec.evidence_id)
+                if hashlib.sha256(decrypted).hexdigest() != sha256:
+                    raise RuntimeError("Stored clip does not decrypt to the encoded video")
+                self.persistence_service.evidence.update_artifact_state(rec.evidence_id, "READY")
+                self.persistence_service.events.update_evidence_summary(event_id, {"clip_state": "READY"})
+                if rec.relative_path or rec.file_path:
                     resolved_path = rec.relative_path or rec.file_path
                     self._event_hashes[event_id]["clip_path"] = resolved_path
             except Exception as e:
-                logger.debug(f"Could not record video clip evidence in DB: {e}")
+                logger.warning(f"Video clip for {event_id} failed verification: {e}")
+                if rec is not None:
+                    try:
+                        self.persistence_service.evidence.update_artifact_state(rec.evidence_id, "FAILED", str(e))
+                    except Exception:
+                        pass
+                self._on_clip_failed(event_id, filepath, e)
+                return
 
         if event_id not in self._event_evidence_status:
             self._event_evidence_status[event_id] = {}
         self._event_evidence_status[event_id]["clip_status"] = "READY"
+        summary = self._pending_clip_summaries.pop(event_id, None)
+        if summary is not None:
+            summary["clip_status"] = "READY"
+            summary["clip_path"] = resolved_path
 
         if self.on_evidence_ready:
             try:
@@ -200,6 +223,9 @@ class IntegratedEvidenceManager:
         if event_id not in self._event_evidence_status:
             self._event_evidence_status[event_id] = {}
         self._event_evidence_status[event_id]["clip_status"] = "FAILED"
+        summary = self._pending_clip_summaries.pop(event_id, None)
+        if summary is not None:
+            summary["clip_status"] = "FAILED"
         if self.on_evidence_ready:
             try:
                 self.on_evidence_ready(event_id, "VIDEO_CLIP_FAILED", filepath)
@@ -250,7 +276,7 @@ class IntegratedEvidenceManager:
         # 1. OPEN Action
         if action == "OPEN":
             event.evidence_summary["snapshot_status"] = "PENDING"
-            event.evidence_summary["clip_status"] = "CLIP_FINALIZING"
+            event.evidence_summary["clip_status"] = "PENDING"
 
             # Pre-persist event row so that async snapshot and clip evidence callbacks have a valid foreign key
             if self.persistence_service and getattr(self.persistence_service, "active_session", None):
@@ -295,8 +321,10 @@ class IntegratedEvidenceManager:
                     )
                     self._event_clip_paths[ev_id] = clip_path
                     event.evidence_summary["clip_path"] = clip_path
+                    self._pending_clip_summaries[ev_id] = event.evidence_summary
                 except Exception as e:
                     logger.warning(f"Clip trigger failed for {ev_id}: {e}")
+                    event.evidence_summary["clip_status"] = "FAILED"
 
         # 2. UPDATE Action (best-frame update + escalation snapshot if newly HIGH risk)
         elif action == "UPDATE":
@@ -419,6 +447,7 @@ class IntegratedEvidenceManager:
         self._event_snapshot_counts.clear()
         self._event_clip_paths.clear()
         self._event_hashes.clear()
+        self._pending_clip_summaries.clear()
         if self.clip_recorder is not None:
             self.clip_recorder._rolling_buffer.clear()
             self.clip_recorder._current_buffer_bytes = 0

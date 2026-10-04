@@ -123,16 +123,17 @@ fusion:
   track_continuity_tolerance_sec: 2.0
   eviction_inactive_seconds: 15.0
 
-# 9. EVIDENCE LIFECYCLE (SNAPSHOT-ONLY FOR PERFORMANCE EFFICIENCY)
+# 9. EVIDENCE LIFECYCLE (SNAPSHOT + CONTEXT CLIP)
+# Clips are cut from the capture-side JPEG ring buffer and encoded on a background
+# worker, so pre/post roll never blocks inference. A 0.0s roll produced 2-frame
+# (~0.1s) clips that browsers showed as a 0:00 player.
 evidence:
   enabled: true
-  mode: "snapshot-only"
   output_dir: "evidence/asus_a17_demo"
   snapshot_on_open: true
   max_snapshots_per_event: 3
-  clip_pre_event_sec: 0.0
-  clip_post_event_sec: 0.0
-  max_active_recordings: 0
+  clip_pre_event_sec: 2.0
+  clip_post_event_sec: 3.0
 
 # 10. SERVER CONFIGURATION
 api:

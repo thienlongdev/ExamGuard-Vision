@@ -18,6 +18,7 @@ import { TimelineComponent } from "./components/timeline.js";
 import { ReviewViewComponent } from "./components/review_view.js";
 import { HistoryViewComponent } from "./components/history_view.js";
 import { SystemViewComponent } from "./components/system_view.js";
+import { SessionGateComponent } from "./components/session_gate.js";
 
 class DashboardApp {
   constructor() {
@@ -40,6 +41,7 @@ class DashboardApp {
     this.components.reviewView = new ReviewViewComponent("view-review");
     this.components.historyView = new HistoryViewComponent("view-history");
     this.components.systemView = new SystemViewComponent("view-system");
+    this.components.sessionGate = new SessionGateComponent("session-gate", "monitor-session-bar");
 
     // Setup view routing
     appState.subscribe((type, payload) => {
@@ -48,8 +50,9 @@ class DashboardApp {
       }
     });
 
-    // Initial data fetch
+    // Initial data fetch, then route through the session gate (start new / resume active)
     await this.loadInitialData();
+    this.components.sessionGate.evaluate();
 
     // Setup WebSocket
     this.initWebSocket();
@@ -158,6 +161,10 @@ class DashboardApp {
         appState.updateEventReviewStatus(msg.event_id, msg.status, msg.reviewer_notes);
       } else if (msg.type === "EVIDENCE_READY" && msg.event_id) {
         appState.updateEventEvidence(msg.event_id, msg.evidence_type, msg.file_path);
+      } else if (msg.type === "MONITORING_SESSION_ENDED" && msg.session) {
+        this.components.sessionGate.onRemoteSessionEnded(msg.session);
+      } else if (msg.type === "MONITORING_SESSION_STARTED" && msg.session) {
+        this.components.sessionGate.onRemoteSessionStarted(msg.session);
       }
     });
 

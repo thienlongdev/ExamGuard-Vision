@@ -482,7 +482,8 @@ class PersistenceService:
         try:
             rel_path = str(Path(stored_file_path).resolve().relative_to(repo_root)).replace("\\", "/")
         except ValueError:
-            rel_path = str(stored_file_path).replace("\\", "/")
+            # Outside the repo: keep an absolute path so the artifact stays resolvable regardless of cwd
+            rel_path = str(Path(stored_file_path).resolve()).replace("\\", "/")
 
         record = EventEvidence(
             evidence_id=evidence_id,

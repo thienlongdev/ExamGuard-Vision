@@ -20,6 +20,9 @@
     <main class="views-container">
       <!-- 1. MONITOR VIEW (Hero Camera + Review Queue + Health Strip + Timeline) -->
       <section class="view-section active" id="view-monitor">
+        <!-- Active session identity + visible end control -->
+        <div class="monitor-session-bar" id="monitor-session-bar" hidden></div>
+
         <div class="monitor-upper-split">
           <!-- Left Column (~68%): Hero Camera & System Health Strip -->
           <div class="monitor-hero-col">
@@ -53,7 +56,13 @@
 
       <!-- 4. SYSTEM VIEW (System Diagnostics, Models, GPU, Queues) -->
       <section class="view-section" id="view-system"></section>
+
+      <!-- Session Gate: start a new session or resume the active one before monitoring -->
+      <div class="session-gate open" id="session-gate" aria-hidden="false"></div>
     </main>
+
+    <!-- End-session confirmation host -->
+    <div id="session-end-modal-host"></div>
 
     <!-- Event Details Slide-in Drawer -->
     <div class="drawer-backdrop" id="drawer-backdrop"></div>

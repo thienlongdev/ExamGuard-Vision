@@ -1,7 +1,7 @@
 """FastAPI application for Exam Suspicious Behavior Detection."""
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import logging
 import os
@@ -27,6 +27,7 @@ from src.api.schemas import (
     HealthResponse,
     SystemStatusResponse,
     SessionResponse,
+    SessionPageResponse,
     SessionSummary,
     SessionStartRequest,
     SessionEndRequest,
@@ -59,6 +60,8 @@ from src.api.static_ui import (
 from src.behavior.event_manager import EventManager, SuspiciousEvent
 from src.orchestration.camera_manager import CameraManager
 from src.persistence.service import PersistenceService, AmbiguousEvidenceError
+from src.persistence.repositories.session_repository import classify_session_kind
+from src.evidence.clip_recorder import MIN_CLIP_DURATION_SEC, MIN_CLIP_FRAMES
 from src.persistence.backup import (
     create_local_backup,
     create_encrypted_backup,
@@ -72,6 +75,22 @@ from src.security.password import validate_password_policy
 from src.security.key_provider import get_key_provider
 
 logger = logging.getLogger(__name__)
+
+
+def _iso_to_epoch(iso: Optional[str], default: float) -> float:
+    """
+    ISO timestamp -> epoch seconds. Windows raises OSError for local times near/before
+    the epoch (e.g. 1970-01-01T07:00 in UTC+7); one such row must not break a whole listing.
+    """
+    if not iso:
+        return default
+    try:
+        return datetime.fromisoformat(iso).timestamp()
+    except ValueError:
+        return default
+    except (OSError, OverflowError):
+        dt = datetime.fromisoformat(iso)
+        return (dt - datetime(1970, 1, 1)).total_seconds() + time.timezone
 
 
 def create_app(
@@ -811,10 +830,16 @@ def create_app(
         if range_header and range_header.startswith("bytes="):
             try:
                 range_val = range_header.replace("bytes=", "").strip()
-                parts = range_val.split("-")
-                start = int(parts[0]) if parts[0] else 0
-                end = int(parts[1]) if len(parts) > 1 and parts[1] else total_bytes - 1
-                if start >= total_bytes or end >= total_bytes or start > end:
+                parts = range_val.split(",")[0].split("-")
+                if parts[0]:
+                    start = int(parts[0])
+                    end = int(parts[1]) if len(parts) > 1 and parts[1] else total_bytes - 1
+                else:
+                    # Suffix range: last N bytes
+                    start = max(0, total_bytes - int(parts[1]))
+                    end = total_bytes - 1
+                end = min(end, total_bytes - 1)
+                if start >= total_bytes or start > end:
                     return Response(
                         status_code=416,
                         headers={"Content-Range": f"bytes */{total_bytes}"},
@@ -1134,7 +1159,61 @@ def create_app(
             d["review_status"] = "awaiting"
         if "lifecycle_status" not in d or not d["lifecycle_status"]:
             d["lifecycle_status"] = "closed" if d.get("status") == "closed" else "active"
+        ev_sum = d.get("evidence") if isinstance(d.get("evidence"), dict) else {}
+        if not d.get("clip_status"):
+            live_clip = str(ev_sum.get("clip_status") or "").upper()
+            if live_clip in ("READY", "FAILED"):
+                d["clip_status"] = live_clip
+            elif live_clip or d.get("clip_path"):
+                d["clip_status"] = "PENDING"
+        if not d.get("snapshot_status"):
+            d["snapshot_status"] = "READY" if d.get("snapshot_path") else (ev_sum.get("snapshot_status") or "PENDING")
         return d
+
+    _session_active_cache: dict = {}
+
+    def _is_session_active(session_id: Optional[str]) -> bool:
+        if not session_id:
+            return False
+        if ps.active_session and ps.active_session.session_id == session_id:
+            return True
+        cached = _session_active_cache.get(session_id)
+        if cached is not None and time.time() - cached[1] < 5.0:
+            return cached[0]
+        sess = ps.sessions.get_session(session_id)
+        active = bool(sess and sess.status == "ACTIVE")
+        _session_active_cache[session_id] = (active, time.time())
+        return active
+
+    def _clip_status_for(pe: Any, ev_sum: dict, rows: List[Any]) -> Tuple[Optional[str], str]:
+        """
+        Truthful video state from the stored artifact row: READY only for a verified,
+        reviewable clip; known-short legacy clips are LEGACY_INVALID, never READY.
+        """
+        clip_rows = [r for r in rows if r.evidence_type == "VIDEO_CLIP"]
+        if clip_rows:
+            row = clip_rows[-1]
+            state = (row.artifact_state or "").upper()
+            if state == "READY":
+                frames_ok = row.frame_count is None or row.frame_count >= MIN_CLIP_FRAMES
+                duration_ok = row.duration_sec is not None and row.duration_sec >= MIN_CLIP_DURATION_SEC
+                if frames_ok and duration_ok:
+                    return row.relative_path, "READY"
+                return row.relative_path, "LEGACY_INVALID"
+            if state == "FAILED":
+                return None, "FAILED"
+            return None, "PENDING"
+        if str(ev_sum.get("clip_state") or ev_sum.get("clip_status") or "").upper() == "FAILED":
+            return None, "FAILED"
+        if not _is_session_active(pe.session_id):
+            return None, "LEGACY_INVALID"
+        if pe.closed_at:
+            try:
+                if time.time() - _iso_to_epoch(pe.closed_at, time.time()) > 60.0:
+                    return None, "FAILED"
+            except ValueError:
+                pass
+        return None, "PENDING"
 
     def _persisted_event_to_dict(pe: Any) -> dict:
         obs = {}
@@ -1153,19 +1232,21 @@ def create_app(
         latest_rev = ps.reviews.get_latest_review(pe.event_id)
         reviewer_note = latest_rev.note if latest_rev else None
 
-        snap_path = ev_sum.get("snapshot_path") or ev_sum.get("open_snapshot_path")
-        clip_path = ev_sum.get("clip_path")
-        if not snap_path or not clip_path:
-            for evd in ps.evidence.list_evidence_for_event(pe.event_id):
-                if evd.evidence_type == "SNAPSHOT" and not snap_path:
-                    snap_path = evd.relative_path
-                elif evd.evidence_type == "VIDEO_CLIP" and not clip_path:
-                    clip_path = evd.relative_path
+        evidence_rows = ps.evidence.list_evidence_for_event(pe.event_id)
+        snap_path = None
+        for evd in evidence_rows:
+            if evd.evidence_type == "SNAPSHOT" and (evd.artifact_state or "READY").upper() == "READY":
+                snap_path = evd.relative_path
+        if not snap_path:
+            snap_path = ev_sum.get("snapshot_path") or ev_sum.get("open_snapshot_path")
+        clip_path, clip_status = _clip_status_for(pe, ev_sum, evidence_rows)
 
-        st_ts = datetime.fromisoformat(pe.opened_at).timestamp() if pe.opened_at else time.time()
-        et_ts = datetime.fromisoformat(pe.closed_at).timestamp() if pe.closed_at else st_ts
+        st_ts = _iso_to_epoch(pe.opened_at, time.time())
+        et_ts = _iso_to_epoch(pe.closed_at, st_ts)
 
         d = {
+            "clip_status": clip_status,
+            "snapshot_status": "READY" if snap_path else "PENDING",
             "event_id": pe.event_id,
             "track_id": pe.track_id or 0,
             "camera_id": pe.camera_id,
@@ -1286,8 +1367,8 @@ def create_app(
             return EventResponse(**_sanitize_event_dict(updated_event.to_dict()))
 
         if db_ev:
-            st_ts = datetime.fromisoformat(db_ev.opened_at).timestamp() if db_ev.opened_at else time.time()
-            et_ts = datetime.fromisoformat(db_ev.closed_at).timestamp() if db_ev.closed_at else st_ts
+            st_ts = _iso_to_epoch(db_ev.opened_at, time.time())
+            et_ts = _iso_to_epoch(db_ev.closed_at, st_ts)
             d = {
                 "event_id": db_ev.event_id,
                 "track_id": db_ev.track_id or 0,
@@ -1349,6 +1430,54 @@ def create_app(
 
         sessions = ps.sessions.list_sessions(limit=limit, offset=offset, status=status, search=search)
         return [_build_session_response(s) for s in sessions]
+
+    _DATE_RANGE_DAYS = {"today": 0, "7d": 7, "30d": 30}
+
+    @app.get("/api/sessions/page", response_model=SessionPageResponse)
+    async def list_sessions_page(
+        request: Request,
+        page: int = 1,
+        page_size: int = 10,
+        status: Optional[str] = None,
+        search: Optional[str] = None,
+        date_range: Optional[str] = None,
+        include_test: bool = False,
+    ):
+        """One row per session, filtered and paginated server-side for the History view."""
+        if enforce_auth:
+            _require_permission(request, Permission.HISTORY_VIEW)
+
+        page_size = max(1, min(page_size, 50))
+        started_after = None
+        if date_range in _DATE_RANGE_DAYS:
+            day_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+            started_after = (day_start - timedelta(days=_DATE_RANGE_DAYS[date_range])).isoformat()
+
+        candidates = ps.sessions.list_sessions(
+            limit=100000, offset=0, status=status, search=search, started_after=started_after
+        )
+        kinds = {s.session_id: classify_session_kind(s.name) for s in candidates}
+        visible = [s for s in candidates if include_test or kinds[s.session_id] == "OPERATIONAL" or s.status == "ACTIVE"]
+        hidden = len(candidates) - len(visible)
+
+        total = len(visible)
+        total_pages = max(1, (total + page_size - 1) // page_size)
+        page = max(1, min(page, total_pages))
+        page_items = visible[(page - 1) * page_size : page * page_size]
+
+        items = []
+        for s in page_items:
+            resp = _build_session_response(s)
+            resp.session_kind = kinds[s.session_id]
+            items.append(resp)
+        return SessionPageResponse(
+            items=items,
+            total=total,
+            page=page,
+            page_size=page_size,
+            total_pages=total_pages,
+            hidden_test_count=hidden,
+        )
 
     @app.get("/api/sessions/current", response_model=SessionResponse)
     async def get_current_session(request: Request):
@@ -1460,6 +1589,8 @@ def create_app(
         )
 
         res_sess = closed_sess or existing
+        # The closed session's events stay in SQLite/History; drop them from the live view
+        ev_manager.clear()
         payload = {
             "type": "MONITORING_SESSION_ENDED",
             "session": res_sess.to_dict(),
@@ -1523,58 +1654,8 @@ def create_app(
             review_status=review_status,
             limit=limit,
         )
-        results = []
-        for pe in persisted_events:
-            obs = {}
-            if pe.observation_snapshot_json:
-                try:
-                    obs = json.loads(pe.observation_snapshot_json)
-                except Exception:
-                    pass
-            ev_sum = {}
-            if pe.evidence_summary_json:
-                try:
-                    ev_sum = json.loads(pe.evidence_summary_json)
-                except Exception:
-                    pass
-
-            latest_rev = ps.reviews.get_latest_review(pe.event_id)
-            reviewer_note = latest_rev.note if latest_rev else None
-
-            snap_path = ev_sum.get("snapshot_path") or ev_sum.get("open_snapshot_path")
-            clip_path = ev_sum.get("clip_path")
-            if not snap_path or not clip_path:
-                for evd in ps.evidence.list_evidence_for_event(pe.event_id):
-                    if evd.evidence_type == "SNAPSHOT" and not snap_path:
-                        snap_path = evd.relative_path
-                    elif evd.evidence_type == "VIDEO_CLIP" and not clip_path:
-                        clip_path = evd.relative_path
-
-            st_ts = datetime.fromisoformat(pe.opened_at).timestamp() if pe.opened_at else time.time()
-            et_ts = datetime.fromisoformat(pe.closed_at).timestamp() if pe.closed_at else st_ts
-
-            d = {
-                "event_id": pe.event_id,
-                "track_id": pe.track_id or 0,
-                "camera_id": pe.camera_id,
-                "timestamp": st_ts,
-                "start_time": st_ts,
-                "end_time": et_ts,
-                "event_type": pe.event_type,
-                "risk_level": pe.severity,
-                "score": pe.score,
-                "evidence": ev_sum,
-                "snapshot_path": _sanitize_evidence_path(snap_path),
-                "clip_path": _sanitize_evidence_path(clip_path),
-                "status": pe.review_status,
-                "lifecycle_status": pe.lifecycle_status,
-                "review_status": pe.review_status,
-                "observation_snapshot": obs,
-                "reviewer_notes": reviewer_note,
-                "event_origin": pe.source_origin,
-            }
-            results.append(EventResponse(**d))
-        return results
+        # Exact session_id isolation is enforced by the SQL filter above
+        return [EventResponse(**_persisted_event_to_dict(pe)) for pe in persisted_events]
 
     @app.get("/api/sessions/{session_id}/audit")
     async def get_session_audit_logs(session_id: str, request: Request):

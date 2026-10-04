@@ -117,6 +117,11 @@ class DashboardState {
       if (existing.snapshotUrl && !normEvent.snapshotUrl) {
         normEvent.snapshotUrl = existing.snapshotUrl;
       }
+      // A finished clip state (READY / FAILED) is terminal; later lifecycle updates must not regress it
+      if ((existing.clipStatus === "READY" || existing.clipStatus === "FAILED") && normEvent.clipStatus === "PENDING") {
+        normEvent.clipStatus = existing.clipStatus;
+        normEvent.clipUrl = existing.clipUrl;
+      }
       if (existing.observationSnapshot && Object.keys(existing.observationSnapshot).length > 0) {
         if (!normEvent.observationSnapshot || Object.keys(normEvent.observationSnapshot).length === 0) {
           normEvent.observationSnapshot = existing.observationSnapshot;
@@ -125,6 +130,18 @@ class DashboardState {
     }
     this.events.set(normEvent.eventId, normEvent);
     this.notify("EVENTS_UPDATED", normEvent);
+  }
+
+  // Open a historical (closed-session) event in the drawer without adding it to the live session state
+  inspectEvent(normEvent) {
+    if (!normEvent) return;
+    this.selectedEventId = normEvent.eventId;
+    this.notify("EVENT_INSPECT", normEvent);
+  }
+
+  // Session lifecycle requests from header / monitor bar, handled by the session gate
+  requestSessionAction(action) {
+    this.notify("SESSION_ACTION_REQUESTED", action);
   }
 
   setAllEvents(eventList) {
@@ -230,6 +247,15 @@ class DashboardState {
   setCurrentSession(session) {
     this.currentSession = session;
     this.notify("CURRENT_SESSION_UPDATED", session);
+  }
+
+  // Session closed: its events live on in History only, never in the live monitor state
+  clearAfterSessionEnd() {
+    this.events.clear();
+    this.currentSession = null;
+    this.selectedEventId = null;
+    this.notify("EVENTS_RESET", null);
+    this.notify("CURRENT_SESSION_UPDATED", null);
   }
 
   resetForNewSession(session) {

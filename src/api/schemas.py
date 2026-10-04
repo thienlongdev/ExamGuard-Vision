@@ -79,6 +79,9 @@ class EventResponse(BaseModel):
     configured_evidence_score: Optional[float] = None
     lifecycle_action: Optional[str] = None
     event_origin: Optional[str] = None
+    # Truthful artifact states: READY | PENDING | FAILED | LEGACY_INVALID
+    clip_status: Optional[str] = None
+    snapshot_status: Optional[str] = None
 
 
 class EventStatusUpdateRequest(BaseModel):
@@ -143,6 +146,16 @@ class SessionResponse(BaseModel):
     close_reason: Optional[str] = None
     evidence_failure_count: int = 0
     summary: Optional[SessionSummary] = None
+    session_kind: Optional[str] = None
+
+
+class SessionPageResponse(BaseModel):
+    items: List[SessionResponse]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+    hidden_test_count: int = 0
 
 
 class SessionStartRequest(BaseModel):

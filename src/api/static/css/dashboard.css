@@ -2773,3 +2773,300 @@ html, body {
   color: var(--text-dim);
 }
 
+
+/* ---------------------------------------------------------------------
+   SESSION GATE (Login -> start new / resume active -> Monitoring)
+   --------------------------------------------------------------------- */
+.session-gate {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: var(--z-overlays);
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  background: var(--bg-primary);
+  overflow-y: auto;
+}
+
+.session-gate.open {
+  display: flex;
+}
+
+.session-gate-card {
+  width: 100%;
+  max-width: 520px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 24px;
+  color: var(--text-secondary);
+}
+
+.session-gate-card h2 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+  color: var(--text-primary);
+}
+
+.session-gate-muted {
+  margin: 0 0 16px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.session-gate-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.session-gate-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.session-gate-form input,
+.session-gate-form select {
+  background: var(--surface-1);
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  border-radius: var(--radius-md);
+  padding: 8px 10px;
+  font-size: 0.9rem;
+}
+
+.session-gate-form input:focus,
+.session-gate-form select:focus {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 1px;
+}
+
+.session-gate-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 16px;
+  margin: 12px 0 16px;
+  font-size: 0.88rem;
+}
+
+.session-gate-facts dt {
+  color: var(--text-dim);
+}
+
+.session-gate-facts dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.session-gate-facts dd.mono {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: 0.8rem;
+}
+
+.session-gate-details {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.session-gate-error {
+  min-height: 1em;
+  font-size: 0.8rem;
+  color: var(--color-high);
+}
+
+.session-gate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.gate-btn {
+  border-radius: var(--radius-md);
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.gate-btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.gate-btn:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+.gate-btn-primary {
+  background: #0284c7;
+  color: #fff;
+}
+
+.gate-btn-primary:hover:not(:disabled) {
+  background: #0369a1;
+}
+
+.gate-btn-danger {
+  background: #dc2626;
+  color: #fff;
+}
+
+.gate-btn-danger:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.gate-btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border-color: var(--border-strong);
+}
+
+.gate-btn-ghost:hover:not(:disabled) {
+  background: var(--surface-card-hover);
+}
+
+.session-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-toast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg);
+  background: rgba(0, 0, 0, 0.65);
+}
+
+.session-end-card {
+  border-color: var(--color-high);
+}
+
+/* Monitoring session bar: always-visible identity + end control */
+.monitor-session-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-shrink: 0;
+  padding: 6px 12px;
+  background: var(--surface-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+}
+
+.monitor-session-bar[hidden] {
+  display: none;
+}
+
+.monitor-session-facts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 18px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  min-width: 0;
+}
+
+.monitor-session-facts strong {
+  color: var(--text-primary);
+}
+
+.monitor-session-live {
+  color: var(--color-live);
+}
+
+.msb-label {
+  color: var(--text-dim);
+}
+
+.msb-end-btn {
+  flex-shrink: 0;
+  padding: 6px 14px;
+}
+
+/* History: paged list uses normal page scrolling, no nested scroll container */
+.history-table-wrapper.history-table-paged {
+  max-height: none;
+}
+
+.history-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.history-page-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.history-page-btn {
+  min-width: 32px;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm, 4px);
+  border: 1px solid var(--border-light);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.history-page-btn:hover:not(:disabled) {
+  background: var(--surface-card-hover);
+}
+
+.history-page-btn.active {
+  background: var(--accent-cyan-dim);
+  border-color: var(--accent-cyan);
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.history-page-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.history-page-gap {
+  padding: 0 4px;
+  color: var(--text-dim);
+}
+
+.history-test-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.session-kind-badge {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  background: var(--color-medium-dim);
+  color: var(--color-medium);
+  vertical-align: middle;
+}
