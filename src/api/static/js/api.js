@@ -234,7 +234,36 @@ export class ApiClient {
       window.location.href = "/login";
       return null;
     }
+    if (res.status === 404) {
+      return null;
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch current session`);
+    return await res.json();
+  }
+
+  static async startSession(data) {
+    const res = await fetch("/api/sessions/start", {
+      method: "POST",
+      headers: ApiClient._headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+      throw new Error(err.detail || "Không thể bắt đầu phiên giám sát");
+    }
+    return await res.json();
+  }
+
+  static async endSession(sessionId, data = { reason: "COMPLETED" }) {
+    const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}/end`, {
+      method: "POST",
+      headers: ApiClient._headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ detail: `HTTP ${res.status}` }));
+      throw new Error(err.detail || "Không thể kết thúc phiên giám sát");
+    }
     return await res.json();
   }
 

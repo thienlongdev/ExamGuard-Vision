@@ -206,3 +206,9 @@ class EventManager:
             f"(Notes: {reviewer_notes})"
         )
         return True
+
+    def clear(self) -> None:
+        """Clear all in-memory events and debounce tracking for a new monitoring session."""
+        self._events.clear()
+        self._last_alert_time.clear()
+        logger.info("EventManager state cleared for new monitoring session.")

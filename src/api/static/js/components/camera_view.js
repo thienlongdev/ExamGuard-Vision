@@ -1,4 +1,5 @@
 import { appState } from "../state.js";
+import { ApiClient } from "../api.js";
 import { getEventNameVi, getPostureNameVi } from "../localization.js";
 
 export class CameraViewComponent {
@@ -9,6 +10,7 @@ export class CameraViewComponent {
     this.placeholderEl = null;
     this.isStreaming = false;
     this.isFullscreen = false;
+    this.sessionStartOverlay = null;
     this.init();
   }
 
@@ -23,8 +25,12 @@ export class CameraViewComponent {
         this.updateCameraMeta(payload);
       } else if (type === "TRACK_HIGHLIGHT_CHANGED") {
         this.highlightTrack(payload);
+      } else if (type === "CURRENT_SESSION_UPDATED") {
+        this.updateSessionState(payload);
       }
     });
+
+    this.updateSessionState(appState.currentSession);
   }
 
   render() {
@@ -71,6 +77,61 @@ export class CameraViewComponent {
               <p>Đang kết nối webcam vật lý trên ASUS TUF Gaming A17</p>
             </div>
           </div>
+
+          <!-- Start Monitoring Session Overlay (Workstream 4) -->
+          <div class="camera-no-session-overlay" id="camera-no-session-overlay" style="display: none; position: absolute; inset: 0; background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(8px); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px;">
+            <div style="background: #0f172a; border: 1px solid #1e293b; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7); border-radius: 12px; width: 100%; max-width: 480px; padding: 24px;">
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 16px;">
+                <div style="width: 40px; height: 40px; border-radius: 8px; background: rgba(2, 132, 199, 0.15); border: 1px solid rgba(2, 132, 199, 0.3); display: flex; align-items: center; justify-content: center; color: #38bdf8;">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/>
+                  </svg>
+                </div>
+                <div>
+                  <h3 style="margin: 0; font-size: 1.1rem; font-weight: 700; color: #f8fafc;">Bắt đầu phiên giám sát</h3>
+                  <p style="margin: 2px 0 0 0; font-size: 0.8rem; color: #94a3b8;">Thiết lập phòng thi để kích hoạt AI giám sát và lưu trữ bằng chứng</p>
+                </div>
+              </div>
+
+              <form id="cam-start-session-form" style="display: flex; flex-direction: column; gap: 12px;">
+                <div>
+                  <label style="display: block; font-size: 0.8rem; font-weight: 500; color: #cbd5e1; margin-bottom: 4px;">Tên kỳ thi / Phiên (*):</label>
+                  <input type="text" id="cam-input-session-name" required placeholder="Ví dụ: Thi Cuối Kỳ - Môn Cơ sở dữ liệu" style="width: 100%; background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 8px 12px; color: #f8fafc; font-size: 0.85rem; box-sizing: border-box;" />
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                  <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 500; color: #cbd5e1; margin-bottom: 4px;">Phòng thi (*):</label>
+                    <input type="text" id="cam-input-room" required value="Phòng A203" style="width: 100%; background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 8px 12px; color: #f8fafc; font-size: 0.85rem; box-sizing: border-box;" />
+                  </div>
+                  <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 500; color: #cbd5e1; margin-bottom: 4px;">Lớp / Nhóm thi:</label>
+                    <input type="text" id="cam-input-class" placeholder="20DTH01" style="width: 100%; background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 8px 12px; color: #f8fafc; font-size: 0.85rem; box-sizing: border-box;" />
+                  </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                  <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 500; color: #cbd5e1; margin-bottom: 4px;">Mã môn / Môn thi:</label>
+                    <input type="text" id="cam-input-subject" placeholder="CSDL101" style="width: 100%; background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 8px 12px; color: #f8fafc; font-size: 0.85rem; box-sizing: border-box;" />
+                  </div>
+                  <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 500; color: #cbd5e1; margin-bottom: 4px;">Ghi chú phòng thi:</label>
+                    <input type="text" id="cam-input-notes" placeholder="Không bắt buộc" style="width: 100%; background: #1e293b; border: 1px solid #334155; border-radius: 6px; padding: 8px 12px; color: #f8fafc; font-size: 0.85rem; box-sizing: border-box;" />
+                  </div>
+                </div>
+
+                <div style="margin-top: 10px; display: flex; justify-content: flex-end;">
+                  <button type="submit" id="btn-cam-submit-session" style="background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); color: white; border: none; border-radius: 6px; padding: 9px 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.4);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                    <span>Bắt đầu giám sát</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
     `;
@@ -78,6 +139,7 @@ export class CameraViewComponent {
     this.streamImg = document.getElementById("camera-stream-img");
     this.overlaysLayer = document.getElementById("camera-overlays-layer");
     this.placeholderEl = document.getElementById("camera-placeholder");
+    this.sessionStartOverlay = document.getElementById("camera-no-session-overlay");
 
     // Handle stream load & error events
     this.streamImg.onload = () => {
@@ -94,6 +156,15 @@ export class CameraViewComponent {
         }
       }, 3000);
     };
+  }
+
+  updateSessionState(session) {
+    if (!this.sessionStartOverlay) return;
+    if (session && session.status === "ACTIVE") {
+      this.sessionStartOverlay.style.display = "none";
+    } else {
+      this.sessionStartOverlay.style.display = "flex";
+    }
   }
 
   bindEvents() {
@@ -115,6 +186,46 @@ export class CameraViewComponent {
           card.requestFullscreen?.().catch((err) => console.debug("Fullscreen error:", err));
         } else {
           document.exitFullscreen?.().catch((err) => console.debug("Exit fullscreen error:", err));
+        }
+      });
+    }
+
+    const startForm = document.getElementById("cam-start-session-form");
+    if (startForm) {
+      startForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const name = document.getElementById("cam-input-session-name")?.value.trim();
+        const room = document.getElementById("cam-input-room")?.value.trim();
+        const class_name = document.getElementById("cam-input-class")?.value.trim() || null;
+        const subject_code = document.getElementById("cam-input-subject")?.value.trim() || null;
+        const notes = document.getElementById("cam-input-notes")?.value.trim() || null;
+
+        if (!name || !room) {
+          alert("Vui lòng điền tên phiên và phòng thi.");
+          return;
+        }
+
+        const submitBtn = document.getElementById("btn-cam-submit-session");
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.innerHTML = `<span>Đang khởi tạo…</span>`;
+        }
+
+        try {
+          const newSess = await ApiClient.startSession({
+            name,
+            room,
+            class_name,
+            subject_code,
+            notes,
+          });
+          appState.resetForNewSession(newSess);
+        } catch (err) {
+          alert(`Không thể bắt đầu phiên: ${err.message}`);
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = `<span>Bắt đầu giám sát</span>`;
+          }
         }
       });
     }

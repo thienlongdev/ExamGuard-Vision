@@ -347,6 +347,30 @@ class Stage2Pipeline:
     def dropped_frames_count(self) -> int:
         return self.ingestion_queue.dropped_frames_count
 
+    def reset(self) -> None:
+        """Reset transient state when switching or starting a new monitoring session (Workstream 10)."""
+        with self.registry.inference_lock:
+            if hasattr(self.tracker, "reset"):
+                try:
+                    self.tracker.reset()
+                except Exception:
+                    pass
+            self.temporal_buffer.clear()
+            self.event_engine.reset()
+            self.risk_aggregator.reset()
+            if hasattr(self.phone_associator, "reset"):
+                try:
+                    self.phone_associator.reset()
+                except Exception:
+                    pass
+            self.crop_scheduler.reset()
+            self.evidence_manager.reset()
+            self._active_events_map.clear()
+            self._track_metadata.clear()
+            with self._frame_lock:
+                self._latest_tracks_summary.clear()
+            logger.info("Stage2Pipeline transient state reset for new monitoring session.")
+
     def add_event_listener(self, listener: Callable[[FusedEvent, str], None]) -> None:
         """Register a callback for lifecycle events."""
         self.event_listeners.append(listener)

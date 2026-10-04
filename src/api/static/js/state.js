@@ -232,6 +232,14 @@ class DashboardState {
     this.notify("CURRENT_SESSION_UPDATED", session);
   }
 
+  resetForNewSession(session) {
+    this.events.clear();
+    this.currentSession = session;
+    this.selectedEventId = null;
+    this.notify("EVENTS_RESET", null);
+    this.notify("CURRENT_SESSION_UPDATED", session);
+  }
+
   // Derived KPIs based on human review status
   getKPIs() {
     const all = Array.from(this.events.values());

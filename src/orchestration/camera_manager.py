@@ -519,6 +519,28 @@ class CameraManager:
             except Exception as e:
                 logger.error(f"Error in camera manager evidence listener: {e}")
 
+    def reset(self) -> None:
+        """Reset pipelines on all camera workers for new monitoring session (Workstream 10)."""
+        with self._lock:
+            for worker in self._workers.values():
+                if worker.pipeline and hasattr(worker.pipeline, "reset"):
+                    try:
+                        worker.pipeline.reset()
+                    except Exception as e:
+                        logger.debug(f"Error resetting worker pipeline {worker.camera_id}: {e}")
+            logger.info("CameraManager workers reset for new monitoring session.")
+
+    def finalize_all_active(self) -> None:
+        """Finalize all pending evidence recordings across workers (e.g. before session close)."""
+        with self._lock:
+            for worker in self._workers.values():
+                if worker.pipeline and hasattr(worker.pipeline, "evidence_manager") and worker.pipeline.evidence_manager:
+                    try:
+                        if worker.pipeline.evidence_manager.clip_recorder:
+                            worker.pipeline.evidence_manager.clip_recorder.finalize_all_active()
+                    except Exception as e:
+                        logger.debug(f"Error finalizing recordings for {worker.camera_id}: {e}")
+
     def start_all_enabled_cameras(self) -> int:
         """Start workers for all enabled cameras in database."""
         with self._lock:

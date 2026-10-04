@@ -129,7 +129,10 @@ class SessionResponse(BaseModel):
     session_id: str
     name: str
     room: str
+    class_name: Optional[str] = None
+    subject_code: Optional[str] = None
     invigilator_name: Optional[str] = None
+    notes: Optional[str] = None
     started_at: str
     ended_at: Optional[str] = None
     status: str
@@ -138,13 +141,40 @@ class SessionResponse(BaseModel):
     updated_at: str
     last_heartbeat_at: Optional[str] = None
     close_reason: Optional[str] = None
+    evidence_failure_count: int = 0
     summary: Optional[SessionSummary] = None
+
+
+class SessionStartRequest(BaseModel):
+    name: Optional[str] = None
+    session_name: Optional[str] = None
+    room: Optional[str] = None
+    room_id: Optional[str] = None
+    class_name: Optional[str] = None
+    subject_code: Optional[str] = None
+    invigilator_name: Optional[str] = None
+    notes: Optional[str] = None
+    camera_ids: Optional[List[str]] = None
+
+    def get_name(self) -> Optional[str]:
+        return self.name or self.session_name
+
+    def get_room(self) -> str:
+        return self.room or self.room_id or "Phòng thi chính"
+
+
+class SessionEndRequest(BaseModel):
+    reason: str = "GRACEFUL_STOP"
+    notes: Optional[str] = None
 
 
 class SessionUpdateRequest(BaseModel):
     name: Optional[str] = None
     room: Optional[str] = None
+    class_name: Optional[str] = None
+    subject_code: Optional[str] = None
     invigilator_name: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class EvidenceVerifyResponse(BaseModel):

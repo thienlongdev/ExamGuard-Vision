@@ -15,8 +15,13 @@ class ExamSession:
     invigilator_name: Optional[str] = None
     started_at: str = field(default_factory=lambda: datetime.now().isoformat())
     ended_at: Optional[str] = None
-    status: str = "ACTIVE"  # ACTIVE, CLOSED, INTERRUPTED
+    status: str = "ACTIVE"  # DRAFT, ACTIVE, CLOSING, CLOSED, INTERRUPTED
     camera_count: int = 1
+    class_name: Optional[str] = None
+    subject_code: Optional[str] = None
+    notes: Optional[str] = None
+    evidence_failure_count: int = 0
+    summary_json: Optional[str] = None
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
     updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
     last_heartbeat_at: Optional[str] = None
@@ -66,6 +71,12 @@ class EventEvidence:
     encryption_state: str = "LEGACY_PLAINTEXT"  # LEGACY_PLAINTEXT, ENCRYPTED_V1
     key_id: Optional[str] = None
     aad_json: Optional[str] = None
+    artifact_state: str = "READY"  # PENDING, READY, FAILED, MISSING_LEGACY
+    codec: Optional[str] = None
+    container: Optional[str] = None
+    error_message: Optional[str] = None
+    duration_sec: Optional[float] = None
+    frame_count: Optional[int] = None
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
 
     @property

@@ -11,7 +11,7 @@ from src.persistence.database import DatabaseManager
 
 logger = logging.getLogger(__name__)
 
-CURRENT_SCHEMA_VERSION = 2
+CURRENT_SCHEMA_VERSION = 3
 
 MIGRATION_V1_SQL = """
 -- Version 1: Core persistence schema for ExamGuard Vision
@@ -208,6 +208,42 @@ def _apply_v2_column_migrations(cur: sqlite3.Cursor) -> None:
     cur.execute("CREATE INDEX IF NOT EXISTS idx_evidence_encryption ON event_evidence(encryption_state);")
 
 
+def _apply_v3_column_migrations(cur: sqlite3.Cursor) -> None:
+    """Safely apply column additions to existing tables for schema version 3 (Session Lifecycle & Evidence Reliability)."""
+    # Check exam_sessions columns
+    cur.execute("PRAGMA table_info(exam_sessions);")
+    sess_cols = {row["name"] for row in cur.fetchall()}
+    if "class_name" not in sess_cols:
+        cur.execute("ALTER TABLE exam_sessions ADD COLUMN class_name TEXT;")
+    if "subject_code" not in sess_cols:
+        cur.execute("ALTER TABLE exam_sessions ADD COLUMN subject_code TEXT;")
+    if "notes" not in sess_cols:
+        cur.execute("ALTER TABLE exam_sessions ADD COLUMN notes TEXT;")
+    if "evidence_failure_count" not in sess_cols:
+        cur.execute("ALTER TABLE exam_sessions ADD COLUMN evidence_failure_count INTEGER NOT NULL DEFAULT 0;")
+    if "summary_json" not in sess_cols:
+        cur.execute("ALTER TABLE exam_sessions ADD COLUMN summary_json TEXT;")
+
+    # Check event_evidence columns
+    cur.execute("PRAGMA table_info(event_evidence);")
+    ev_cols = {row["name"] for row in cur.fetchall()}
+    if "artifact_state" not in ev_cols:
+        cur.execute("ALTER TABLE event_evidence ADD COLUMN artifact_state TEXT NOT NULL DEFAULT 'READY';")
+    if "codec" not in ev_cols:
+        cur.execute("ALTER TABLE event_evidence ADD COLUMN codec TEXT;")
+    if "container" not in ev_cols:
+        cur.execute("ALTER TABLE event_evidence ADD COLUMN container TEXT;")
+    if "error_message" not in ev_cols:
+        cur.execute("ALTER TABLE event_evidence ADD COLUMN error_message TEXT;")
+    if "duration_sec" not in ev_cols:
+        cur.execute("ALTER TABLE event_evidence ADD COLUMN duration_sec REAL;")
+    if "frame_count" not in ev_cols:
+        cur.execute("ALTER TABLE event_evidence ADD COLUMN frame_count INTEGER;")
+
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_evidence_artifact_state ON event_evidence(artifact_state);")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_sessions_status ON exam_sessions(status);")
+
+
 def run_migrations(db: DatabaseManager, target_version: Optional[int] = None) -> int:
     """Execute pending migrations in order up to target_version (default CURRENT_SCHEMA_VERSION)."""
     target = target_version if target_version is not None else CURRENT_SCHEMA_VERSION
@@ -242,5 +278,17 @@ def run_migrations(db: DatabaseManager, target_version: Optional[int] = None) ->
             )
         current_ver = 2
         logger.info("Database schema migration to version 2 complete.")
+
+    # Step 3: Migration V3 (Session lifecycle & Evidence reliability)
+    if current_ver < 3 and target >= 3:
+        with db.transaction() as cur:
+            _apply_v3_column_migrations(cur)
+            now_iso = datetime.now().isoformat()
+            cur.execute(
+                "INSERT OR REPLACE INTO schema_meta (version, applied_at) VALUES (?, ?);",
+                (3, now_iso),
+            )
+        current_ver = 3
+        logger.info("Database schema migration to version 3 complete.")
 
     return current_ver
