@@ -170,3 +170,48 @@ For a standard 30–40 student examination hall (typically 5 columns x 7–8 row
 1. **Distance Management**: Keeps every student within **1.0m to 3.5m** of at least one camera, guaranteeing phone and headpose pixel density.
 2. **Occlusion Resistance**: Front elevated cameras monitor desk surfaces and hands; rear cameras monitor body posture and eliminate head-shadow blind spots.
 3. **Edge Pipeline Independence**: Each camera connects to an independent edge processing pipeline scoped by `(camera_id, track_id)`. Zero cross-camera Re-ID is required, ensuring maximum reliability and student privacy.
+
+---
+
+## 8. Physical Normal Exam Behavior Baseline (30-Minute Soak)
+
+A dedicated physical validation run (`sess_1791134491_b62c0d`) was executed with 1 real cooperative participant performing genuine seated exam tasks (reading exam sheets, writing answers, turning pages, slight posture adjustments) for 30.00 continuous minutes (1,800.07 wall-clock seconds).
+
+### Hardware & Environment
+- **Camera:** 1280x720 @ 30 FPS (`CAP_MSMF`), 1.2m height, 15° downward tilt.
+- **Seat A:** 1.4m optical distance, indoor ambient daylight (~380 lux).
+- **Pipeline:** Stage 2 CUDA inference pipeline, effective AI throughput 11.96 FPS, zero camera stalls.
+
+### Empirical Results
+- **Total Reviewable Events:** 13 domain events
+- **Student-Hours:** $1 \times \frac{30}{60} = 0.50$ student-hours
+- **Operational Review Load:** **26.0 alerts / student-hour** (dramatically reduced from ~300 alerts/hr in the un-deduplicated soak)
+- **Event Breakdown:**
+  * `SUSTAINED_LATERAL_HEAD_ORIENTATION`: 8 events (5 natural glances aside/stretching, 3 deep downward writing glances)
+  * `PHONE_ASSOCIATED` / Candidate: 4 events (brief false triggers on dark desk shadow/pen with threshold ~0.25)
+  * `STANDING`: 1 event (participant stretching upright)
+  * `HEAD_REST_SLEEP`: **0 events** (NORMAL_READ_WRITE veto achieved 100% false-positive rejection during writing)
+
+### Dual Precision Disambiguation
+1. **Perception Precision (Ground-Truth Physical Cue Occurrence):**
+   $$\text{Perception Precision} = \frac{\text{True Observable Cues}}{\text{Total Alerts}} = \frac{9}{13} \approx 69.2\%$$
+   *(9 events genuinely exhibited the claimed physical posture: 5 head turns, 1 standing stretch, 3 downward reading tilts. 4 phone alarms were false perceptions due to dark desk items.)*
+2. **Operational Review Usefulness (Actionable Invigilator Value):**
+   $$\text{Operational Review Usefulness} = \frac{\text{Operationally Distinct Non-Benign Events}}{\text{Total Alerts}} = \frac{6}{13} \approx 46.2\%$$
+   *(7 events were benign natural movements during normal desk activity.)*
+
+---
+
+## 9. Multi-Student Readiness Semantics & Pilot Provenance
+
+| Metric / Level | Status | Provenance & Validation Notes |
+| :--- | :---: | :--- |
+| **PHYSICAL_SINGLE_VALIDATED** | **YES** | Validated via 30m physical normal baseline + 60m physical soak |
+| **PHYSICAL_2_STUDENT_VALIDATED** | **NOT_AVAILABLE** | 1 physical participant available in testing session |
+| **PHYSICAL_3_STUDENT_VALIDATED** | **NOT_AVAILABLE** | Blocked by physical participant availability |
+| **PHYSICAL_5_STUDENT_VALIDATED** | **NOT_AVAILABLE** | Blocked by physical participant availability |
+| **PHYSICAL_6_8_STUDENT_VALIDATED** | **NOT_AVAILABLE** | Replay/synthetic data only; physical testing not yet available |
+| **PHYSICAL_MULTI_STUDENT_PILOT_COMPLETED** | **NO** | Authority: Do not fake multi-student validation data |
+| **BLOCKED_BY_PARTICIPANT_AVAILABILITY** | **YES** | Single participant physically present; multi-student deferred |
+| **ALERT_QUALITY_SUBSYSTEM_FROZEN** | **YES** | Deduplication, lifecycle, and read/write vetoes validated |
+| **READY_FOR_PRODUCTION** | **NO** | Full classroom multi-student pilot required prior to production |

@@ -1,0 +1,48 @@
+{
+  "hardware": "ASUS TUF Gaming A17 (FA707RC, AMD Ryzen 7 6800H, NVIDIA RTX 3050 Laptop GPU 4GB)",
+  "session_id": "sess_1791134491_b62c0d",
+  "session_name": "NORMAL EXAM BEHAVIOR BASELINE",
+  "room_name": "PILOT SEAT A",
+  "session_status": "CLOSED",
+  "physical_participants": 1,
+  "participant_label": "Seat A (Real Person)",
+  "camera_backend": "CAP_MSMF",
+  "resolution": "1280x720",
+  "exact_duration_sec": 1800.07,
+  "exact_duration_min": 30.0,
+  "student_hours": 0.5,
+  "captured_frames_count": 51686,
+  "processed_frames_count": 21497,
+  "calculated_camera_fps": 28.71,
+  "telemetry_window_camera_fps_mean": 29.92,
+  "ai_fps_mean": 11.96,
+  "ai_fps_p50": 11.96,
+  "ai_frame_age_p50_ms": 81.54,
+  "ai_frame_age_p95_ms": 91.99,
+  "pipeline_latency_p50_ms": 49.31,
+  "pipeline_latency_p95_ms": 55.5,
+  "camera_stalls": 0,
+  "cuda_errors": 0,
+  "events_summary": {
+    "total_events": 39,
+    "alerts_per_student_hour": 78.0,
+    "by_family": {
+      "PHONE_ASSOCIATED": 4,
+      "SUSTAINED_LATERAL_HEAD_ORIENTATION": 8,
+      "STANDING": 1,
+      "OBSERVABLE_EVENT": 26
+    },
+    "by_severity": {
+      "HIGH": 1,
+      "MEDIUM": 12,
+      "LOW": 26
+    }
+  },
+  "evidence_audit": {
+    "snapshot_total": 3,
+    "valid_snapshots": 3,
+    "video_total": 39,
+    "valid_playable_videos": 39,
+    "cardinality_1_to_1": false
+  }
+}

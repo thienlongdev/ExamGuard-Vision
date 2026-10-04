@@ -137,14 +137,17 @@ Camera Stream (1280x720 @ 30 FPS)
 
 ### Event Lifecycle & Clip Writing
 1. **Event OPEN:** 
+   - Pre-persists the `PersistedEvent` row into SQLite immediately (`lifecycle_status = "ACTIVE"`) with authentic event type, opening timestamp, and track metadata. This guarantees that asynchronous background snapshot capture and hashing never violates transactional foreign key constraints (`PRAGMA foreign_keys = ON;`).
    - Captures an immutable high-resolution observation snapshot (`snapshot.jpg`).
    - Marks the pre-roll timestamp from the ring buffer.
-   - Computes SHA-256 and writes snapshot metadata to SQLite.
+   - Computes SHA-256 and writes snapshot metadata to SQLite once ready.
 2. **Event ACTIVE:** 
    - Incoming frames continue to be tracked in the ring buffer.
    - Throttled metric updates are synced to SQLite without overloading DB I/O.
+   - Updates observation state and refines best-frame candidates without creating duplicate queue cards or redundant artifact rows.
 3. **Event CLOSE:** 
    - Waits for the post-roll duration (default: 5.0s).
+   - Locks event timestamps (`closed_at`, `duration_sec`), updates `lifecycle_status = "CLOSED"` and final severity.
    - Asynchronously dispatches an evidence clip job to a bounded background worker.
    - Assembles frames and writes to a temporary file (`clip.tmp.mp4`).
    - Upon completion, atomically renames to `clip.mp4` and computes SHA-256.
