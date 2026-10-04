@@ -687,6 +687,11 @@ def create_app(
         if not clean_path:
             raise HTTPException(status_code=404, detail="Empty evidence path.")
 
+        # Strict prohibition on credential or security directory access
+        lowered_path = clean_path.lower()
+        if "security" in lowered_path or lowered_path.endswith(".dpapi") or "master-key" in lowered_path:
+            raise HTTPException(status_code=403, detail="Access to security credentials forbidden.")
+
         # Attempt to load and decrypt evidence in memory via PersistenceService
         try:
             data, mime_type = ps.load_and_decrypt_evidence(clean_path)

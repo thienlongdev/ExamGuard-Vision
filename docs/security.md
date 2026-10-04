@@ -143,10 +143,14 @@ ExamGuard Vision operates as an AI-assisted proctoring appliance on edge hardwar
 ### 5.2 Key Management Architecture (`KeyProvider`)
 - **Abstract Base**: `KeyProvider` interface providing `get_key(key_id)` and `get_current_key()`.
 - **Windows Implementation (`WindowsDPAPIKeyProvider`)**:
-  - On first boot, generates a 256-bit random master key.
+  - On first boot, generates a 256-bit random master key (`secrets.token_bytes(32)`).
   - Encrypts master key using Windows Data Protection API (`CryptProtectData`) scoped to `CurrentUser`.
   - Saves encrypted blob to `storage/security/master-key.dpapi`.
+  - Restricts NTFS file permissions via `icacls` to current user only (`(R,W)`).
   - Raw key is never written to disk unencrypted.
+- **DPAPI Portability Limitation**:
+  - Because DPAPI encrypts using Windows user-profile keys, copying `storage/security/master-key.dpapi` alone to another computer will NOT permit decryption.
+  - Cross-machine portability is solved via **Portable Backup Key Wrapping** (see Section 5.4).
 - **Test / Portable Implementations**:
   - `InMemoryKeyProvider` (for isolated automated testing).
   - `EnvironmentKeyProvider` (`EXAMGUARD_MASTER_KEY` environment variable).
@@ -159,13 +163,32 @@ ExamGuard Vision operates as an AI-assisted proctoring appliance on edge hardwar
   - `--dry-run`: Inspects and previews eligible files.
   - `--apply`: Encrypts file to temporary destination, verifies decryption and SHA-256 provenance, atomically renames file, updates database, and safely unlinks plaintext original.
 
-### 5.4 Encrypted Portable Backups
-- SQLite database is safely checkpointed/dumped via SQLite backup API.
-- Backup includes encrypted evidence files, database, and manifest.
-- User provides a recovery passphrase when triggering an export.
-- Key Derivation: Argon2id/scrypt derives a key-wrapping key from the recovery passphrase.
-- Master backup key is encrypted using AES-256-GCM with the wrapping key.
-- Verification checks archive integrity, decrypts to temporary memory/folder, validates SQLite consistency, and cleans temporary files immediately.
+### 5.4 Encrypted Portable Backups & Memory-Only Snapshot Architecture
+- **Zero Plaintext Snapshot on Disk (`NO_PLAINTEXT_BACKUP_DB_ON_DISK = YES`)**:
+  - Live SQLite DB snapshot is taken in-memory using `sqlite3.Connection.backup()` to a temporary `:memory:` connection.
+  - Serialized to byte buffer in RAM via `sqlite3.Connection.serialize()`.
+  - Byte buffer is immediately encrypted via AES-256-GCM before writing to storage. No unencrypted `temp.db` touches the filesystem.
+  - WAL journal mode offsets (18 & 19) are normalized to rollback mode (1, 1) in memory, ensuring standalone consistency during in-memory deserialization without searching for disk WAL logs.
+- **Atomic Encrypted Disk Write**:
+  - Ciphertext is written to a uniquely named temporary file (`<archive_name>.examguard-backup-tmp`).
+  - Upon successful stream completion and SHA-256 computation, the file is atomically renamed (`os.replace`) to its final `.enc` destination.
+  - Interrupted operations leave behind no valid backup entry.
+- **Startup & Runtime Stale Temp Cleanup**:
+  - The persistence engine executes scoped cleanup targeting orphaned `*.examguard-backup-tmp` files.
+  - ExamGuard-owned temp artifacts are safely removed and audited (`BACKUP_STALE_TEMP_CLEANED`). Arbitrary system temp files are untouched.
+- **Cross-Machine Portable Key Wrapping**:
+  - Backup exports accept a user-supplied recovery passphrase.
+  - Key Derivation: `scrypt` (N=32768, r=8, p=1, 32-byte salt) derives a 256-bit wrapping key.
+  - The local evidence master key is wrapped via AES-256-GCM and stored inside the encrypted backup archive.
+  - On a clean ExamGuard node, the backup package and recovery passphrase can unwrap the evidence master key and reprotect it under the destination node's DPAPI profile without requiring the original Windows profile.
+- **Manifest Privacy**:
+  - Outer `backup-manifest.json` exposes strictly non-sensitive cryptographic headers: backup format version (`BACKUP_FORMAT_V2_ENCRYPTED`), scrypt KDF salt/parameters, payload filenames, and ciphertext SHA-256 hashes.
+  - All sensitive session names, candidate identifiers, and event counts are encapsulated inside the encrypted payload.
+- **Memory Hygiene & Accurate Cleanup Semantics**:
+  - Sensitive plaintext buffers (passphrases, derived keys, serialized database bytes) are released and mutable bytearrays overwritten on a best-effort basis.
+  - In accordance with truthful security reporting, no claim of "guaranteed RAM wiping" or "forensic erase" is made, recognizing Python runtime allocator behavior, memory garbage collection, and OS paging.
+- **Operational Safety Boundary**:
+  - `AUTOMATIC_RESTORE = NO`. The system validates cryptographic unwrap capability and database integrity in memory, but automatic destructive live-restore remains disabled in this foundation pass.
 
 ---
 

@@ -182,3 +182,95 @@ def test_camera_failure_isolation(multi_camera_env):
     worker2.stop()
     assert worker1.telemetry.streaming is True
     assert worker1.telemetry.status_display == "TRỰC TIẾP"
+
+
+def test_synthetic_rtsp_secret_redaction_comprehensive():
+    """Verify synthetic secret RTSP URI is redacted from error and diagnostic paths without leaking credentials."""
+    synthetic_uri = "rtsp://testuser:super-secret@example.invalid/stream"
+    redacted = redact_sensitive_text(synthetic_uri)
+
+    # Must NEVER contain super-secret
+    assert "super-secret" not in redacted
+    assert "testuser" in redacted
+    assert "@example.invalid/stream" in redacted
+    assert "••••••••" in redacted
+
+    # Test dict redactor
+    diag_dict = {
+        "camera_id": "cctv_secret",
+        "rtsp_url": synthetic_uri,
+        "password": "super-secret-password",
+        "status": "CONNECT_FAILED",
+    }
+    from src.security.redactor import redact_sensitive_dict
+    redacted_d = redact_sensitive_dict(diag_dict)
+    assert "super-secret" not in str(redacted_d)
+    assert redacted_d["password"] == "••••••••"
+
+
+def test_multi_camera_evidence_isolation(multi_camera_env):
+    """
+    Verify that overlapping events on cam01 and cam02 maintain strict evidence isolation:
+    event A on cam01 references only cam01 evidence,
+    event B on cam02 references only cam02 evidence.
+    No cross-camera contamination, no cross-camera Re-ID.
+    """
+    ps, temp_dir = multi_camera_env
+    session = ps.initialize_runtime_session()
+
+    from src.persistence.models import PersistedEvent
+
+    ev1 = PersistedEvent(
+        event_id="ev_multi_cam01_001",
+        session_id=session.session_id,
+        camera_id="cam01",
+        track_id=1,
+        event_type="suspicious_posture",
+        opened_at="2026-10-04T12:00:00",
+        severity="AMBER",
+        score=0.75,
+        lifecycle_status="active",
+        review_status="awaiting",
+    )
+    ev2 = PersistedEvent(
+        event_id="ev_multi_cam02_001",
+        session_id=session.session_id,
+        camera_id="cam02",
+        track_id=1,  # Same track ID integer
+        event_type="phone_detected",
+        opened_at="2026-10-04T12:00:01",
+        severity="RED",
+        score=0.90,
+        lifecycle_status="active",
+        review_status="awaiting",
+    )
+    ps.events.upsert_event(ev1)
+    ps.events.upsert_event(ev2)
+
+    # Create distinct evidence files
+    f1 = os.path.join(temp_dir, "cam01_evidence.jpg")
+    f2 = os.path.join(temp_dir, "cam02_evidence.jpg")
+    with open(f1, "wb") as f:
+        f.write(b"JPEG_FROM_CAM01_EXCLUSIVELY")
+    with open(f2, "wb") as f:
+        f.write(b"JPEG_FROM_CAM02_EXCLUSIVELY")
+
+    item1 = ps.record_evidence_file(ev1.event_id, "snapshot", f1, "image/jpeg", encrypt=True)
+    item2 = ps.record_evidence_file(ev2.event_id, "snapshot", f2, "image/jpeg", encrypt=True)
+
+    # Verify evidence records belong strictly to distinct events and cameras
+    retrieved_ev1 = ps.events.get_event(ev1.event_id)
+    retrieved_ev2 = ps.events.get_event(ev2.event_id)
+
+    assert retrieved_ev1.camera_id == "cam01"
+    assert retrieved_ev2.camera_id == "cam02"
+    assert (retrieved_ev1.camera_id, retrieved_ev1.track_id) != (retrieved_ev2.camera_id, retrieved_ev2.track_id)
+
+    # Load and decrypt both evidence files
+    data1, _ = ps.load_and_decrypt_evidence(item1.evidence_id)
+    data2, _ = ps.load_and_decrypt_evidence(item2.evidence_id)
+
+    assert data1 == b"JPEG_FROM_CAM01_EXCLUSIVELY"
+    assert data2 == b"JPEG_FROM_CAM02_EXCLUSIVELY"
+    assert data1 != data2
+

@@ -125,7 +125,7 @@ To advance ExamGuard Vision from single-camera room pilot to full enterprise pro
 ### P0 — Must Fix Before Real Exam-Room Pilot
 1. **Physical Multi-Seat Pilot Calibration**: Validate under real classroom ambient lighting, window glare, and high-density desk arrangements with 5–10 human participants.
 2. **Resilient Stream Ingestion**: Implement automatic reconnect with exponential backoff and watchdog monitoring for RTSP and IP camera dropouts.
-3. **Encrypted Evidence Storage**: Encrypt saved event crop snapshots on local disk (AES-256) and ensure immediate secure wipe of temporary frame caches.
+3. **Encrypted Evidence Storage**: Encrypt saved event crop snapshots on local disk (AES-256) and ensure prompt release and best-effort cleanup of temporary frame buffers.
 4. **Proctor Audit Logging**: Persist immutable audit log entries recording when an invigilator confirms, dismisses, or annotates an observable event.
 5. **NTP Clock Synchronization**: Enforce system clock synchronization between capture edge devices and proctor workstations to guarantee sub-second event timestamp correlation.
 

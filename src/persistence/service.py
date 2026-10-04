@@ -122,6 +122,13 @@ class PersistenceService:
                 f"Previous stale session '{existing_active.session_id}' marked as INTERRUPTED (ended: {ended_ts})."
             )
 
+        # Stale backup temp artifacts cleanup
+        try:
+            from src.persistence.backup import cleanup_stale_backup_temp_artifacts
+            cleanup_stale_backup_temp_artifacts(persistence_service=self)
+        except Exception as e:
+            logger.warning(f"Could not clean stale backup temp artifacts: {e}")
+
         # 2. Create fresh active session with formatted timestamp
         now = datetime.now()
         session_id = f"sess_{int(time.time())}_{uuid.uuid4().hex[:6]}"
@@ -411,6 +418,11 @@ class PersistenceService:
         Load an evidence artifact by evidence_id or relative path, decrypting in-memory if encrypted.
         Returns (decrypted_bytes, mime_type).
         """
+        # Defense in depth: block attempts to access credentials or security directory
+        cleaned_lookup = identifier_or_path.replace("\\", "/").lower()
+        if "security" in cleaned_lookup or cleaned_lookup.endswith(".dpapi") or "master-key" in cleaned_lookup:
+            raise FileNotFoundError("Security credentials cannot be accessed via evidence loader.")
+
         repo_root = Path(__file__).resolve().parent.parent.parent
         ev = self.evidence.get_evidence_by_id(identifier_or_path)
         if not ev:

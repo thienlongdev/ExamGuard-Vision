@@ -572,41 +572,50 @@ Hệ thống đã trải qua quá trình đo đạc thực nghiệm vật lý kh
 
 ### 13.1 Thông số phần cứng máy thử nghiệm
 - **Thiết bị**: Laptop ASUS TUF Gaming A17 (Mã model: `FA707RC_FA707RC`)
-- **Vi xử lý (CPU)**: AMD Ryzen 7 6800H with Radeon Graphics (8 nhân vật lý, 16 luồng xử lý)
+- **Vi xử lý (CPU)**: AMD Ryzen 7 6800H with Radeon Graphics (8 nhân vật lý, 16 luồng xử lý @ 3.2 GHz)
 - **Bộ nhớ RAM**: 16 GB DDR5 (Tốc độ đo được: 4800 MT/s)
 - **Card đồ họa (GPU)**: NVIDIA GeForce RTX 3050 Laptop GPU (4.096 MB VRAM)
 - **Phiên bản Driver NVIDIA**: 566.07 (Hỗ trợ CUDA 12.6)
-- **Camera thử nghiệm**: Integrated UVC HD WebCam (DirectShow `CAP_DSHOW`, 1280x720 @ 30 FPS)
+- **Kiểm kê Camera Vật lý Thực tế**:
+  - **Chỉ mục 0 (Index 0)**: `USB2.0 HD UVC WebCam` (DirectShow `CAP_DSHOW`, 1280x720 @ 30 FPS) — Hoạt động bình thường.
+  - **Chỉ mục 1 (Index 1)**: Không tìm thấy camera vật lý thứ 2 (`isOpened() == False`).
+  - **Định danh trạng thái**: `AVAILABLE_PHYSICAL_CAMERAS = 1`, `PHYSICAL_SINGLE_CAMERA_VALIDATED = YES`, `PHYSICAL_DUAL_CAMERA_VALIDATED = NO`.
 - **Hệ điều hành**: Microsoft Windows 11 Home 64-bit
 
-### 13.2 Kết quả đo đạc thực nghiệm trong phiên chạy trực tiếp (65 giây)
-- **Thời gian chạy kiểm thử liên tục**: 65,0 giây
-- **Số khung hình camera thu nhận**: 646 khung hình
-- **Số khung hình xử lý qua AI**: 646 khung hình
-- **Số khung hình bị rớt**: **0 khung hình (Tỷ lệ rớt 0.0%)** nhờ cơ chế điều tiết hàng đợi giải mã.
-- **Tốc độ suy luận AI thực tế**: ~10,0 FPS (Phù hợp định thời cadence tiết kiệm năng lượng).
-- **Độ trễ trung vị xử lý (p50 Latency)**: Ghi nhận p50 khoảng 93–96.8 ms trong phiên kiểm thử trên ASUS A17.
-- **Bộ nhớ VRAM GPU cấp phát**: **289,3 MB** trên tổng dung lượng 4.096 MB (dư thừa hơn 3.800 MB VRAM an toàn, không ghi nhận CUDA OOM trong phiên kiểm thử).
-- **Bộ nhớ RAM hệ thống chiếm dụng**: 1.745,8 MB RSS (Không ghi nhận xu hướng tăng bộ nhớ bất thường trong phiên smoke test).
-- **Tính ổn định của WebSocket**: Kết nối liên tục, đã kiểm thử ngắt kết nối và tự động kết nối lại thành công mà không phát sinh sự kiện rác hay trùng lặp.
+### 13.2 Kết quả đo đạc thực nghiệm & Nguồn gốc kiểm chuẩn (Benchmark Provenance)
+Toàn bộ thông số hiệu năng đều có nhãn nguồn gốc kiểm định rõ ràng (chi tiết tại [docs/multi-camera-validation.md](docs/multi-camera-validation.md)):
+- **Đơn camera vật lý (`PHYSICAL_USB`)**: AI hiệu dụng 7,12 FPS, độ trễ p50 = 66,0 ms, p95 = 88,2 ms, tỷ lệ rớt 0,0%.
+- **Đôi camera hỗn hợp (`MIXED_PHYSICAL_REPLAY`)**: 1 Webcam USB vật lý (9,12 FPS) + 1 luồng video phát lại (13,86 FPS), độ trễ p50 = 63,5 ms, tỷ lệ rớt 0,0%.
+- **Đôi camera phát lại (`REPLAY_VIDEO`)**: 2 luồng đồng thời 14,1 FPS/camera, tỷ lệ rớt 0,0%, phân phối suy luận cân bằng tuyệt đối (tỷ lệ 1.000).
+- **Bốn camera phát lại tải cao (`REPLAY_VIDEO`)**: 4 luồng đồng thời 7,77 FPS/camera, độ trễ p50 = 120,1 ms, tỷ lệ rớt 0,0%, chia sẻ GPU công bằng.
+- **Bộ nhớ VRAM GPU (Đo lường chính xác qua PyTorch CUDA API)**:
+  - Trọng số mô hình cơ sở (`torch.cuda.memory_allocated()`): **130,34 MB** (yolo26m: 44.3 MB, stage1_5: 44.0 MB, v4_posture: 18.5 MB, v4_headpose: 23.5 MB).
+  - VRAM cấp phát cơ sở (`torch.cuda.memory_reserved()`): **444,0 MB**.
+  - Đỉnh kích hoạt động tối đa (`torch.cuda.max_memory_allocated()`): **504,35 MB** (khi tải đồng thời 4 camera).
+- **Bộ nhớ RAM máy chủ chiếm dụng**: 1.650 – 1.720 MB RSS.
+- **Tính độc lập & Cách ly**:
+  - Không nhận diện khuôn mặt sinh trắc học hoặc Re-ID chéo camera.
+  - Bám vết phân định độc lập theo bộ đôi `(camera_id, track_id)`.
+  - Hàng đợi, bộ đệm khung hình và ảnh chụp bằng chứng hoàn toàn tách biệt theo từng camera.
 
 ---
 
-## 14. Đánh giá tính sẵn sàng: Demo trường học vs Sản xuất
+## 14. Đánh giá tính sẵn sàng: Pilot Kiểm soát vs Sản xuất
 
-Để đảm bảo tính trung thực về mặt kỹ thuật, dự án phân định rõ ràng ranh giới giữa bản thử nghiệm và hệ thống thương mại:
+Để đảm bảo tính trung thực kỹ thuật tuyệt đối, dự án xác lập rõ ranh giới vận hành:
 
 | Tiêu chí đánh giá | Trạng thái | Giải thích chi tiết |
 |---|:---:|---|
-| **Sẵn sàng cho Demo trường học (`READY_FOR_SCHOOL_DEMO`)** | **YES** | Hệ thống đã được đóng gói hoàn chỉnh, hoạt động ổn định trên một máy tính cá nhân, có kịch bản khởi chạy 1 lệnh, giao diện đẹp mắt, bằng chứng trực quan và đầy đủ tài liệu phục vụ báo cáo. |
-| **Sẵn sàng cho Sản xuất thực tế (`READY_FOR_PRODUCTION`)** | **NO** | Chưa sẵn sàng để triển khai quy mô toàn trường hoặc cho các kỳ thi thật mang tính pháp lý cao. |
+| **Sẵn sàng cho Demo trường học (`READY_FOR_SCHOOL_DEMO`)** | **YES** | Hệ thống đóng gói hoàn chỉnh, vận hành ổn định trên 1 máy trạm, launcher 1 click, giao diện đẹp mắt, bằng chứng trực quan. |
+| **Sẵn sàng cho Thử nghiệm Thí điểm An toàn (`READY_FOR_CONTROLLED_SECURE_PILOT`)** | **YES** | Nền tảng an ninh đã chứng thực: đăng nhập bắt buộc, Argon2id, RBAC, CSRF, mã hóa bằng chứng AES-256-GCM, bảo vệ khóa DPAPI, sao lưu mã hóa hoàn toàn trong RAM không lưu file tạm không mã hóa trên đĩa, băm kiểm toán bất biến. |
+| **Sẵn sàng cho Sản xuất Đại trà (`READY_FOR_PRODUCTION`)** | **NO** | Chưa sẵn sàng để triển khai quy mô toàn trường hoặc các kỳ thi pháp lý lớn khi chưa hoàn thiện các điều kiện hạ tầng bên dưới. |
 
-### Các hạng mục cần hoàn thiện trước khi đưa vào sản xuất (Production Roadmap):
-1. **Quản trị đa camera và đồng bộ phòng thi**: Hỗ trợ quản lý đồng thời hàng chục camera RTSP trên nhiều phòng thi với máy chủ phân tán.
-2. **Xác thực và phân quyền (RBAC)**: Tích hợp hệ thống đăng nhập tài khoản giám thị, trưởng điểm thi, bảo vệ bằng JWT token và quyền hạn tương ứng.
-3. **Cơ sở dữ liệu kiểm toán lâu dài**: Thay thế kho lưu trữ sự kiện trong bộ nhớ bằng hệ cơ sở dữ liệu chuyên dụng (PostgreSQL/TimescaleDB) có lưu vết kiểm toán (audit logs) bất biến.
-4. **Bảo vệ quyền riêng tư (Privacy & GDPR)**: Cơ chế tự động che mờ mặt (face blur) thí sinh không liên quan trong các bức ảnh chụp bằng chứng.
-5. **Cụm giám sát tính sẵn sàng cao (High Availability)**: Tự động cân bằng tải, dự phòng nóng khi máy chủ gặp sự cố phần cứng.
+### Các hạng mục bắt buộc trước khi đưa vào sản xuất quy mô lớn (Production Blockers):
+1. **Thử nghiệm phòng thi thực tế đa camera vật lý**: Kiểm định đồng thời nhiều camera IP/CCTV lắp đặt tại phòng thi thực.
+2. **Bảo mật kênh truyền mạng (TLS/HTTPS)**: Bắt buộc cấu hình chứng chỉ số TLS cho các điểm kết nối từ xa ngoài localhost.
+3. **Quản lý khóa trung tâm (Central KMS/HSM)**: Nâng cấp từ Windows DPAPI cục bộ sang giải pháp quản lý khóa tập trung cấp tổ chức.
+4. **Cơ sở dữ liệu tập trung & Dự phòng thảm họa**: Lưu trữ phân tán chịu lỗi cao (PostgreSQL Clustered) thay thế SQLite cục bộ.
+5. **Đánh giá an ninh độc lập (Penetration Testing)**: Thực hiện kiểm thử thâm nhập độc lập trước khi tiếp nhận dữ liệu thi chính thức.
 
 ---
 

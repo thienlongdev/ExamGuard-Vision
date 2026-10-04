@@ -229,3 +229,39 @@ def test_evidence_route_authorization_and_serving(test_crypto_env):
     # 5. Non-existent evidence ID returns 404
     r_notfound = client.get("/api/evidence/non_existent_id")
     assert r_notfound.status_code == 404
+
+
+def test_statistical_nonce_uniqueness():
+    """Statistically verify 10,000 generated 12-byte nonces exhibit zero duplicate collisions."""
+    import secrets
+    nonces = set()
+    num_samples = 10000
+    for _ in range(num_samples):
+        n = secrets.token_bytes(12)
+        nonces.add(n)
+    assert len(nonces) == num_samples, f"Observed duplicate nonce in {num_samples} samples!"
+
+
+def test_ege_envelope_format_version_and_tamper_rejection(test_crypto_env):
+    """Verify EGE1 envelope parser rejects invalid versions, malformed headers, and truncated bytes."""
+    _, _, kp, _ = test_crypto_env
+    kid, key = kp.get_current_key()
+    data = b"PAYLOAD_FOR_VERSION_CHECK"
+    aad = {"session_id": "s1", "event_id": "e1", "evidence_id": "ev1", "evidence_type": "SNAPSHOT"}
+
+    envelope, _ = encrypt_evidence_bytes(data, aad, key, key_id=kid)
+    assert envelope.startswith(b"EGE1")
+
+    # 1. Unsupported format magic: EGE2
+    bad_magic_env = b"EGE2" + envelope[4:]
+    with pytest.raises(ValueError, match="Unknown envelope format magic"):
+        decrypt_evidence_bytes(bad_magic_env, aad, key_provider=kp)
+
+    # 2. Truncated envelope
+    with pytest.raises(ValueError, match="shorter than minimum header length"):
+        decrypt_evidence_bytes(envelope[:10], aad, key_provider=kp)
+
+    # 3. Truncated header
+    corrupt_len_env = envelope[:4] + bytes([200]) + envelope[5:]
+    with pytest.raises(ValueError, match="Malformed envelope"):
+        decrypt_evidence_bytes(corrupt_len_env, aad, key_provider=kp)

@@ -90,6 +90,25 @@ def _dpapi_unprotect(ciphertext: bytes) -> bytes:
         ctypes.windll.kernel32.LocalFree(p_out.pbData)
 
 
+def _tighten_file_permissions(filepath: Path) -> None:
+    """Restrict file permissions to current user where practical without breaking startup."""
+    try:
+        if os.name == "nt":
+            import subprocess
+            username = os.environ.get("USERNAME", "")
+            if username:
+                subprocess.run(
+                    ["icacls.exe", str(filepath), "/inheritance:r", "/grant:r", f"{username}:(R,W)"],
+                    capture_output=True,
+                    timeout=5,
+                    check=False,
+                )
+        else:
+            os.chmod(filepath, 0o600)
+    except Exception as e:
+        logger.debug(f"Could not tighten file permissions for {filepath}: {e}")
+
+
 class WindowsDPAPIKeyProvider(KeyProvider):
     """
     Production Windows KeyProvider protecting the 256-bit master key with DPAPI.
@@ -120,6 +139,7 @@ class WindowsDPAPIKeyProvider(KeyProvider):
                 self._cached_key = raw_key
                 self._cached_key_id = f"mk_{hashlib.sha256(raw_key).hexdigest()[:12]}"
                 logger.debug(f"Loaded existing master key {self._cached_key_id} via DPAPI.")
+                _tighten_file_permissions(self.key_path)
                 return
             except Exception as e:
                 logger.error(f"Failed to unprotect DPAPI master key from {self.key_path}: {e}")
@@ -129,6 +149,7 @@ class WindowsDPAPIKeyProvider(KeyProvider):
         new_key = secrets.token_bytes(32)
         protected_blob = _dpapi_protect(new_key)
         self.key_path.write_bytes(protected_blob)
+        _tighten_file_permissions(self.key_path)
         self._cached_key = new_key
         self._cached_key_id = f"mk_{hashlib.sha256(new_key).hexdigest()[:12]}"
         logger.info(f"Initialized new DPAPI master key {self._cached_key_id} at {self.key_path}.")

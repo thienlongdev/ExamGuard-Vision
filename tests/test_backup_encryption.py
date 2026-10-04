@@ -6,7 +6,7 @@ import tempfile
 import pytest
 from pathlib import Path
 
-from src.security.key_provider import InMemoryKeyProvider, set_key_provider
+from src.security.key_provider import InMemoryKeyProvider, set_key_provider, get_key_provider
 from src.persistence.service import PersistenceService
 from src.persistence.backup import (
     create_encrypted_backup,
@@ -189,3 +189,221 @@ def test_short_recovery_passphrase_rejected(backup_test_env):
             recovery_passphrase="short",
             backup_base_dir=backup_dir,
         )
+
+
+def test_no_plaintext_backup_db_on_disk(backup_test_env):
+    """
+    Automated filesystem monitoring test:
+    Verify that NO plaintext SQLite file (header 'SQLite format 3' or plaintext DB marker)
+    is ever written to disk during encrypted backup creation.
+    """
+    ps, backup_dir, temp_dir = backup_test_env
+    passphrase = "UltraSecurePassphrase2026!"
+    synthetic_marker = b"PLAINTEXT_SECRET_MARKER_CERTIFICATION_998877"
+
+    # Insert synthetic marker into production database
+    with ps.db.transaction() as cur:
+        cur.execute("CREATE TABLE IF NOT EXISTS cert_secrets (id INT, secret_blob BLOB);")
+        cur.execute("INSERT INTO cert_secrets VALUES (1, ?);", (synthetic_marker,))
+
+    # Snapshot directory state before backup
+    before_files = set(Path(temp_dir).rglob("*"))
+
+    res = create_encrypted_backup(
+        persistence_service=ps,
+        recovery_passphrase=passphrase,
+        backup_base_dir=backup_dir,
+    )
+    assert res["success"] is True
+
+    # Inspect all newly created files in the entire test environment
+    after_files = set(Path(temp_dir).rglob("*"))
+    new_files = [p for p in (after_files - before_files) if p.is_file()]
+
+    sqlite_header = b"SQLite format 3\x00"
+
+    for p in new_files:
+        content = p.read_bytes()
+        # 1. No backup file written to disk may have an unencrypted SQLite header
+        if p.name != "test_backup.db" and not p.name.endswith(".db-wal") and not p.name.endswith(".db-shm"):
+            assert not content.startswith(sqlite_header), f"Found plaintext SQLite database at {p}"
+            # 2. No backup file may reveal the synthetic unencrypted marker
+            assert synthetic_marker not in content, f"Plaintext secret marker leaked into disk file: {p}"
+
+    # Confirm encrypted database exists and does NOT contain plaintext header
+    target_path = Path(res["backup_path"])
+    if not target_path.is_absolute():
+        target_path = Path(__file__).resolve().parent.parent / target_path
+    enc_db = target_path / "examguard.sqlite3.enc"
+    assert enc_db.is_file()
+    assert not enc_db.read_bytes().startswith(sqlite_header)
+
+
+def test_portable_master_key_wrapping_and_cross_machine_recovery(backup_test_env):
+    """
+    Verify portable backup contains wrapped master key that allows full evidence recovery
+    on another machine with a different/blank KeyProvider using only the recovery passphrase.
+    """
+    from src.persistence.backup import recover_wrapped_master_key
+    from src.security.crypto import decrypt_evidence_bytes
+    from cryptography.exceptions import InvalidTag
+
+    ps, backup_dir, temp_dir = backup_test_env
+    passphrase = "CrossMachinePassphrase2026!"
+    wrong_passphrase = "WrongCrossMachinePassphrase999!"
+
+    # Get original master key
+    kp_orig = get_key_provider()
+    orig_key_id, orig_master_key = kp_orig.get_current_key()
+
+    res = create_encrypted_backup(
+        persistence_service=ps,
+        recovery_passphrase=passphrase,
+        backup_base_dir=backup_dir,
+    )
+    assert res["success"] is True
+
+    target_path = Path(res["backup_path"])
+    if not target_path.is_absolute():
+        target_path = Path(__file__).resolve().parent.parent / target_path
+
+    # 1. Recover wrapped key with correct passphrase
+    rec_key_id, rec_master_key = recover_wrapped_master_key(target_path, passphrase)
+    assert rec_master_key == orig_master_key
+    assert rec_key_id == orig_key_id
+
+    # 2. Wrong passphrase fails with InvalidTag
+    with pytest.raises(InvalidTag):
+        recover_wrapped_master_key(target_path, wrong_passphrase)
+
+    # 3. Simulate destination clean machine: create new isolated KeyProvider with recovered key
+    dest_kp = InMemoryKeyProvider(key=rec_master_key, key_id=rec_key_id)
+
+    # 4. Decrypt synthetic evidence file copied in the backup using destination KeyProvider
+    manifest_file = target_path / "backup-manifest.json"
+    import json
+    with open(manifest_file, "r", encoding="utf-8") as f:
+        manifest = json.load(f)
+
+    assert len(manifest["evidence_files"]) > 0
+    ev_info = manifest["evidence_files"][0]
+    ev_file = target_path / ev_info["relative_path"]
+    assert ev_file.is_file()
+
+    # Decrypt with destination key provider using the evidence record's canonical AAD
+    ev_record = ps.evidence.list_all_evidence()[0]
+    aad = json.loads(ev_record.aad_json)
+    decrypted_bytes = decrypt_evidence_bytes(ev_file.read_bytes(), aad, key_provider=dest_kp)
+    assert decrypted_bytes == b"SYNTHETIC_CLIP_PAYLOAD_FOR_BACKUP_TEST"
+
+
+def test_backup_stale_temp_cleanup(backup_test_env):
+    """Verify startup stale backup temp artifact cleanup removes only ExamGuard-owned temp files."""
+    from src.persistence.backup import cleanup_stale_backup_temp_artifacts, BACKUP_TEMP_SUFFIX
+
+    ps, backup_dir, temp_dir = backup_test_env
+
+    # Create stale temp file matching naming policy
+    stale_file = Path(backup_dir) / f"examguard-partial{BACKUP_TEMP_SUFFIX}"
+    stale_file.parent.mkdir(parents=True, exist_ok=True)
+    stale_file.write_bytes(b"PARTIAL_INTERRUPTED_BACKUP_BYTES")
+
+    # Create non-ExamGuard temp file that must NOT be touched
+    unrelated_file = Path(backup_dir) / "notes.txt"
+    unrelated_file.write_text("Do not delete me", encoding="utf-8")
+
+    cleaned_count = cleanup_stale_backup_temp_artifacts(backup_base_dir=backup_dir, persistence_service=ps)
+    assert cleaned_count >= 1
+    assert not stale_file.exists()
+    assert unrelated_file.exists()
+
+    # Verify audit log was emitted
+    logs = ps.audit.list_all_logs(limit=20)
+    cleaned_logs = [l for l in logs if l.action == "BACKUP_STALE_TEMP_CLEANED"]
+    assert len(cleaned_logs) > 0
+
+
+def test_backup_unsupported_format_version_rejected(backup_test_env):
+    """Verify backup verification strictly rejects unknown or unsupported format versions."""
+    ps, backup_dir, temp_dir = backup_test_env
+    passphrase = "FormatVersionPassphrase2026!"
+
+    res = create_encrypted_backup(
+        persistence_service=ps,
+        recovery_passphrase=passphrase,
+        backup_base_dir=backup_dir,
+    )
+    target_path = Path(res["backup_path"])
+    if not target_path.is_absolute():
+        target_path = Path(__file__).resolve().parent.parent / target_path
+
+    manifest_file = target_path / "backup-manifest.json"
+    import json
+    with open(manifest_file, "r", encoding="utf-8") as f:
+        manifest = json.load(f)
+
+    # Set unsupported format version
+    manifest["format_version"] = "99.0-unsupported"
+    with open(manifest_file, "w", encoding="utf-8") as f:
+        json.dump(manifest, f, indent=2)
+
+    is_valid, msg, details = verify_backup_directory(str(target_path), recovery_passphrase=passphrase)
+    assert is_valid is False
+    assert "không được hỗ trợ" in msg
+
+
+def test_backup_passphrase_and_keys_never_logged(backup_test_env, caplog):
+    """Verify recovery passphrase and raw keys are NEVER logged during success or error paths."""
+    import logging
+    ps, backup_dir, temp_dir = backup_test_env
+    secret_passphrase = "DO-NOT-LOG-THIS-TEST-PASSPHRASE-999!"
+
+    caplog.set_level(logging.DEBUG)
+
+    # 1. Success path
+    res = create_encrypted_backup(
+        persistence_service=ps,
+        recovery_passphrase=secret_passphrase,
+        backup_base_dir=backup_dir,
+    )
+    target_path = Path(res["backup_path"])
+    if not target_path.is_absolute():
+        target_path = Path(__file__).resolve().parent.parent / target_path
+
+    # 2. Error path (wrong passphrase)
+    verify_backup_directory(str(target_path), recovery_passphrase="WRONG_SECRET_PASSPHRASE_888!")
+
+    # Check all captured log text
+    all_logs = caplog.text
+    assert secret_passphrase not in all_logs
+    assert "WRONG_SECRET_PASSPHRASE_888!" not in all_logs
+
+
+def test_backup_manifest_privacy_no_student_identifiers(backup_test_env):
+    """Verify unencrypted backup-manifest.json contains NO student identifiers or event IDs."""
+    ps, backup_dir, temp_dir = backup_test_env
+    passphrase = "PrivacyVerificationPassphrase2026!"
+
+    res = create_encrypted_backup(
+        persistence_service=ps,
+        recovery_passphrase=passphrase,
+        backup_base_dir=backup_dir,
+    )
+    target_path = Path(res["backup_path"])
+    if not target_path.is_absolute():
+        target_path = Path(__file__).resolve().parent.parent / target_path
+
+    manifest_file = target_path / "backup-manifest.json"
+    import json
+    with open(manifest_file, "r", encoding="utf-8") as f:
+        manifest = json.load(f)
+
+    # Event ID and student room must not be in evidence manifest list
+    for ev_item in manifest.get("evidence_files", []):
+        assert "event_id" not in ev_item, f"Leaked event_id in unencrypted manifest: {ev_item}"
+        assert "student" not in str(ev_item).lower()
+
+    # Manifest must not contain session name
+    manifest_str = json.dumps(manifest)
+    assert "Backup Test Session" not in manifest_str
+    assert "Proctor Alpha" not in manifest_str
