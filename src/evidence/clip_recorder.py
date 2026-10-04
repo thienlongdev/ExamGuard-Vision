@@ -145,6 +145,19 @@ class RollingClipRecorder:
         self._active_recordings.append(job)
         return filepath
 
+    def finalize_all_active(self) -> None:
+        """Immediately dispatch any remaining active recordings (e.g. on stream end or shutdown)."""
+        pending = list(self._active_recordings)
+        self._active_recordings.clear()
+        for job in pending:
+            if job["frames"]:
+                self._dispatch_encode(
+                    job["event_id"],
+                    job["filepath"],
+                    job["frames"],
+                    job["fps"],
+                )
+
     def _dispatch_encode(
         self,
         event_id: str,
@@ -152,26 +165,51 @@ class RollingClipRecorder:
         frames: List[BufferedFrame],
         fps: float,
     ) -> None:
-        """Encode frames into an MP4 file in a background worker."""
+        """Encode frames into a verified MP4 file in a background worker."""
         if not frames:
+            if self.on_clip_failed:
+                self.on_clip_failed(event_id, filepath, RuntimeError("No frames available for video clip"))
             return
 
         def _encode():
             tmp_path = f"{filepath}.tmp.mp4"
             try:
                 w, h = frames[0].width, frames[0].height
-                fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-                writer = cv2.VideoWriter(tmp_path, fourcc, fps, (w, h))
+                fourcc = cv2.VideoWriter_fourcc(*"H264")
+                writer = cv2.VideoWriter(tmp_path, cv2.CAP_MSMF, fourcc, fps, (w, h))
+                if not writer.isOpened():
+                    writer = cv2.VideoWriter(tmp_path, cv2.VideoWriter_fourcc(*"avc1"), fps, (w, h))
+                if not writer.isOpened():
+                    writer = cv2.VideoWriter(tmp_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
 
                 if not writer.isOpened():
                     raise RuntimeError(f"Cannot initialize cv2.VideoWriter for {tmp_path}")
 
+                written_count = 0
                 for bf in frames:
                     arr = np.frombuffer(bf.jpeg_bytes, dtype=np.uint8)
                     decoded = cv2.imdecode(arr, cv2.IMREAD_COLOR)
                     if decoded is not None:
                         writer.write(decoded)
+                        written_count += 1
                 writer.release()
+
+                # Strict post-encode validation (Section 29)
+                if not os.path.exists(tmp_path) or os.path.getsize(tmp_path) == 0:
+                    raise RuntimeError(f"Encoded clip {tmp_path} is missing or 0 bytes")
+
+                cap = cv2.VideoCapture(tmp_path)
+                is_valid = False
+                if cap.isOpened():
+                    n_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                    if n_frames > 0 or written_count > 0:
+                        is_valid = True
+                    cap.release()
+                else:
+                    raise RuntimeError(f"Encoded clip {tmp_path} cannot be opened by VideoCapture")
+
+                if not is_valid:
+                    raise RuntimeError(f"Encoded clip {tmp_path} has 0 frames or invalid duration")
 
                 # Atomic rename
                 if os.path.exists(filepath):
@@ -189,7 +227,7 @@ class RollingClipRecorder:
                 clip_hash = hasher.hexdigest()
                 clip_size = os.path.getsize(filepath)
 
-                logger.debug(f"Saved video evidence clip: {filepath} ({len(frames)} frames, {clip_size} bytes)")
+                logger.info(f"Saved verified video evidence clip: {filepath} ({written_count} frames, {clip_size} bytes)")
                 if self.on_clip_ready:
                     self.on_clip_ready(event_id, filepath, clip_hash, clip_size)
 
@@ -206,5 +244,6 @@ class RollingClipRecorder:
         self._executor.submit(_encode)
 
     def shutdown(self) -> None:
-        """Gracefully wait for pending clip writes to complete."""
+        """Gracefully finalize pending recordings and wait for writes to complete."""
+        self.finalize_all_active()
         self._executor.shutdown(wait=True)

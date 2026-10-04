@@ -86,19 +86,28 @@ provisional_thresholds:
     cooldown_seconds: 4.0            # Cooldown after event closure
 
   sustained_lateral_head_orientation:
-    min_candidate_duration_sec: 1.5  # Duration in seconds
+    min_candidate_duration_sec: 0.65  # Clear lateral turn sustained ~0.65s promotes to ACTIVE
     posture_turn_enter_threshold: 0.50
     posture_turn_exit_threshold: 0.30
-    supporting_yaw_deg_threshold: 25.0 # Supporting continuous yaw orientation
-    yaw_consistency_weight: 0.35     # Yaw weight in multi-cue evidence (correlated with posture)
-    cooldown_seconds: 3.0
+    supporting_yaw_deg_threshold: 24.0 # Continuous yaw orientation threshold
+    yaw_consistency_weight: 0.35     # Yaw weight in multi-cue evidence
+    cooldown_seconds: 2.5
 
   phone_associated:
-    min_candidate_duration_sec: 1.0  # Persistence before ACTIVE
-    min_phone_confidence: 0.40
-    min_association_confidence: 0.50
+    min_candidate_duration_sec: 0.45  # Brief plausible detection captured without silent ignore
+    evidence_enter_threshold: 0.20
+    evidence_exit_threshold: 0.15
+    min_phone_confidence: 0.20
+    min_association_confidence: 0.35
     desk_proximity_bonus: 0.15
-    cooldown_seconds: 5.0
+    cooldown_seconds: 3.0
+
+  phone_visible_unassociated:
+    min_candidate_duration_sec: 0.50
+    evidence_enter_threshold: 0.30
+    evidence_exit_threshold: 0.20
+    min_phone_confidence: 0.30
+    cooldown_seconds: 3.0
 
   discussion_candidate:
     min_candidate_duration_sec: 2.0
@@ -108,7 +117,7 @@ provisional_thresholds:
   standing:
     min_candidate_duration_sec: 1.5
     min_stand_score: 0.50
-    cooldown_seconds: 5.0
+    cooldown_seconds: 4.0
 
 # ---------------------------------------------------------------------
 # 5. MULTI-CUE CORRELATION & RELIABILITY WEIGHTS

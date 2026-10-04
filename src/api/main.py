@@ -212,6 +212,40 @@ def create_app(
         if hasattr(stage2_pipeline, "add_event_listener"):
             stage2_pipeline.add_event_listener(_on_stage2_lifecycle)
 
+        def _on_stage2_evidence_ready(event_id: str, evidence_type: str, file_path: str):
+            nonlocal loop
+            sanitized = _sanitize_evidence_path(file_path)
+            try:
+                existing = ev_manager.get_event(event_id)
+                if existing:
+                    if evidence_type == "SNAPSHOT":
+                        existing.snapshot_path = sanitized
+                    elif evidence_type == "VIDEO_CLIP":
+                        existing.clip_path = sanitized
+                    ev_manager._events[event_id] = existing
+            except Exception as e:
+                logger.debug(f"Could not update ev_manager for evidence ready: {e}")
+
+            try:
+                if loop is None or not loop.is_running():
+                    try:
+                        loop = asyncio.get_running_loop()
+                    except RuntimeError:
+                        pass
+                payload = {
+                    "type": "EVIDENCE_READY",
+                    "event_id": event_id,
+                    "evidence_type": evidence_type,
+                    "file_path": sanitized,
+                }
+                if loop and loop.is_running():
+                    asyncio.run_coroutine_threadsafe(ws_manager.broadcast(payload), loop)
+            except Exception as e:
+                logger.debug(f"Could not broadcast evidence ready to WS: {e}")
+
+        if hasattr(stage2_pipeline, "add_evidence_listener"):
+            stage2_pipeline.add_evidence_listener(_on_stage2_evidence_ready)
+
     # Wire CameraManager multi-camera events if present
     if camera_manager is not None:
         def _on_multi_camera_event(event: Any, action: str):
@@ -273,6 +307,8 @@ def create_app(
                 logger.debug(f"Could not broadcast multi-camera event to WS: {e}")
 
         camera_manager.add_event_listener(_on_multi_camera_event)
+        if hasattr(camera_manager, "add_evidence_listener"):
+            camera_manager.add_evidence_listener(_on_stage2_evidence_ready)
 
     from contextlib import asynccontextmanager
 

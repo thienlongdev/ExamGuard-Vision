@@ -28,6 +28,8 @@ export const POSTURE_NAMES_VI = {
 
 export const EVENT_NAMES_VI = {
   PHONE_ASSOCIATED: "Phát hiện điện thoại",
+  PHONE_VISIBLE_UNASSOCIATED: "Phát hiện điện thoại (chưa gán thí sinh)",
+  PHONE_VISUAL_CANDIDATE: "Nghi vấn thiết bị điện thoại",
   SUSTAINED_HEAD_REST: "Gục đầu kéo dài",
   SUSTAINED_LATERAL_HEAD_ORIENTATION: "Quay đầu kéo dài",
   DISCUSSION_CANDIDATE: "Có dấu hiệu trao đổi",

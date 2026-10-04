@@ -261,6 +261,7 @@ class Stage2Pipeline:
         self.risk_aggregator = RiskAggregator(config=self.fusion_config)
 
         # 8. Evidence Manager
+        self.evidence_listeners: List[Callable[[str, str, str], None]] = []
         ev_cfg = self.config.get("evidence", {})
         self.evidence_manager = IntegratedEvidenceManager(
             output_dir=str(ev_cfg.get("output_dir", "storage/evidence")),
@@ -268,6 +269,7 @@ class Stage2Pipeline:
             pre_event_seconds=float(ev_cfg.get("clip_pre_event_sec", 3.0)),
             post_event_seconds=float(ev_cfg.get("clip_post_event_sec", 3.0)),
             enabled=bool(ev_cfg.get("enabled", True)),
+            on_evidence_ready=self._on_evidence_ready,
         )
 
         # 9. Video Source
@@ -356,6 +358,17 @@ class Stage2Pipeline:
                 cb(event, action)
             except Exception as e:
                 logger.error(f"Error in event listener callback: {e}")
+
+    def add_evidence_listener(self, listener: Callable[[str, str, str], None]) -> None:
+        """Register a callback for evidence ready events (event_id, evidence_type, file_path)."""
+        self.evidence_listeners.append(listener)
+
+    def _on_evidence_ready(self, event_id: str, evidence_type: str, file_path: str) -> None:
+        for cb in self.evidence_listeners:
+            try:
+                cb(event_id, evidence_type, file_path)
+            except Exception as e:
+                logger.debug(f"Error in evidence listener callback: {e}")
 
     def _compute_multi_cue_risk_inputs(
         self,
@@ -547,9 +560,9 @@ class Stage2Pipeline:
                 for eid in expired_ids:
                     self._track_metadata.pop(eid, None)
 
-        # 3. Phone spatial association with ambiguity checks
+        # 3. Phone spatial association with ambiguity checks and temporal accumulation
         t_phone_start = time.perf_counter()
-        phone_associations = self.phone_associator.associate(tracks, detections)
+        phone_associations = self.phone_associator.associate(tracks, detections, timestamp_sec=ts)
         t_phone_end = time.perf_counter()
         phone_assoc_ms = (t_phone_end - t_phone_start) * 1000.0
 
@@ -738,6 +751,26 @@ class Stage2Pipeline:
                     # Broadcast lifecycle transition
                     self._broadcast_event(scored_ev, action)
                     lifecycle_events.append((scored_ev, action))
+
+        # 7b. Process unassociated phone observations (Room-level cue persistence)
+        unassoc_phones = self.phone_associator.get_unassociated_phones()
+        unassoc_machine_key = (cam_id, -1, EventFamily.PHONE_VISIBLE_UNASSOCIATED)
+        if unassoc_phones or unassoc_machine_key in self.event_engine._machines:
+            unassoc_emitted = self.event_engine.process_unassociated_phones(unassoc_phones, ts, camera_id=cam_id)
+            for ev, action in unassoc_emitted:
+                scored_ev = self.risk_aggregator.assess_event_risk(
+                    ev,
+                    active_cues_count=1,
+                    independent_cues_count=1,
+                    mean_reliability=0.85,
+                )
+                if action == "OPEN":
+                    self._active_events_map[scored_ev.event_id] = scored_ev
+                elif action == "CLOSE":
+                    self._active_events_map.pop(scored_ev.event_id, None)
+                self.evidence_manager.handle_event_lifecycle(scored_ev, action, frame, ts, fps=self.source.fps)
+                self._broadcast_event(scored_ev, action)
+                lifecycle_events.append((scored_ev, action))
 
         # 8. Real Serialization Path Measurement
         t_ser_start = time.perf_counter()

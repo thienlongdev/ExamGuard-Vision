@@ -173,6 +173,35 @@ class TrackObservationBuffer:
                 probs[k] /= len(valid_updates)
         return probs
 
+    def detect_glance_burst(
+        self,
+        window_seconds: float = 3.5,
+        yaw_thresh: float = 24.0,
+        min_glances: int = 2,
+    ) -> Tuple[bool, int]:
+        """Detect burst of repeated quick lateral glances within sliding window.
+        
+        A glance is a contiguous segment with |yaw| >= yaw_thresh separated by frontal looks (|yaw| < 18 deg).
+        """
+        window = self.get_window(window_seconds)
+        if len(window) < 3:
+            return False, 0
+
+        glances = 0
+        in_glance = False
+
+        for u in window:
+            if u.headpose.status == ObservationStatus.AVAILABLE and u.headpose.yaw_deg is not None:
+                abs_y = abs(u.headpose.yaw_deg)
+                if abs_y >= yaw_thresh:
+                    if not in_glance:
+                        glances += 1
+                        in_glance = True
+                elif abs_y < 18.0:
+                    in_glance = False
+
+        return (glances >= min_glances), glances
+
 
 class ScopedTrackDict(dict):
     """Dictionary supporting both (camera_id, track_id) composite keys and integer track_id lookups."""
@@ -308,4 +337,29 @@ class TemporalBuffer:
             for k in to_remove:
                 self._tracks.pop(k, None)
                 self._last_seen.pop(k, None)
+
+    def detect_glance_burst(
+        self,
+        track_id: int,
+        current_timestamp: float = 0.0,
+        glance_window_sec: float = 3.5,
+        yaw_thresh: float = 24.0,
+        min_glances: int = 2,
+        camera_id: str = "cam_0",
+    ) -> bool:
+        """Detect bursts of repeated lateral glances for a track."""
+        key = (camera_id, track_id)
+        buf = None
+        if key in self._tracks:
+            buf = self._tracks[key]
+        elif track_id in self._tracks:
+            buf = self._tracks[track_id]
+        if buf is None:
+            return False
+        has_burst, _ = buf.detect_glance_burst(
+            window_seconds=glance_window_sec,
+            yaw_thresh=yaw_thresh,
+            min_glances=min_glances,
+        )
+        return has_burst
 

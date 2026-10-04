@@ -1,13 +1,34 @@
+import { normalizeSnapshotUrl } from "./adapter.js";
+
 /**
- * ExamGuard Vision — Reactive State Store
- * Centralized state management for real-time monitoring and review.
+ * Authoritative human-review queue sorting comparator (Section 37 & 38)
+ * 1. HIGH (CẢNH BÁO CAO) first
+ * 2. MEDIUM (CẦN CHÚ Ý) second
+ * 3. LOW (THÔNG TIN) last
+ * Within same severity:
+ * - ACTIVE / OPEN incidents first
+ * - Newest event first (opened_at / timestamp DESC)
  */
+export function compareEventsForReview(a, b) {
+  const rank = (sev) => (sev === "HIGH" ? 3 : (sev === "MEDIUM" ? 2 : 1));
+  const diffSev = rank(b.riskLevel) - rank(a.riskLevel);
+  if (diffSev !== 0) return diffSev;
+
+  const activeRank = (lc) => (lc === "active" || lc === "open" ? 1 : 0);
+  const diffActive = activeRank(b.lifecycle) - activeRank(a.lifecycle);
+  if (diffActive !== 0) return diffActive;
+
+  const tA = a.startTime || a.timestamp || 0;
+  const tB = b.startTime || b.timestamp || 0;
+  return tB - tA;
+}
 
 class DashboardState {
   constructor() {
     this.currentView = "monitor"; // monitor | review | system
     this.events = new Map();
     this.activeFilter = "all"; // all | awaiting | reviewed | dismissed
+    this.cameraFilter = "all";
     this.selectedEventId = null;
     this.highlightedTrackId = null;
     this.activeTracks = [];
@@ -228,21 +249,47 @@ class DashboardState {
     }
   }
 
+  updateEventEvidence(eventId, evidenceType, filePath) {
+    const ev = this.events.get(eventId);
+    if (ev) {
+      if (evidenceType === "SNAPSHOT") {
+        ev.snapshotUrl = normalizeSnapshotUrl(filePath);
+        ev.snapshotStatus = "READY";
+      } else if (evidenceType === "VIDEO_CLIP") {
+        ev.clipUrl = normalizeSnapshotUrl(filePath);
+        ev.clipStatus = "READY";
+      } else if (evidenceType === "VIDEO_CLIP_FAILED") {
+        ev.clipStatus = "FAILED";
+      }
+      this.notify("EVIDENCE_UPDATED", { eventId, evidenceType, event: ev });
+      this.notify("EVENTS_UPDATED", ev);
+    }
+  }
+
+  // Monitor-side operational inbox: ONLY events awaiting human review (Section 34, 37, 39)
+  getPendingReviewEvents() {
+    let pending = Array.from(this.events.values()).filter(
+      (e) => (e.reviewStatus || "awaiting") === "awaiting"
+    );
+
+    if (this.cameraFilter && this.cameraFilter !== "all") {
+      pending = pending.filter((e) => e.cameraId === this.cameraFilter);
+    }
+
+    pending.sort(compareEventsForReview);
+    return pending.slice(0, 200);
+  }
+
   getFilteredEvents() {
-    // Event flood control: Prioritize HIGH risk first, then MEDIUM, then LOW, then recency
-    const priorityWeight = { HIGH: 3, MEDIUM: 2, LOW: 1 };
-    let all = Array.from(this.events.values()).sort((a, b) => {
-      const pDiff = (priorityWeight[b.riskLevel] || 1) - (priorityWeight[a.riskLevel] || 1);
-      if (pDiff !== 0) return pDiff;
-      return (b.startTime || b.timestamp) - (a.startTime || a.timestamp);
-    });
+    let all = Array.from(this.events.values());
+    all.sort(compareEventsForReview);
 
     if (this.cameraFilter && this.cameraFilter !== "all") {
       all = all.filter((e) => e.cameraId === this.cameraFilter);
     }
 
     if (this.activeFilter === "awaiting") {
-      return all.filter((e) => e.reviewStatus === "awaiting");
+      return all.filter((e) => (e.reviewStatus || "awaiting") === "awaiting");
     }
     if (this.activeFilter === "reviewed") {
       return all.filter((e) => e.reviewStatus === "confirmed");

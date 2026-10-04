@@ -826,26 +826,26 @@ html, body {
   flex-direction: column;
   gap: 10px;
   scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.35) rgba(15, 23, 42, 0.5);
+  scrollbar-color: rgba(6, 182, 212, 0.5) rgba(15, 23, 42, 0.6);
 }
 
 .queue-scroll-area::-webkit-scrollbar {
-  width: 6px;
+  width: 7px;
 }
 
 .queue-scroll-area::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.5);
+  background: rgba(15, 23, 42, 0.6);
   border-radius: var(--radius-full);
 }
 
 .queue-scroll-area::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.35);
+  background: rgba(6, 182, 212, 0.45);
   border-radius: var(--radius-full);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(6, 182, 212, 0.2);
 }
 
 .queue-scroll-area::-webkit-scrollbar-thumb:hover {
-  background: rgba(148, 163, 184, 0.6);
+  background: rgba(6, 182, 212, 0.75);
 }
 
 /* Event Card - Never vertically compress as events accumulate */

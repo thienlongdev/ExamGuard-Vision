@@ -17,7 +17,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Dict, Optional, Any, List
+from typing import Dict, Optional, Any, List, Callable
 import numpy as np
 
 from src.fusion.types import FusedEvent
@@ -39,11 +39,13 @@ class IntegratedEvidenceManager:
         post_event_seconds: float = 4.0,
         enabled: bool = True,
         persistence_service: Optional[PersistenceService] = None,
+        on_evidence_ready: Optional[Callable[[str, str, str], None]] = None,
     ):
         self.output_dir = output_dir
         self.max_snapshots_per_event = max_snapshots_per_event
         self.enabled = enabled
         self.persistence_service = persistence_service or PersistenceService.get_instance()
+        self.on_evidence_ready = on_evidence_ready
 
         self.snapshots_dir = os.path.join(output_dir, "snapshots")
         self.clips_dir = os.path.join(output_dir, "clips")
@@ -77,6 +79,7 @@ class IntegratedEvidenceManager:
         self._event_snapshot_counts: Dict[str, int] = {}
         self._event_clip_paths: Dict[str, str] = {}
         self._event_hashes: Dict[str, Dict[str, str]] = {}
+        self._event_evidence_status: Dict[str, Dict[str, str]] = {}
 
     def _get_event_dir(self, event_id: str) -> str:
         """Resolve session-isolated evidence folder for an event."""
@@ -96,6 +99,7 @@ class IntegratedEvidenceManager:
         self._event_hashes[event_id]["snapshot_sha256"] = sha256
         self._event_hashes[event_id]["snapshot_path"] = filepath
 
+        resolved_path = filepath
         if self.persistence_service:
             try:
                 rec = self.persistence_service.record_evidence_file(
@@ -104,9 +108,20 @@ class IntegratedEvidenceManager:
                     file_path=filepath,
                 )
                 if rec and rec.file_path:
+                    resolved_path = rec.file_path
                     self._event_hashes[event_id]["snapshot_path"] = rec.file_path
             except Exception as e:
                 logger.debug(f"Could not record snapshot evidence in DB: {e}")
+
+        if event_id not in self._event_evidence_status:
+            self._event_evidence_status[event_id] = {}
+        self._event_evidence_status[event_id]["snapshot_status"] = "READY"
+
+        if self.on_evidence_ready:
+            try:
+                self.on_evidence_ready(event_id, "SNAPSHOT", resolved_path)
+            except Exception as e:
+                logger.debug(f"on_evidence_ready callback error: {e}")
 
     def _on_clip_ready(self, event_id: str, filepath: str, sha256: str, size: int) -> None:
         """Callback when an MP4 clip has been successfully encoded to disk."""
@@ -115,6 +130,7 @@ class IntegratedEvidenceManager:
         self._event_hashes[event_id]["clip_sha256"] = sha256
         self._event_hashes[event_id]["clip_path"] = filepath
 
+        resolved_path = filepath
         if self.persistence_service:
             try:
                 rec = self.persistence_service.record_evidence_file(
@@ -123,13 +139,32 @@ class IntegratedEvidenceManager:
                     file_path=filepath,
                 )
                 if rec and rec.file_path:
+                    resolved_path = rec.file_path
                     self._event_hashes[event_id]["clip_path"] = rec.file_path
             except Exception as e:
                 logger.debug(f"Could not record video clip evidence in DB: {e}")
 
+        if event_id not in self._event_evidence_status:
+            self._event_evidence_status[event_id] = {}
+        self._event_evidence_status[event_id]["clip_status"] = "READY"
+
+        if self.on_evidence_ready:
+            try:
+                self.on_evidence_ready(event_id, "VIDEO_CLIP", resolved_path)
+            except Exception as e:
+                logger.debug(f"on_evidence_ready callback error: {e}")
+
     def _on_clip_failed(self, event_id: str, filepath: str, err: Exception) -> None:
         """Callback when MP4 clip encoding fails (pipeline continues safely)."""
         logger.warning(f"Video clip encoding failed for {event_id}: {err}")
+        if event_id not in self._event_evidence_status:
+            self._event_evidence_status[event_id] = {}
+        self._event_evidence_status[event_id]["clip_status"] = "FAILED"
+        if self.on_evidence_ready:
+            try:
+                self.on_evidence_ready(event_id, "VIDEO_CLIP_FAILED", filepath)
+            except Exception:
+                pass
         if self.persistence_service:
             try:
                 sid = (
@@ -169,6 +204,8 @@ class IntegratedEvidenceManager:
 
         # 1. OPEN Action
         if action == "OPEN":
+            event.evidence_summary["snapshot_status"] = "PENDING"
+            event.evidence_summary["clip_status"] = "CLIP_FINALIZING"
             count = self._event_snapshot_counts.get(ev_id, 0)
             if count < self.max_snapshots_per_event and self.snapshot_capture is not None:
                 try:
@@ -178,6 +215,7 @@ class IntegratedEvidenceManager:
                     )
                     event.evidence_summary["open_snapshot_path"] = snap_path
                     event.evidence_summary["snapshot_path"] = snap_path
+                    event.evidence_summary["best_evidence_score"] = float(event.evidence_summary.get("initial_evidence_score", 0.0))
                     self._event_snapshot_counts[ev_id] = count + 1
                 except Exception as e:
                     logger.warning(f"Snapshot capture failed for {ev_id}: {e}")
@@ -193,9 +231,24 @@ class IntegratedEvidenceManager:
                 except Exception as e:
                     logger.warning(f"Clip trigger failed for {ev_id}: {e}")
 
-        # 2. UPDATE Action (capture escalation snapshot if newly HIGH risk)
+        # 2. UPDATE Action (best-frame update + escalation snapshot if newly HIGH risk)
         elif action == "UPDATE":
             count = self._event_snapshot_counts.get(ev_id, 0)
+            # Best evidence frame selection (Section 26)
+            latest_score = float(event.evidence_summary.get("latest_evidence_score", 0.0))
+            best_score = float(event.evidence_summary.get("best_evidence_score", 0.0))
+            if latest_score > (best_score + 0.15) and count < self.max_snapshots_per_event and self.snapshot_capture is not None:
+                try:
+                    custom_snap = os.path.join(ev_dir, "snapshot.jpg")
+                    snap_path = self.snapshot_capture.capture_async(
+                        frame, ev_id, suffix="best", custom_filepath=custom_snap
+                    )
+                    event.evidence_summary["snapshot_path"] = snap_path
+                    event.evidence_summary["best_evidence_score"] = latest_score
+                    self._event_snapshot_counts[ev_id] = count + 1
+                except Exception as e:
+                    logger.debug(f"Best frame snapshot update failed: {e}")
+
             if event.risk_level == "HIGH" and count < self.max_snapshots_per_event and self.snapshot_capture is not None:
                 if "escalation_snapshot_path" not in event.evidence_summary:
                     try:

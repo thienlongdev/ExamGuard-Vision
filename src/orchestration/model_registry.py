@@ -180,6 +180,11 @@ class ModelRegistry:
             image_size=det_imgsz,
             device=str(self.device),
             target_classes=target_classes,
+            person_confidence=float(det_cfg.get("person_confidence", det_cfg.get("confidence", 0.35))),
+            phone_candidate_confidence=float(det_cfg.get("phone_candidate_confidence", 0.20)),
+            phone_strong_confidence=float(det_cfg.get("phone_strong_confidence", 0.35)),
+            min_phone_width_px=float(det_cfg.get("min_phone_width_px", 10.0)),
+            min_phone_height_px=float(det_cfg.get("min_phone_height_px", 10.0)),
         )
 
         det_meta = introspect_yolo_metadata(

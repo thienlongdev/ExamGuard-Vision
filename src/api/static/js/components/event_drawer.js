@@ -38,12 +38,12 @@ export class EventDrawerComponent {
           this.close();
         }
       } else if (
-        (type === "EVENT_STATUS_CHANGED" || type === "EVENT_LIFECYCLE_CHANGED" || type === "EVENTS_UPDATED") &&
+        (type === "EVENT_STATUS_CHANGED" || type === "EVENT_LIFECYCLE_CHANGED" || type === "EVENTS_UPDATED" || type === "EVIDENCE_UPDATED") &&
         this.currentEvent &&
         payload &&
-        payload.eventId === this.currentEvent.eventId
+        (payload.eventId === this.currentEvent.eventId || (payload.event && payload.event.eventId === this.currentEvent.eventId))
       ) {
-        this.currentEvent = payload;
+        this.currentEvent = payload.event || payload;
         this.renderContent();
       }
     });
@@ -190,7 +190,16 @@ export class EventDrawerComponent {
                      Trình duyệt không hỗ trợ xem video trực tiếp.
                    </video>
                  </div>`
-              : ""
+              : (ev.clipStatus === "FAILED"
+                  ? `<div class="drawer-video-box" style="margin-bottom: 10px; padding: 12px; background: rgba(239, 68, 68, 0.08); border: 1px dashed rgba(239, 68, 68, 0.3); border-radius: var(--radius-md); text-align: center;">
+                       <span style="font-size: 0.8rem; color: #f87171;">Không thể hoàn tất video bằng chứng</span>
+                     </div>`
+                  : `<div class="drawer-video-box" style="margin-bottom: 10px; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 1px dashed rgba(6, 182, 212, 0.3); border-radius: var(--radius-md); text-align: center;">
+                       <span style="font-size: 0.8rem; color: var(--accent-cyan); display: flex; align-items: center; justify-content: center; gap: 8px;">
+                         <span class="live-pulse-dot small" style="background: var(--accent-cyan); width: 8px; height: 8px; border-radius: 50%; display: inline-block;"></span>
+                         Đang hoàn tất video bằng chứng…
+                       </span>
+                     </div>`)
           }
 
           <div class="drawer-snapshot-box" id="drawer-snapshot-container">

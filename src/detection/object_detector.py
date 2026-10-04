@@ -38,9 +38,19 @@ class YOLOObjectDetector(ObjectDetector):
         image_size: int = 640,
         device: str = "cpu",
         target_classes: Optional[Dict[int, str] | List[str]] = None,
+        person_confidence: Optional[float] = None,
+        phone_candidate_confidence: Optional[float] = None,
+        phone_strong_confidence: Optional[float] = None,
+        min_phone_width_px: float = 10.0,
+        min_phone_height_px: float = 10.0,
     ):
         self.model_path = model_path
         self.confidence = confidence
+        self.person_confidence = person_confidence if person_confidence is not None else confidence
+        self.phone_candidate_confidence = phone_candidate_confidence if phone_candidate_confidence is not None else 0.20
+        self.phone_strong_confidence = phone_strong_confidence if phone_strong_confidence is not None else 0.35
+        self.min_phone_width_px = min_phone_width_px
+        self.min_phone_height_px = min_phone_height_px
         self.iou_threshold = iou_threshold
         self.image_size = image_size
         self.device = device
@@ -148,10 +158,13 @@ class YOLOObjectDetector(ObjectDetector):
 
         classes_to_filter = list(self.target_classes.keys())
 
+        # Determine minimum confidence to capture candidates without losing recall
+        predict_conf = min(self.confidence, self.person_confidence, self.phone_candidate_confidence)
+
         # Run inference
         results = self._model.predict(
             source=frame,
-            conf=self.confidence,
+            conf=predict_conf,
             iou=self.iou_threshold,
             imgsz=self.image_size,
             device=self.device,
@@ -167,20 +180,43 @@ class YOLOObjectDetector(ObjectDetector):
         if first_res.boxes is None or len(first_res.boxes) == 0:
             return detections
 
+        diag_mode = os.environ.get("EXAMGUARD_DIAGNOSTIC_CUES") == "1"
+
         boxes_data = first_res.boxes.data.cpu().numpy()
         for row in boxes_data:
             # Format: [x1, y1, x2, y2, conf, cls]
             x1, y1, x2, y2, conf, cls_id = row[:6]
             cls_id_int = int(cls_id)
+            conf_flt = float(conf)
             class_name = self.target_classes.get(cls_id_int, first_res.names.get(cls_id_int, f"class_{cls_id_int}"))
-
             bbox = BBox(x1=float(x1), y1=float(y1), x2=float(x2), y2=float(y2))
+
+            # Per-class selective threshold gating
+            if self.person_class_id is not None and cls_id_int == self.person_class_id:
+                if conf_flt < self.person_confidence:
+                    continue
+            elif self.phone_class_id is not None and cls_id_int == self.phone_class_id:
+                if diag_mode:
+                    logger.info(
+                        f"[DIAGNOSTIC_CUES] Raw phone detection: bbox=({bbox.x1:.1f},{bbox.y1:.1f},{bbox.x2:.1f},{bbox.y2:.1f}) "
+                        f"w={bbox.width:.1f} h={bbox.height:.1f} conf={conf_flt:.3f} "
+                        f"(cand_thresh={self.phone_candidate_confidence}, strong_thresh={self.phone_strong_confidence})"
+                    )
+                # Gate on phone candidate threshold and minimum usable bbox dimension (reject 1x1 noise)
+                if conf_flt < self.phone_candidate_confidence:
+                    continue
+                if bbox.width < self.min_phone_width_px or bbox.height < self.min_phone_height_px:
+                    continue
+            else:
+                if conf_flt < self.confidence:
+                    continue
+
             detections.append(
                 Detection(
                     bbox=bbox,
                     class_id=cls_id_int,
                     class_name=class_name,
-                    confidence=float(conf),
+                    confidence=conf_flt,
                 )
             )
 

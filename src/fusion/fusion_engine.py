@@ -144,10 +144,23 @@ class MultiCueFusionEngine:
         turn_fused = self.reliability.compute_turn_fusion_evidence(
             effective_posture, update.headpose
         )
+
+        # Check repeated glance burst across recent temporal window
+        glance_burst = False
+        glance_cnt = 0
+        if track_id in self.temporal_buffer._tracks:
+            glance_burst, glance_cnt = self.temporal_buffer._tracks[track_id].detect_glance_burst(
+                window_seconds=3.5, yaw_thresh=self.yaw_deg_thresh, min_glances=2
+            )
+        if glance_burst:
+            turn_fused = max(turn_fused, 0.54)
+
         turn_agreement = (
-            active_posture_probs.get("TURN_HEAD_CLEAR", 0.0) >= 0.40 and
-            yaw_abs_mean >= self.yaw_deg_thresh and
-            headpose_status == ObservationStatus.AVAILABLE
+            (active_posture_probs.get("TURN_HEAD_CLEAR", 0.0) >= 0.40 and
+             yaw_abs_mean >= self.yaw_deg_thresh and
+             headpose_status == ObservationStatus.AVAILABLE) or
+            (yaw_abs_mean >= self.yaw_deg_thresh and headpose_status == ObservationStatus.AVAILABLE) or
+            glance_burst
         )
 
         # 5. Phone Association Processing

@@ -89,6 +89,7 @@ class CameraPipelineWorker:
         stage2_config_path: str = "configs/stage2_pipeline.yaml",
         on_event_callback: Optional[Callable[[Any, str], None]] = None,
         persistence_service: Optional[PersistenceService] = None,
+        on_evidence_callback: Optional[Callable[[str, str, str], None]] = None,
     ):
         self.config = config
         self.camera_id = config.camera_id
@@ -97,6 +98,7 @@ class CameraPipelineWorker:
         self.stage2_config_path = stage2_config_path
         self.on_event_callback = on_event_callback
         self.persistence_service = persistence_service
+        self.on_evidence_callback = on_evidence_callback
 
         self.telemetry = CameraTelemetry(
             camera_id=self.camera_id,
@@ -171,6 +173,8 @@ class CameraPipelineWorker:
 
             if self.on_event_callback:
                 self.pipeline.add_event_listener(self.on_event_callback)
+            if self.on_evidence_callback and hasattr(self.pipeline, "add_evidence_listener"):
+                self.pipeline.add_evidence_listener(self.on_evidence_callback)
 
             # Check if source opened successfully
             if hasattr(self.video_source, "is_opened") and self.video_source.is_opened():
@@ -433,6 +437,7 @@ class CameraManager:
         self.hero_camera_id: str = "cam01"
         self._lock = threading.RLock()
         self._event_listeners: List[Callable[[Any, str], None]] = []
+        self._evidence_listeners: List[Callable[[str, str, str], None]] = []
 
         self._load_and_sync_configuration()
 
@@ -488,6 +493,16 @@ class CameraManager:
             if worker.pipeline:
                 worker.pipeline.add_event_listener(listener)
 
+    def register_evidence_listener(self, listener: Callable[[str, str, str], None]) -> None:
+        """Register global listener for evidence readiness across all cameras."""
+        self._evidence_listeners.append(listener)
+        for worker in self.workers.values():
+            if worker.pipeline and hasattr(worker.pipeline, "add_evidence_listener"):
+                worker.pipeline.add_evidence_listener(listener)
+
+    def add_evidence_listener(self, listener: Callable[[str, str, str], None]) -> None:
+        self.register_evidence_listener(listener)
+
     def _on_worker_event(self, event: Any, action: str) -> None:
         """Relay event from any camera worker to all registered listeners."""
         for cb in self._event_listeners:
@@ -495,6 +510,14 @@ class CameraManager:
                 cb(event, action)
             except Exception as e:
                 logger.error(f"Error in camera manager event listener: {e}")
+
+    def _on_worker_evidence(self, event_id: str, evidence_type: str, file_path: str) -> None:
+        """Relay evidence readiness from any camera worker to all registered listeners."""
+        for cb in self._evidence_listeners:
+            try:
+                cb(event_id, evidence_type, file_path)
+            except Exception as e:
+                logger.error(f"Error in camera manager evidence listener: {e}")
 
     def start_all_enabled_cameras(self) -> int:
         """Start workers for all enabled cameras in database."""
@@ -513,6 +536,7 @@ class CameraManager:
                     shared_registry=self.shared_registry,
                     on_event_callback=self._on_worker_event,
                     persistence_service=self.ps,
+                    on_evidence_callback=self._on_worker_evidence,
                 )
                 self.workers[cid] = worker
                 worker.start()
@@ -560,6 +584,7 @@ class CameraManager:
                         shared_registry=self.shared_registry,
                         on_event_callback=self._on_worker_event,
                         persistence_service=self.ps,
+                        on_evidence_callback=self._on_worker_evidence,
                     )
                     self.workers[camera_id] = new_worker
                     new_worker.start()

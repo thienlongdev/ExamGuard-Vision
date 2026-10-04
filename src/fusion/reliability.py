@@ -115,32 +115,38 @@ class ReliabilityModel:
     ) -> float:
         """Fused evidence strength for lateral head orientation.
         
-        Strict V4C Rule:
-        Classroom yaw alone has weak standalone separation (overlap 87.64%).
-        Therefore, yaw CANNOT independently trigger turn without posture support,
-        and yaw + posture cannot be naively summed as independent evidence.
+        Strict V4D Rule:
+        A clear lateral head turn (|yaw| >= 24 deg) provides sufficient evidence
+        to enter candidate state on its own without requiring torso leaning.
+        Torso lean and posture turn reinforce multi-cue evidence.
+        Frontal head orientation (|yaw| < 20 deg) attenuates posture turn.
         """
         posture_turn_score = 0.0
         if posture.status == ObservationStatus.AVAILABLE:
             posture_turn_score = posture.probabilities.get("TURN_HEAD_CLEAR", 0.0)
 
-        # Baseline: posture alone
+        # Baseline: posture alone if headpose unavailable
         if headpose.status != ObservationStatus.AVAILABLE or headpose.yaw_deg is None:
             return posture_turn_score
 
-        # Supporting yaw cue
+        # Supporting continuous yaw cue (left and right symmetric)
         abs_yaw = abs(headpose.yaw_deg)
-        # Consistent lateral rotation if |yaw| >= 25 deg
-        if abs_yaw >= 25.0:
-            # Multi-cue reinforcement: if posture also indicates turn, boost slightly
-            yaw_support = min(1.0, (abs_yaw - 20.0) / 40.0)
+
+        if abs_yaw >= 24.0:
+            # Standalone yaw evidence: scales from 0.52 at 24 deg to 1.0 at 50+ deg
+            yaw_evidence = 0.52 + 0.48 * min(1.0, max(0.0, (abs_yaw - 24.0) / 26.0))
             if posture_turn_score >= 0.40:
-                fused = 0.70 * posture_turn_score + 0.30 * yaw_support
+                # Multi-cue reinforcement: both headpose and posture indicate turn
+                fused = max(yaw_evidence, posture_turn_score, 0.65 * yaw_evidence + 0.35 * posture_turn_score)
             else:
-                # Weak posture cannot be overridden by yaw alone
-                fused = 0.50 * posture_turn_score + 0.20 * yaw_support
-        else:
-            # Head-pose indicates frontal face (|yaw| < 20 deg); slightly attenuates false posture turn
+                # Pure lateral head turn with upright torso: body lean NOT required!
+                fused = max(yaw_evidence * 0.90, 0.52)
+        elif abs_yaw < 20.0:
+            # Head-pose indicates frontal face (|yaw| < 20 deg); attenuates false posture turn
             fused = posture_turn_score * 0.85
+        else:
+            # Transition zone [20, 24) deg
+            yaw_frac = (abs_yaw - 20.0) / 4.0
+            fused = (1.0 - yaw_frac) * (posture_turn_score * 0.85) + yaw_frac * max(posture_turn_score, 0.42)
 
         return max(0.0, min(1.0, fused))

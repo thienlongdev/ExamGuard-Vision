@@ -1,5 +1,5 @@
 import { appState } from "../state.js";
-import { formatRelativeTime, formatDuration } from "../adapter.js";
+import { formatRelativeTime, formatDuration, getTrackDisplayName } from "../adapter.js";
 import { ApiClient } from "../api.js";
 import { getSeverityInfo, ALERT_SEMANTICS_TOOLTIP } from "../localization.js";
 
@@ -20,7 +20,8 @@ export class ReviewQueueComponent {
         type === "FILTER_CHANGED" ||
         type === "EVENT_STATUS_CHANGED" ||
         type === "EVENT_LIFECYCLE_CHANGED" ||
-        type === "EVENT_SELECTED"
+        type === "EVENT_SELECTED" ||
+        type === "EVIDENCE_UPDATED"
       ) {
         this.renderQueue();
       }
@@ -37,19 +38,15 @@ export class ReviewQueueComponent {
       <div class="review-queue-panel">
         <div class="queue-header">
           <div class="queue-title-row">
-            <h2>Sự kiện cần xem</h2>
-            <span class="queue-subtext">Quan sát theo thời gian thực</span>
-          </div>
-
-          <div class="queue-filter-tabs" style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
-            <button class="filter-tab active" data-filter="all" id="tab-filter-all">Tất cả</button>
-            <button class="filter-tab" data-filter="awaiting" id="tab-filter-awaiting">Chờ duyệt</button>
-            <button class="filter-tab" data-filter="reviewed" id="tab-filter-reviewed">Đã xác nhận</button>
-            <button class="filter-tab" data-filter="dismissed" id="tab-filter-dismissed">Đã bỏ qua</button>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <h2>Sự kiện chờ duyệt</h2>
+              <span class="pending-count-badge" id="queue-pending-count" style="background: rgba(6, 182, 212, 0.2); color: var(--accent-cyan); border: 1px solid rgba(6, 182, 212, 0.4); font-size: 0.75rem; font-weight: 700; padding: 1px 7px; border-radius: 9999px;">0</span>
+            </div>
             <select id="queue-camera-select" style="background: #1e293b; color: #cbd5e1; border: 1px solid #334155; border-radius: 4px; padding: 2px 6px; font-size: 0.75rem; margin-left: auto;">
               <option value="all">Tất cả camera</option>
             </select>
           </div>
+          <span class="queue-subtext">Hàng đợi xử lý trực tiếp · Xác nhận hoặc bỏ qua để hoàn tất</span>
         </div>
 
         <div class="queue-scroll-area" id="queue-scroll-area">
@@ -67,14 +64,6 @@ export class ReviewQueueComponent {
   }
 
   bindEvents() {
-    this.container.querySelectorAll(".filter-tab").forEach((tab) => {
-      tab.addEventListener("click", () => {
-        const filter = tab.dataset.filter;
-        this.container.querySelectorAll(".filter-tab").forEach((t) => t.classList.toggle("active", t === tab));
-        appState.setFilter(filter);
-      });
-    });
-
     const camSel = this.container.querySelector("#queue-camera-select");
     if (camSel) {
       camSel.addEventListener("change", (e) => {
@@ -87,9 +76,16 @@ export class ReviewQueueComponent {
     const scrollArea = document.getElementById("queue-scroll-area");
     if (!scrollArea) return;
 
+    const countBadge = document.getElementById("queue-pending-count");
+
     const prevScrollTop = scrollArea.scrollTop;
 
-    const events = appState.getFilteredEvents();
+    // Operational inbox: Strictly pending events awaiting human review
+    const events = appState.getPendingReviewEvents();
+
+    if (countBadge) {
+      countBadge.innerText = String(events.length);
+    }
 
     if (events.length === 0) {
       scrollArea.innerHTML = `
@@ -97,8 +93,8 @@ export class ReviewQueueComponent {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
           </svg>
-          <h4>Không có sự kiện</h4>
-          <p>Hệ thống giám sát liên tục đang hoạt động trên camera trực tiếp.</p>
+          <h4>Không có sự kiện chờ duyệt</h4>
+          <p>Tất cả sự kiện đã được giám thị xử lý hoặc chưa phát sinh vi phạm mới.</p>
         </div>
       `;
       return;
@@ -110,21 +106,13 @@ export class ReviewQueueComponent {
         const riskLower = sev.key;
         const isSelected = appState.selectedEventId === ev.eventId;
         const relativeTime = formatRelativeTime(ev.timestamp);
-        const rStatus = ev.reviewStatus || "awaiting";
 
-        let actionHtml = "";
-        if (rStatus === "awaiting") {
-          actionHtml = `
-            <div class="card-actions-group" onclick="event.stopPropagation()">
-              <button class="btn-action btn-confirm" data-action="confirm" data-id="${ev.eventId}" title="Giám thị xác nhận sự kiện">Xác nhận</button>
-              <button class="btn-action btn-dismiss" data-action="dismiss" data-id="${ev.eventId}" title="Bỏ qua sự kiện">Bỏ qua</button>
-            </div>
-          `;
-        } else if (rStatus === "confirmed") {
-          actionHtml = `<span class="status-tag confirmed">✓ Đã xác nhận</span>`;
-        } else {
-          actionHtml = `<span class="status-tag dismissed">Đã bỏ qua</span>`;
-        }
+        const actionHtml = `
+          <div class="card-actions-group" onclick="event.stopPropagation()">
+            <button class="btn-action btn-confirm" data-action="confirm" data-id="${ev.eventId}" title="Giám thị xác nhận sự kiện">Xác nhận</button>
+            <button class="btn-action btn-dismiss" data-action="dismiss" data-id="${ev.eventId}" title="Bỏ qua sự kiện">Bỏ qua</button>
+          </div>
+        `;
 
         const thumbHtml = ev.snapshotUrl
           ? `<img class="card-thumbnail-img" src="${ev.snapshotUrl}" alt="Ảnh bằng chứng" loading="lazy" onerror="this.style.display='none'; const el = this.parentElement.querySelector('.card-thumbnail-empty'); if (el) el.style.display='flex';" />
@@ -146,6 +134,8 @@ export class ReviewQueueComponent {
           ? `<span class="event-live-indicator" title="Sự kiện đang diễn ra"><span class="live-pulse-dot small"></span> TRỰC TIẾP</span>`
           : "";
 
+        const studentDisplay = ev.studentLabel || getTrackDisplayName(ev.trackId);
+
         return `
           <div class="event-card risk-${riskLower} ${isSelected ? "selected" : ""}" id="event-card-${ev.eventId}" data-id="${ev.eventId}">
             <div class="card-top">
@@ -165,7 +155,7 @@ export class ReviewQueueComponent {
 
               <div class="card-details">
                 <div class="card-meta-line">
-                  <span>Thí sinh: <strong>#${ev.trackId}</strong></span>
+                  <span>${studentDisplay}</span>
                   <span class="cam-badge" style="background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 3px; font-size: 0.72rem; color: #94a3b8;">${ev.cameraId || 'cam01'}</span>
                   ${ev.duration ? `<span>·</span><span>${formatDuration(ev.duration)}</span>` : ""}
                 </div>
@@ -188,7 +178,7 @@ export class ReviewQueueComponent {
       })
       .join("");
 
-    // Bind card clicks & actions
+    // Bind card clicks & hover
     scrollArea.querySelectorAll(".event-card").forEach((card) => {
       const eid = card.dataset.id;
       const ev = appState.events.get(eid);
@@ -198,7 +188,7 @@ export class ReviewQueueComponent {
       });
 
       card.addEventListener("mouseenter", () => {
-        if (ev) appState.setHighlightedTrack(ev.trackId);
+        if (ev && ev.trackId > 0) appState.setHighlightedTrack(ev.trackId);
       });
 
       card.addEventListener("mouseleave", () => {
@@ -206,6 +196,7 @@ export class ReviewQueueComponent {
       });
     });
 
+    // Bind immediate review actions (Section 43)
     scrollArea.querySelectorAll("button[data-action]").forEach((btn) => {
       btn.addEventListener("click", async (e) => {
         e.stopPropagation();
@@ -213,21 +204,24 @@ export class ReviewQueueComponent {
         const eid = btn.dataset.id;
         const newStatus = action === "confirm" ? "confirmed" : "dismissed";
 
+        // Optimistically remove / mark
         btn.disabled = true;
         btn.innerText = "...";
 
         try {
           await ApiClient.updateEventStatus(eid, newStatus);
+          // Immediate removal from pending queue & KPI update
           appState.updateEventReviewStatus(eid, newStatus);
         } catch (err) {
           console.error("Failed to update status:", err);
           btn.disabled = false;
-          btn.innerText = action === "confirm" ? "Confirm" : "Dismiss";
+          btn.innerText = action === "confirm" ? "Xác nhận" : "Bỏ qua";
         }
       });
     });
 
-    if (prevScrollTop > 5) {
+    // Preserve scroll position (Section 48)
+    if (prevScrollTop > 0) {
       scrollArea.scrollTop = prevScrollTop;
     }
   }

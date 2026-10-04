@@ -151,6 +151,8 @@ class DashboardApp {
         }
       } else if (msg.type === "EVENT_STATUS_UPDATED" && msg.event_id) {
         appState.updateEventReviewStatus(msg.event_id, msg.status, msg.reviewer_notes);
+      } else if (msg.type === "EVIDENCE_READY" && msg.event_id) {
+        appState.updateEventEvidence(msg.event_id, msg.evidence_type, msg.file_path);
       }
     });
 

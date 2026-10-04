@@ -67,6 +67,13 @@ class TrackEventStateMachine:
         self.last_update_time = timestamp
         details = supporting_details or {}
 
+        if cue_state is None:
+            from src.fusion.cue_state import PerTrackCueState
+            cue_state = PerTrackCueState(
+                track_id=self.track_id,
+                last_update_timestamp=timestamp,
+            )
+
         # 1. State: INACTIVE
         if self.state == EventLifecycleState.INACTIVE:
             if evidence_score >= self.enter_threshold and not is_vetoed:
@@ -215,13 +222,15 @@ class TrackEventStateMachine:
             cooldown_start = self.cooldown_start_time if self.cooldown_start_time is not None else timestamp
             elapsed = timestamp - cooldown_start
             if elapsed >= self.cooldown_seconds:
-                # Reopen policy (Section 19):
-                # Only return to INACTIVE when cooldown elapsed AND the behavior has genuinely disappeared
-                # below the exit threshold (or was vetoed). This prevents reopening duplicate events
-                # while a single continuous behavior incident is still ongoing.
-                if is_vetoed or evidence_score < self.exit_threshold:
+                # Cooldown period has elapsed
+                self.cooldown_start_time = None
+                if evidence_score >= self.enter_threshold and not is_vetoed:
+                    # New distinct incident starting after cooldown
+                    self.state = EventLifecycleState.CANDIDATE
+                    self.candidate_start_time = timestamp
+                else:
                     self.state = EventLifecycleState.INACTIVE
-                    self.cooldown_start_time = None
+                    self.candidate_start_time = None
             return None, "NONE"
 
         return None, "NONE"
@@ -274,7 +283,7 @@ class EventEngine:
             fam_key = family.value.lower()
             cfg = self.provisional.get(fam_key, {})
             min_dur = float(cfg.get("min_candidate_duration_sec", 1.5))
-            enter_th = float(cfg.get("evidence_enter_threshold", cfg.get("posture_turn_enter_threshold", 0.50)))
+            enter_th = float(cfg.get("evidence_enter_threshold", cfg.get("min_phone_confidence", cfg.get("posture_turn_enter_threshold", 0.50))))
             exit_th = float(cfg.get("evidence_exit_threshold", cfg.get("posture_turn_exit_threshold", 0.30)))
             cd = float(cfg.get("cooldown_seconds", 4.0))
 
@@ -288,6 +297,67 @@ class EventEngine:
                 config_version=self.config_version,
             )
         return self._machines[key]
+
+    def process_unassociated_phones(
+        self,
+        unassociated_phones: List[Dict[str, Any]],
+        timestamp: float,
+        camera_id: str = "cam_0",
+    ) -> List[Tuple[FusedEvent, str]]:
+        """Process unassociated phone detections at room-level to avoid discarding strong visual phone cues."""
+        from src.fusion.types import ObservationStatus
+        emitted: List[Tuple[FusedEvent, str]] = []
+        machine = self._get_machine(-1, EventFamily.PHONE_VISIBLE_UNASSOCIATED, camera_id=camera_id)
+
+        if not unassociated_phones:
+            if machine.state == EventLifecycleState.ACTIVE:
+                cue = PerTrackCueState(
+                    track_id=-1,
+                    last_update_timestamp=timestamp,
+                    phone_detected=False,
+                    phone_confidence=0.0,
+                    phone_association_status="NO_PHONE",
+                    phone_status=ObservationStatus.AVAILABLE,
+                    source_origin="ROOM_DETECTOR",
+                )
+                ev, act = machine.process_frame(
+                    timestamp=timestamp,
+                    evidence_score=0.0,
+                    is_vetoed=False,
+                    cue_state=cue,
+                    camera_id=camera_id,
+                )
+                if ev is not None and act != "NONE":
+                    emitted.append((ev, act))
+            return emitted
+
+        best_phone = max(unassociated_phones, key=lambda p: float(p.get("confidence", 0.0)))
+        phone_conf = float(best_phone.get("confidence", 0.0))
+        cue = PerTrackCueState(
+            track_id=-1,
+            last_update_timestamp=timestamp,
+            phone_detected=True,
+            phone_confidence=phone_conf,
+            phone_association_status="PHONE_VISIBLE_UNASSOCIATED",
+            phone_status=ObservationStatus.AVAILABLE,
+            source_origin="ROOM_DETECTOR",
+        )
+        ev, act = machine.process_frame(
+            timestamp=timestamp,
+            evidence_score=phone_conf,
+            is_vetoed=False,
+            cue_state=cue,
+            camera_id=camera_id,
+            supporting_details={
+                "phone_confidence": round(phone_conf, 4),
+                "phone_status": "PHONE_VISIBLE_UNASSOCIATED",
+                "bbox": best_phone.get("bbox", []),
+                "detection_origin": "UNASSOCIATED_ROOM_OBJECT",
+            },
+        )
+        if ev is not None and act != "NONE":
+            emitted.append((ev, act))
+        return emitted
 
     def process_cue_state(
         self,

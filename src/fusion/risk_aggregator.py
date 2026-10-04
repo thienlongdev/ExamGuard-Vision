@@ -24,6 +24,8 @@ class RiskAggregator:
         EventFamily.STANDING.value: RiskLevel.MEDIUM.value,
         EventFamily.DISCUSSION_CANDIDATE.value: RiskLevel.MEDIUM.value,
         EventFamily.MULTI_CUE_ATTENTION_SHIFT.value: RiskLevel.MEDIUM.value,
+        EventFamily.PHONE_ASSOCIATED.value: RiskLevel.MEDIUM.value,
+        EventFamily.PHONE_VISIBLE_UNASSOCIATED.value: RiskLevel.MEDIUM.value,
     }
 
     def __init__(self, config: Optional[Dict[str, Any]] = None):
@@ -66,6 +68,7 @@ class RiskAggregator:
             EventFamily.SUSTAINED_HEAD_REST.value: 35.0,
             EventFamily.SUSTAINED_LATERAL_HEAD_ORIENTATION.value: 35.0,
             EventFamily.PHONE_ASSOCIATED.value: 50.0,
+            EventFamily.PHONE_VISIBLE_UNASSOCIATED.value: 40.0,
             EventFamily.DISCUSSION_CANDIDATE.value: 35.0,
             EventFamily.STANDING.value: 35.0,
             EventFamily.MULTI_CUE_ATTENTION_SHIFT.value: 40.0,
@@ -73,8 +76,8 @@ class RiskAggregator:
         base = base_scores.get(ev_type, 35.0)
 
         # 1. Single-cue / short-duration safety
-        # Before temporal confirmation (e.g. candidate or transient spike < 0.5s), remains LOW
-        if duration < 0.5:
+        # Before temporal confirmation (e.g. transient spike < 0.35s), remains LOW
+        if duration < 0.35:
             event.risk_score = min(base, self.max_single_frame_score)
             event.risk_level = RiskLevel.LOW.value
             if "risk" in getattr(event, "observation_snapshot", {}):

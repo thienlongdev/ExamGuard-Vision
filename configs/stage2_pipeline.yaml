@@ -22,6 +22,9 @@ models:
   general_object_detector:
     model_path: "models/trained/yolo26m.pt"
     confidence: 0.35
+    person_confidence: 0.35
+    phone_candidate_confidence: 0.20
+    phone_strong_confidence: 0.35
     iou_threshold: 0.45
     image_size: 640
     device: "cuda:0"
@@ -33,6 +36,9 @@ models:
   detector:
     model_path: "models/trained/yolo26m.pt"
     confidence: 0.35
+    person_confidence: 0.35
+    phone_candidate_confidence: 0.20
+    phone_strong_confidence: 0.35
     iou_threshold: 0.45
     image_size: 640
     device: "cuda:0"

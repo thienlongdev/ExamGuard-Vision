@@ -84,6 +84,16 @@ export function normalizeLifecycle(rawLifecycle, rawStatus) {
 }
 
 /**
+ * Helper to display human-friendly track identity.
+ */
+export function getTrackDisplayName(trackId) {
+  if (trackId === undefined || trackId === null || Number(trackId) <= 0) {
+    return "Chưa gán thí sinh";
+  }
+  return `Thí sinh #${trackId}`;
+}
+
+/**
  * Normalize an event object into safe, structured UI state.
  */
 export function normalizeEvent(raw) {
@@ -123,6 +133,9 @@ export function normalizeEvent(raw) {
   const rawClip = raw.clip_path || raw.clipUrl || raw.evidence?.clip_path || raw.evidence_summary?.clip_path;
   const clipUrl = normalizeSnapshotUrl(rawClip);
 
+  const snapshotStatus = raw.snapshot_status || raw.evidence_summary?.snapshot_status || (snapshotUrl ? "READY" : "PENDING");
+  const clipStatus = raw.clip_status || raw.evidence_summary?.clip_status || (clipUrl ? "READY" : "CLIP_FINALIZING");
+
   // Event-time observation snapshot & cues
   const obs = raw.observation_snapshot || raw.observationSnapshot || {};
   const evSummary = raw.evidence_summary || raw.evidence || {};
@@ -130,6 +143,7 @@ export function normalizeEvent(raw) {
   return {
     eventId: eid,
     trackId: tid,
+    studentLabel: getTrackDisplayName(tid),
     cameraId: cid,
     timestamp: ts,
     startTime: startTime,
@@ -145,6 +159,8 @@ export function normalizeEvent(raw) {
     reviewerNotes: raw.reviewer_notes || raw.reviewerNotes || null,
     snapshotUrl: snapshotUrl,
     clipUrl: clipUrl,
+    snapshotStatus: snapshotStatus,
+    clipStatus: clipStatus,
     observationSnapshot: obs,
     evidence: evSummary,
     raw: raw,
