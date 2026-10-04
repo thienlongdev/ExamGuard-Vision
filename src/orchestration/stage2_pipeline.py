@@ -628,8 +628,9 @@ class Stage2Pipeline:
         # Build attention tracks set for adaptive scheduler (active events & phone candidates)
         attention_track_ids = set()
         for ev in self._active_events_map.values():
-            if ev.student_id is not None:
-                attention_track_ids.add(ev.student_id)
+            tid = getattr(ev, "track_id", getattr(ev, "student_id", None))
+            if tid is not None:
+                attention_track_ids.add(tid)
         for tid, assoc in phone_associations.items():
             if assoc.detected or assoc.status == "AMBIGUOUS":
                 attention_track_ids.add(tid)

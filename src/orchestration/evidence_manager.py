@@ -357,7 +357,7 @@ class IntegratedEvidenceManager:
                 event.evidence_summary["manifest_path"] = manifest_path
                 event.evidence_summary["metadata_path"] = manifest_path
 
-                if self.persistence_service:
+                if self.persistence_service and getattr(self.persistence_service, "active_session", None):
                     if hasattr(self.persistence_service, "events"):
                         existing_ev = self.persistence_service.events.get_event(ev_id)
                         if not existing_ev:
