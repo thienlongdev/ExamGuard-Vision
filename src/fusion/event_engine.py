@@ -59,6 +59,8 @@ class TrackEventStateMachine:
         self.exit_grace_start_time: Optional[float] = None
         self.normal_reset_start_time: Optional[float] = None
         self.last_update_time: Optional[float] = None
+        self.active_evidence_duration: float = 0.0
+        self.last_evidence_timestamp: Optional[float] = None
 
     def process_frame(
         self,
@@ -93,6 +95,8 @@ class TrackEventStateMachine:
                 # Evidence fell below exit threshold or was vetoed
                 self.state = EventLifecycleState.INACTIVE
                 self.candidate_start_time = None
+                self.active_evidence_duration = 0.0
+                self.last_evidence_timestamp = None
                 return None, "NONE"
 
             # Check if duration in candidate state meets threshold
@@ -102,6 +106,8 @@ class TrackEventStateMachine:
                 # Promote to ACTIVE: Open new event
                 self.state = EventLifecycleState.ACTIVE
                 self.exit_grace_start_time = None
+                self.active_evidence_duration = candidate_duration
+                self.last_evidence_timestamp = timestamp
                 event_id = str(uuid.uuid4())
 
                 # Determine dominant posture and confidence
@@ -150,6 +156,7 @@ class TrackEventStateMachine:
                 ev_summary = {
                     "initial_evidence_score": round(evidence_score, 4),
                     "candidate_duration_sec": round(candidate_duration, 2),
+                    "active_evidence_duration": round(self.active_evidence_duration, 2),
                     "posture": obs_snapshot["posture"]["class"],
                     "posture_confidence": obs_snapshot["posture"]["confidence"],
                     "yaw_deg": obs_snapshot["headpose"]["yaw_deg"],
@@ -160,6 +167,13 @@ class TrackEventStateMachine:
                     "event_origin": resolved_origin,
                     **details,
                 }
+
+                init_review_st = "awaiting"
+                if self.event_family in (EventFamily.PHONE_VISUAL_CANDIDATE, EventFamily.MULTI_CUE_ATTENTION_SHIFT):
+                    init_review_st = "internal"
+                elif self.event_family == EventFamily.SUSTAINED_LATERAL_HEAD_ORIENTATION:
+                    is_rep = bool(details.get("glance_burst", False) or details.get("glance_count", 0) >= 3)
+                    init_review_st = "awaiting" if is_rep else "internal"
 
                 self.active_event = FusedEvent(
                     event_id=event_id,
@@ -185,7 +199,7 @@ class TrackEventStateMachine:
                     },
                     status="active",
                     lifecycle_status="open",
-                    review_status="internal" if self.event_family in (EventFamily.PHONE_VISUAL_CANDIDATE, EventFamily.MULTI_CUE_ATTENTION_SHIFT) else "awaiting",
+                    review_status=init_review_st,
                     fusion_config_version=self.config_version,
                     event_origin=resolved_origin,
                 )
@@ -199,12 +213,16 @@ class TrackEventStateMachine:
             if is_active_evidence:
                 # Evidence active: reset exit grace period
                 self.exit_grace_start_time = None
+                if self.last_evidence_timestamp is not None:
+                    self.active_evidence_duration += max(0.0, timestamp - self.last_evidence_timestamp)
+                self.last_evidence_timestamp = timestamp
                 if self.active_event is not None:
                     self.active_event.last_update_timestamp = timestamp
                     self.active_event.duration = timestamp - self.active_event.start_timestamp
                     self.active_event.lifecycle_status = "active"
                     self.active_event.evidence_summary.update(details)
                     self.active_event.evidence_summary["latest_evidence_score"] = round(evidence_score, 4)
+                    self.active_event.evidence_summary["active_evidence_duration"] = round(self.active_evidence_duration, 2)
                     if "risk" in self.active_event.observation_snapshot:
                         self.active_event.observation_snapshot["risk"]["score"] = round(
                             evidence_score * 100.0 if evidence_score <= 1.0 else evidence_score, 1
@@ -212,6 +230,7 @@ class TrackEventStateMachine:
                 return self.active_event, "UPDATE"
 
             # Evidence dropped below exit threshold or was vetoed: check exit grace period to avoid chattering
+            self.last_evidence_timestamp = None
             if self.exit_grace_start_time is None:
                 self.exit_grace_start_time = timestamp
 
@@ -221,6 +240,7 @@ class TrackEventStateMachine:
                 if self.active_event is not None:
                     self.active_event.last_update_timestamp = timestamp
                     self.active_event.duration = timestamp - self.active_event.start_timestamp
+                    self.active_event.evidence_summary["active_evidence_duration"] = round(self.active_evidence_duration, 2)
                 return self.active_event, "UPDATE"
 
             # Exit grace period expired: close event and enter COOLDOWN
@@ -234,10 +254,13 @@ class TrackEventStateMachine:
                 closed_event.duration = timestamp - closed_event.start_timestamp
                 closed_event.status = "closed"
                 closed_event.lifecycle_status = "closed"
+                closed_event.evidence_summary["active_evidence_duration"] = round(self.active_evidence_duration, 2)
                 if not getattr(closed_event, "review_status", None):
-                    closed_event.review_status = "awaiting"
+                    closed_event.review_status = "internal" if self.event_family == EventFamily.SUSTAINED_LATERAL_HEAD_ORIENTATION else "awaiting"
             self.active_event = None
             self.candidate_start_time = None
+            self.active_evidence_duration = 0.0
+            self.last_evidence_timestamp = None
             return closed_event, "CLOSE"
 
         # 4. State: COOLDOWN
@@ -284,14 +307,18 @@ class TrackEventStateMachine:
             closed_event.status = "closed"
             closed_event.lifecycle_status = "closed"
             if not getattr(closed_event, "review_status", None):
-                closed_event.review_status = "awaiting"
+                closed_event.review_status = "internal" if self.event_family == EventFamily.SUSTAINED_LATERAL_HEAD_ORIENTATION else "awaiting"
             closed_event.evidence_summary["closure_reason"] = reason
             self.active_event = None
             self.state = EventLifecycleState.INACTIVE
             self.candidate_start_time = None
+            self.active_evidence_duration = 0.0
+            self.last_evidence_timestamp = None
             return closed_event
         self.state = EventLifecycleState.INACTIVE
         self.candidate_start_time = None
+        self.active_evidence_duration = 0.0
+        self.last_evidence_timestamp = None
         return None
 
 

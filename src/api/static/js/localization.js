@@ -82,6 +82,7 @@ export const REVIEW_STATUS_VI = {
   awaiting: { label: "Chờ duyệt", class: "awaiting" },
   confirmed: { label: "Đã xác nhận", class: "confirmed" },
   dismissed: { label: "Đã bỏ qua", class: "dismissed" },
+  internal: { label: "Nội bộ", class: "internal" },
   new: { label: "Chờ duyệt", class: "awaiting" },
 };
 

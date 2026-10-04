@@ -64,6 +64,7 @@ export function normalizeReviewStatus(rawStatus) {
   const s = String(rawStatus).toLowerCase().trim();
   if (s === "confirmed" || s === "confirmed_event" || s === "reviewed") return "confirmed";
   if (s === "dismissed") return "dismissed";
+  if (s === "internal") return "internal";
   return "awaiting";
 }
 

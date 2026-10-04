@@ -711,3 +711,77 @@ def test_controlled_scenario_standing():
     assert scored.risk_level == RiskLevel.MEDIUM.value
 
 
+def test_phone_lap_recall_preserved():
+    """Verify phone on lap below student bounding box associates downward and opens review event."""
+    associator = PhoneAssociator(phone_strong_confidence=0.35)
+    # Student bbox: [100, 100, 300, 400]
+    student = Track(track_id=1, bbox=BBox(100, 100, 300, 400), confidence=0.95, timestamp=1.0)
+    # Phone in lap region: y1=420, y2=470 (downward lap expansion up to 0.35*H = +105px)
+    phone_det = {"bbox": [180, 410, 220, 460], "confidence": 0.55, "class_id": 67, "class_name": "cell phone"}
+    
+    assoc = associator.associate([student], [phone_det], timestamp_sec=1.0)
+    assert assoc[1].detected is True
+    assert assoc[1].is_candidate_only is False, "Lap phone with strong confidence must be reviewable"
+    assert assoc[1].spatial_relation in ["DIRECT_CONTACT", "DESK_PROXIMITY"]
+
+
+def test_phone_brief_recall_preserved():
+    """Verify brief intentional phone check (~1.0s with clear detection) opens review event."""
+    associator = PhoneAssociator(phone_strong_confidence=0.35)
+    student = Track(track_id=1, bbox=BBox(100, 100, 200, 300), confidence=0.95, timestamp=0.0)
+    phone_det = {"bbox": [120, 200, 160, 250], "confidence": 0.58, "class_id": 67, "class_name": "cell phone"}
+    
+    engine = EventEngine()
+    opened = []
+    # 1.0 second brief phone check at 10 Hz
+    t = 0.0
+    for _ in range(10):
+        t += 0.1
+        assoc = associator.associate([student], [phone_det], timestamp_sec=t)
+        cue = PerTrackCueState(
+            track_id=1,
+            last_update_timestamp=t,
+            continuity_valid=True,
+            phone_detected=assoc[1].detected,
+            phone_confidence=assoc[1].confidence,
+            phone_association_status=assoc[1].association_status_enum.value,
+            phone_status=ObservationStatus.AVAILABLE,
+            phone_is_candidate_only=assoc[1].is_candidate_only,
+        )
+        for ev, act in engine.process_cue_state(cue):
+            if act == "OPEN":
+                opened.append(ev)
+                
+    assert len(opened) == 1, f"Brief 1.0s phone check must open PHONE_ASSOCIATED event (got {len(opened)})"
+    assert opened[0].event_type == EventFamily.PHONE_ASSOCIATED.value
+
+
+def test_pure_left_head_turn_recall_preserved():
+    """Verify pure left head turn (yaw -34 deg) triggers turn evidence and opens review event."""
+    scorer = ReliabilityModel()
+    pos = PostureCue(
+        status=ObservationStatus.AVAILABLE,
+        probabilities={"NORMAL_UPRIGHT": 0.85, "TURN_HEAD_CLEAR": 0.15},
+    )
+    hp = HeadPoseCue(status=ObservationStatus.AVAILABLE, yaw_deg=-34.0, reliability_weight=0.9)
+    fused_turn = scorer.compute_turn_fusion_evidence(pos, hp)
+    assert fused_turn >= 0.50, f"Pure left turn evidence must meet enter threshold, got {fused_turn}"
+    
+    engine = EventEngine()
+    cue = PerTrackCueState(
+        track_id=1,
+        last_update_timestamp=0.0,
+        continuity_valid=True,
+        turn_fused_evidence=fused_turn,
+        smoothed_yaw_deg=-34.0,
+        posture_status=ObservationStatus.AVAILABLE,
+    )
+    engine.process_cue_state(cue)
+    cue.last_update_timestamp = 0.8
+    emitted = engine.process_cue_state(cue)
+    
+    open_events = [ev for ev, act in emitted if act == "OPEN" and ev.event_type == EventFamily.SUSTAINED_LATERAL_HEAD_ORIENTATION.value]
+    assert len(open_events) == 1, "Pure left head turn must open review event"
+
+
+

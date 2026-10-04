@@ -135,7 +135,8 @@ class RiskAggregator:
 
         # C. SUSTAINED_LATERAL_HEAD_ORIENTATION: Reviewability layer
         if ev_type == EventFamily.SUSTAINED_LATERAL_HEAD_ORIENTATION.value:
-            is_sustained = (duration >= self.sustained_turn_duration_sec)
+            active_dur = float(event.evidence_summary.get("active_evidence_duration", duration))
+            is_sustained = (active_dur >= self.sustained_turn_duration_sec)
             is_repeated = bool(
                 event.evidence_summary.get("glance_burst", False) or
                 event.evidence_summary.get("glance_count", 0) >= 3
@@ -172,6 +173,7 @@ class RiskAggregator:
             event.evidence_summary["is_reviewable"] = True
             phone_conf = event.evidence_summary.get("phone_confidence")
             is_cand = event.evidence_summary.get("is_candidate_only", False)
+            latest_ev = event.evidence_summary.get("latest_evidence_score", phone_conf or 0.0)
             if is_cand and phone_conf is not None and float(phone_conf) < 0.35:
                 # Weak candidate that got promoted: capped strictly at MEDIUM (< 65.0), never HIGH!
                 final_score = min(final_score, 60.0)
@@ -188,6 +190,23 @@ class RiskAggregator:
                 if final_score >= self.medium_to_high:
                     final_score = self.medium_to_high - 1.0
                 escalation_reason = "PHONE_SINGLE_CUE_UNDER_THRESHOLD"
+
+        # D2. PHONE_VISIBLE_UNASSOCIATED: Room-level unassociated phone cue policy
+        if ev_type == EventFamily.PHONE_VISIBLE_UNASSOCIATED.value:
+            phone_conf = event.evidence_summary.get("phone_confidence", 0.0)
+            if float(phone_conf or 0.0) >= 0.55 and duration >= 1.5:
+                event.review_status = "awaiting"
+                event.evidence_summary["is_reviewable"] = True
+            else:
+                final_score = min(final_score, self.low_to_medium - 10.0)
+                event.risk_score = round(final_score, 2)
+                event.risk_level = RiskLevel.LOW.value
+                event.review_status = "internal"
+                event.evidence_summary["is_reviewable"] = False
+                if "risk" in getattr(event, "observation_snapshot", {}):
+                    event.observation_snapshot["risk"]["score"] = round(event.risk_score, 1)
+                    event.observation_snapshot["risk"]["level"] = event.risk_level
+                return event
 
         # 7. Event-Type Minimum Severity Floor once ACTIVE:
         # Sustained behaviors that passed temporal candidate confirmation must not display as LOW.

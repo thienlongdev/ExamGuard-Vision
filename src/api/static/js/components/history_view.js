@@ -440,7 +440,7 @@ export class HistoryViewComponent {
     const high = events.filter((e) => (e.severity || e.risk_level || "").toUpperCase() === "HIGH").length;
     const confirmed = events.filter((e) => (e.review_status || "").toLowerCase() === "confirmed").length;
     const dismissed = events.filter((e) => (e.review_status || "").toLowerCase() === "dismissed").length;
-    const awaiting = events.filter((e) => !["confirmed", "dismissed"].includes((e.review_status || "").toLowerCase())).length;
+    const awaiting = events.filter((e) => (e.review_status || "").toLowerCase() === "awaiting").length;
 
     const dur = session.duration_sec ? formatDurationVi(session.duration_sec) : "—";
     const statusInfo = SESSION_STATUS_VI[session.status] || { label: session.status };

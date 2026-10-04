@@ -341,7 +341,7 @@ class PersistenceService:
         existing_ev = self.events.get_event(eid)
         if existing_ev and existing_ev.review_status in ("confirmed", "dismissed"):
             review_st = existing_ev.review_status
-        elif ev_type in ("PHONE_VISUAL_CANDIDATE", "MULTI_CUE_ATTENTION_SHIFT"):
+        elif ev_type in ("PHONE_VISUAL_CANDIDATE", "MULTI_CUE_ATTENTION_SHIFT") or getattr(event, "review_status", "awaiting") == "internal":
             review_st = "internal"
         else:
             review_st = getattr(event, "review_status", "awaiting")

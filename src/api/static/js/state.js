@@ -277,7 +277,7 @@ class DashboardState {
   // Monitor-side operational inbox: ONLY events awaiting human review (Section 34, 37, 39)
   getPendingReviewEvents() {
     let pending = Array.from(this.events.values()).filter(
-      (e) => (e.reviewStatus || "awaiting") === "awaiting"
+      (e) => (e.reviewStatus || "awaiting") === "awaiting" && e.reviewStatus !== "internal"
     );
 
     if (this.cameraFilter && this.cameraFilter !== "all") {
@@ -297,7 +297,7 @@ class DashboardState {
     }
 
     if (this.activeFilter === "awaiting") {
-      return all.filter((e) => (e.reviewStatus || "awaiting") === "awaiting");
+      return all.filter((e) => (e.reviewStatus || "awaiting") === "awaiting" && e.reviewStatus !== "internal");
     }
     if (this.activeFilter === "reviewed") {
       return all.filter((e) => e.reviewStatus === "confirmed");

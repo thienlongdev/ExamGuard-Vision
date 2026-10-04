@@ -264,6 +264,9 @@ class Stage2Pipeline:
             max_distance_ratio=float(phone_cfg.get("max_center_distance_ratio", 0.65)),
             min_iou_overlap=float(phone_cfg.get("min_iou_overlap", 0.04)),
             ambiguity_margin=float(phone_cfg.get("ambiguity_margin", 0.15)),
+            phone_strong_confidence=float(phone_cfg.get("phone_strong_confidence", 0.35)),
+            weak_candidate_min_hits=int(phone_cfg.get("weak_candidate_min_hits", 3)),
+            weak_candidate_min_duration_sec=float(phone_cfg.get("weak_candidate_min_duration_sec", 0.8)),
         )
 
         # 5. Macro Cadence Control

@@ -70,8 +70,8 @@ class PhoneAssociator:
         phone_strong_confidence: float = 0.35,
         phone_candidate_window_sec: float = 3.0,
         phone_candidate_gap_tolerance_sec: float = 1.0,
-        weak_candidate_min_hits: int = 10,
-        weak_candidate_min_duration_sec: float = 2.0,
+        weak_candidate_min_hits: int = 3,
+        weak_candidate_min_duration_sec: float = 0.8,
     ):
         self.expand_ratio = expand_ratio
         self.expand_ratio_down = expand_ratio_down
@@ -184,7 +184,8 @@ class PhoneAssociator:
                             (len(valid_hits) >= self.weak_candidate_min_hits and hit_span >= self.weak_candidate_min_duration_sec)
                         )
                         if gap <= self.phone_candidate_gap_tolerance_sec and len(valid_hits) >= 2 and is_temporal_supported:
-                            # Bridge intermittent gap using accumulated evidence
+                            # Bridge intermittent gap using accumulated evidence, preserving candidate status
+                            is_cand = not is_temporal_supported
                             results[tid] = TrackPhoneAssociation(
                                 track_id=tid,
                                 status="ASSOCIATED",
@@ -194,7 +195,7 @@ class PhoneAssociator:
                                 spatial_relation="DESK_PROXIMITY",
                                 phone_bbox=last_bbox,
                                 competing_track_ids=[tid],
-                                is_candidate_only=False,
+                                is_candidate_only=is_cand,
                             )
             return results
 
@@ -283,7 +284,7 @@ class PhoneAssociator:
                 ]
                 self._recent_track_hits[best_track_id] = valid_hits
 
-                has_strong_hit = any(h[1] >= self.phone_strong_confidence for h in valid_hits)
+                has_strong_hit = (phone.confidence >= self.phone_strong_confidence)
                 hit_span = (valid_hits[-1][0] - valid_hits[0][0]) if len(valid_hits) >= 2 else 0.0
                 is_temporal_supported = (
                     has_strong_hit or
