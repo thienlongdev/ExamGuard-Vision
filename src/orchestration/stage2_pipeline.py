@@ -625,9 +625,20 @@ class Stage2Pipeline:
         t_phone_end = time.perf_counter()
         phone_assoc_ms = (t_phone_end - t_phone_start) * 1000.0
 
+        # Build attention tracks set for adaptive scheduler (active events & phone candidates)
+        attention_track_ids = set()
+        for ev in self._active_events_map.values():
+            if ev.student_id is not None:
+                attention_track_ids.add(ev.student_id)
+        for tid, assoc in phone_associations.items():
+            if assoc.detected or assoc.status == "AMBIGUOUS":
+                attention_track_ids.add(tid)
+
         # 4. Cadence-scheduled batched GPU crop inference (Posture & Head-Pose)
         with self.registry.inference_lock:
-            posture_cues, headpose_cues, crop_timings = self.crop_scheduler.schedule_and_infer(frame, tracks, ts)
+            posture_cues, headpose_cues, crop_timings = self.crop_scheduler.schedule_and_infer(
+                frame, tracks, ts, attention_track_ids=attention_track_ids
+            )
 
         # 5. Macro behavior detection with cadence gating
         time_since_macro = ts - self._last_macro_timestamp

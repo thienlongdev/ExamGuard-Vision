@@ -44,6 +44,10 @@ class TrackCadenceState:
     last_headpose_timestamp: float = -1.0
     latest_posture_cue: PostureCue = field(default_factory=PostureCue)
     latest_headpose_cue: HeadPoseCue = field(default_factory=HeadPoseCue)
+    is_attention: bool = False
+    last_attention_timestamp: float = -1.0
+    total_posture_evaluations: int = 0
+    total_headpose_evaluations: int = 0
 
 
 class CropScheduler:
@@ -57,11 +61,22 @@ class CropScheduler:
         self.registry = model_registry
         self.config = config or {}
 
+        # Static / legacy cadence config
         cadence_cfg = self.config.get("cadence", {})
         self.posture_hz = float(cadence_cfg.get("posture_hz", 10.0))
         self.headpose_hz = float(cadence_cfg.get("headpose_hz", 6.0))
         self.posture_interval = 1.0 / max(0.1, self.posture_hz)
         self.headpose_interval = 1.0 / max(0.1, self.headpose_hz)
+
+        # Adaptive scheduling & performance config
+        perf_cfg = self.config.get("performance", {})
+        self.adaptive_scheduling = bool(perf_cfg.get("adaptive_scheduling", True))
+        self.normal_posture_hz = float(perf_cfg.get("normal_posture_hz", 4.0))
+        self.attention_posture_hz = float(perf_cfg.get("attention_posture_hz", 8.0))
+        self.normal_headpose_hz = float(perf_cfg.get("normal_headpose_hz", 4.0))
+        self.attention_headpose_hz = float(perf_cfg.get("attention_headpose_hz", 8.0))
+        self.max_starvation_sec = float(perf_cfg.get("max_starvation_interval_sec", 0.35))
+        self.attention_stickiness_sec = float(perf_cfg.get("attention_stickiness_sec", 1.0))
 
         batch_cfg = self.config.get("batching", {})
         self.max_posture_batch = int(batch_cfg.get("max_posture_batch_size", 32))
@@ -97,10 +112,13 @@ class CropScheduler:
 
     def _preprocess_crop(self, crop_bgr: np.ndarray, target_size: int) -> torch.Tensor:
         """Resize, convert BGR->RGB, normalize with ImageNet mean/std, to (3, H, W) tensor."""
-        resized = cv2.resize(crop_bgr, (target_size, target_size), interpolation=cv2.INTER_LINEAR)
+        if crop_bgr.shape[0] != target_size or crop_bgr.shape[1] != target_size:
+            resized = cv2.resize(crop_bgr, (target_size, target_size), interpolation=cv2.INTER_LINEAR)
+        else:
+            resized = crop_bgr
         rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
         normalized = (rgb - IMAGENET_MEAN) / IMAGENET_STD
-        tensor = torch.from_numpy(normalized).permute(2, 0, 1).float()
+        tensor = torch.from_numpy(normalized).permute(2, 0, 1).contiguous().float()
         return tensor
 
     def extract_person_crop(self, frame: np.ndarray, bbox: Any) -> Tuple[Optional[np.ndarray], str, float]:
@@ -172,9 +190,10 @@ class CropScheduler:
         frame: np.ndarray,
         tracks: List[Track],
         timestamp_sec: float,
-    ) -> Tuple[Dict[int, PostureCue], Dict[int, HeadPoseCue]]:
+        attention_track_ids: Optional[Any] = None,
+    ) -> Tuple[Dict[int, PostureCue], Dict[int, HeadPoseCue], Dict[str, float]]:
         """
-        Determine which tracks require inference based on cadence,
+        Determine which tracks require inference based on cadence & attention state,
         batch crops, execute GPU inference with exact track index preservation,
         and return per-track cues.
         """
@@ -182,7 +201,19 @@ class CropScheduler:
         headpose_results: Dict[int, HeadPoseCue] = {}
 
         if not tracks:
-            return posture_results, headpose_results, {"crop_preprocess_ms": 0.0, "posture_ms": 0.0, "headpose_ms": 0.0}
+            return posture_results, headpose_results, {
+                "crop_preprocess_ms": 0.0,
+                "posture_ms": 0.0,
+                "headpose_ms": 0.0,
+                "crop_extraction_ms": 0.0,
+                "posture_preprocess_ms": 0.0,
+                "posture_inference_ms": 0.0,
+                "headpose_preprocess_ms": 0.0,
+                "headpose_inference_ms": 0.0,
+            }
+
+        # Normalize attention set
+        attn_set = set(attention_track_ids) if attention_track_ids is not None else set()
 
         # 1. Determine scheduled candidates and measure extraction / prep
         t_prep_start = time.perf_counter()
@@ -195,9 +226,60 @@ class CropScheduler:
         for track in tracks:
             state = self._get_track_state(track.track_id)
 
-            # Check posture cadence
+            # Determine attention state
+            if attention_track_ids is not None:
+                has_external_attn = track.track_id in attn_set
+                recent_sticky_attn = (
+                    state.last_attention_timestamp >= 0.0 and
+                    (timestamp_sec - state.last_attention_timestamp) < self.attention_stickiness_sec
+                )
+                is_attn = has_external_attn or recent_sticky_attn
+            else:
+                cue_attn = False
+                if state.latest_posture_cue.status == ObservationStatus.AVAILABLE:
+                    if (
+                        state.latest_posture_cue.predicted_class in ("TURN_HEAD_CLEAR", "HEAD_REST_SLEEP") and
+                        state.latest_posture_cue.confidence >= 0.35
+                    ):
+                        cue_attn = True
+                if (
+                    state.latest_headpose_cue.status == ObservationStatus.AVAILABLE and
+                    state.latest_headpose_cue.yaw_deg is not None
+                ):
+                    if abs(state.latest_headpose_cue.yaw_deg) >= 22.0:
+                        cue_attn = True
+
+                recent_sticky_attn = (
+                    state.last_attention_timestamp >= 0.0 and
+                    (timestamp_sec - state.last_attention_timestamp) < self.attention_stickiness_sec
+                )
+                is_attn = cue_attn or recent_sticky_attn
+
+            if is_attn:
+                state.is_attention = True
+                state.last_attention_timestamp = timestamp_sec
+            else:
+                state.is_attention = False
+
+            # Determine effective target cadence
+            if self.adaptive_scheduling:
+                pos_hz = self.attention_posture_hz if is_attn else self.normal_posture_hz
+                hp_hz = self.attention_headpose_hz if is_attn else self.normal_headpose_hz
+                pos_interval = 1.0 / max(0.1, pos_hz)
+                hp_interval = 1.0 / max(0.1, hp_hz)
+            else:
+                pos_interval = self.posture_interval
+                hp_interval = self.headpose_interval
+
+            # Check posture cadence with anti-starvation floor
             time_since_pos = timestamp_sec - state.last_posture_timestamp
-            if state.last_posture_timestamp < 0.0 or time_since_pos >= (self.posture_interval - 1e-4):
+            run_pos = (
+                state.last_posture_timestamp < 0.0 or
+                time_since_pos >= (pos_interval - 1e-4) or
+                (self.adaptive_scheduling and time_since_pos >= self.max_starvation_sec)
+            )
+
+            if run_pos:
                 t_c0 = time.perf_counter()
                 p_crop, scale_status, rel_scale = self.extract_person_crop(frame, track.bbox)
                 t_crop_extract_total += (time.perf_counter() - t_c0)
@@ -217,9 +299,15 @@ class CropScheduler:
                     state.last_posture_timestamp = timestamp_sec
                     state.latest_posture_cue = post_cue
 
-            # Check headpose cadence
+            # Check headpose cadence with anti-starvation floor
             time_since_hp = timestamp_sec - state.last_headpose_timestamp
-            if state.last_headpose_timestamp < 0.0 or time_since_hp >= (self.headpose_interval - 1e-4):
+            run_hp = (
+                state.last_headpose_timestamp < 0.0 or
+                time_since_hp >= (hp_interval - 1e-4) or
+                (self.adaptive_scheduling and time_since_hp >= self.max_starvation_sec)
+            )
+
+            if run_hp:
                 t_h0 = time.perf_counter()
                 h_crop, hp_status = self.extract_head_crop(frame, track.bbox)
                 t_crop_extract_total += (time.perf_counter() - t_h0)
@@ -286,6 +374,7 @@ class CropScheduler:
                     state = self._get_track_state(t_id)
                     state.last_posture_timestamp = timestamp_sec
                     state.latest_posture_cue = cue
+                    state.total_posture_evaluations += 1
 
                 # Handle any tracks where inference failed
                 if not outputs:
@@ -330,6 +419,7 @@ class CropScheduler:
                     state = self._get_track_state(t_id)
                     state.last_headpose_timestamp = timestamp_sec
                     state.latest_headpose_cue = cue
+                    state.total_headpose_evaluations += 1
 
                 if not outputs:
                     for t_id in t_ids:

@@ -265,12 +265,18 @@ def load_headpose_checkpoint(
 class HeadPosePredictor:
     """Inference wrapper for head pose conforming to fusion contract."""
 
-    def __init__(self, model: nn.Module, device: Union[str, torch.device] = "cuda:0"):
+    def __init__(
+        self,
+        model: nn.Module,
+        device: Union[str, torch.device] = "cuda:0",
+        precision_mode: str = "fp32",
+    ):
         self.device = torch.device(device if torch.cuda.is_available() and "cuda" in str(device) else "cpu")
         self.model = model.to(self.device)
         self.model.eval()
+        self.precision_mode = str(precision_mode).lower()
+        self.use_amp = (self.precision_mode == "fp16" and self.device.type == "cuda")
 
-    @torch.no_grad()
     def predict_tensor(
         self,
         tensor_batch: torch.Tensor,
@@ -282,15 +288,20 @@ class HeadPosePredictor:
         """
         Runs inference on preprocessed face/head batch (B, 3, 224, 224).
         """
-        tensor_batch = tensor_batch.to(self.device)
-        logits, expected_yaw = self.model(tensor_batch)
+        tensor_batch = tensor_batch.to(self.device, non_blocking=True)
+        with torch.inference_mode():
+            if self.use_amp:
+                with torch.amp.autocast("cuda", dtype=torch.float16):
+                    logits, expected_yaw = self.model(tensor_batch)
+            else:
+                logits, expected_yaw = self.model(tensor_batch)
 
-        yaws = expected_yaw.cpu().numpy()
+        yaws = expected_yaw.float().cpu().numpy()
         batch_size = len(yaws)
 
         # Compute confidence from logits if available
         if logits is not None:
-            probs = F.softmax(logits, dim=1)
+            probs = F.softmax(logits.float(), dim=1)
             confs = probs.max(dim=1).values.cpu().numpy()
         else:
             confs = [1.0] * batch_size

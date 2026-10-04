@@ -230,7 +230,9 @@ class ModelRegistry:
         logger.info(f"Loading Posture Classifier: {pos_path} (SHA256: {pos_sha[:16]}...)")
         pos_model, pos_ckpt = load_posture_checkpoint(pos_path, device=self.device)
         self.posture_model = pos_model
-        self.posture_predictor = PosturePredictor(pos_model, device=self.device)
+        perf_cfg = self.config.get("performance", {})
+        pos_precision = perf_cfg.get("posture_precision", pos_cfg.get("precision_mode", "fp32"))
+        self.posture_predictor = PosturePredictor(pos_model, device=self.device, precision_mode=pos_precision)
         pos_params = sum(p.numel() for p in pos_model.parameters()) if pos_model else 0
         pos_model_name = pos_ckpt.get("model_name", "mobilenet_v3_small")
         self._registry_metadata["posture"] = {
@@ -244,8 +246,8 @@ class ModelRegistry:
             "class_names": pos_ckpt.get("class_names", []),
             "input_resolution": [224, 224],
             "device": str(self.device),
-            "precision": pos_cfg.get("precision_mode", "fp32"),
-            "precision_mode": pos_cfg.get("precision_mode", "fp32"),
+            "precision": pos_precision,
+            "precision_mode": pos_precision,
             "parameter_count": pos_params,
             "runtime_role": "SPECIALIZED_POSTURE_CLASSIFIER",
         }
@@ -257,7 +259,8 @@ class ModelRegistry:
         logger.info(f"Loading Head-Pose Estimator: {hp_path} (SHA256: {hp_sha[:16]}...)")
         hp_model, hp_ckpt = load_headpose_checkpoint(hp_path, device=self.device)
         self.headpose_model = hp_model
-        self.headpose_predictor = HeadPosePredictor(hp_model, device=self.device)
+        hp_precision = perf_cfg.get("headpose_precision", hp_cfg.get("precision_mode", "fp16"))
+        self.headpose_predictor = HeadPosePredictor(hp_model, device=self.device, precision_mode=hp_precision)
         hp_params = sum(p.numel() for p in hp_model.parameters()) if hp_model else 0
         hp_model_name = hp_ckpt.get("model_name", "hopenet_yaw")
         hp_min = hp_model.min_angle if hasattr(hp_model, "min_angle") else -99.0
@@ -274,8 +277,8 @@ class ModelRegistry:
             "primary_range_deg": [hp_min, hp_max],
             "input_resolution": [224, 224],
             "device": str(self.device),
-            "precision": hp_cfg.get("precision_mode", "fp32"),
-            "precision_mode": hp_cfg.get("precision_mode", "fp32"),
+            "precision": hp_precision,
+            "precision_mode": hp_precision,
             "parameter_count": hp_params,
             "runtime_role": "SPECIALIZED_HEADPOSE_ESTIMATOR",
         }

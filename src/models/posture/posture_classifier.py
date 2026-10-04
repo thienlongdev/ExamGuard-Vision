@@ -124,12 +124,18 @@ def load_posture_checkpoint(
 class PosturePredictor:
     """Inference wrapper implementing the contract schema."""
 
-    def __init__(self, model: nn.Module, device: Union[str, torch.device] = "cuda:0"):
+    def __init__(
+        self,
+        model: nn.Module,
+        device: Union[str, torch.device] = "cuda:0",
+        precision_mode: str = "fp32",
+    ):
         self.device = torch.device(device if torch.cuda.is_available() and "cuda" in str(device) else "cpu")
         self.model = model.to(self.device)
         self.model.eval()
+        self.precision_mode = str(precision_mode).lower()
+        self.use_amp = (self.precision_mode == "fp16" and self.device.type == "cuda")
 
-    @torch.no_grad()
     def predict_tensor(
         self,
         tensor_batch: torch.Tensor,
@@ -141,9 +147,14 @@ class PosturePredictor:
         """
         Runs inference on a preprocessed batch tensor (B, 3, H, W) normalized to ImageNet mean/std.
         """
-        tensor_batch = tensor_batch.to(self.device)
-        logits = self.model(tensor_batch)
-        probs = F.softmax(logits, dim=1).cpu().numpy()
+        tensor_batch = tensor_batch.to(self.device, non_blocking=True)
+        with torch.inference_mode():
+            if self.use_amp:
+                with torch.amp.autocast("cuda", dtype=torch.float16):
+                    logits = self.model(tensor_batch)
+            else:
+                logits = self.model(tensor_batch)
+            probs = F.softmax(logits.float(), dim=1).cpu().numpy()
 
         batch_size = probs.shape[0]
         outputs = []
