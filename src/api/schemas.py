@@ -218,6 +218,8 @@ class UserResponse(BaseModel):
     is_active: bool
     last_login_at: Optional[str] = None
     created_at: str
+    locked_until: Optional[str] = None
+    failed_login_count: Optional[int] = 0
 
 
 class AuthMeResponse(BaseModel):
@@ -241,6 +243,7 @@ class UserUpdateRequest(BaseModel):
 
 class UserResetPasswordRequest(BaseModel):
     new_password: str
+    must_change_password: Optional[bool] = False
 
 
 class CameraConfigItem(BaseModel):

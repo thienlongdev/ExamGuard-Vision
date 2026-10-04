@@ -5,6 +5,7 @@ from pathlib import Path
 _TEMPLATE_PATH = Path(__file__).resolve().parent / "templates" / "dashboard.html"
 _LOGIN_TEMPLATE_PATH = Path(__file__).resolve().parent / "templates" / "login.html"
 _SETUP_TEMPLATE_PATH = Path(__file__).resolve().parent / "templates" / "setup.html"
+_RECOVERY_TEMPLATE_PATH = Path(__file__).resolve().parent / "templates" / "recovery.html"
 
 
 def load_dashboard_html() -> str:
@@ -32,6 +33,14 @@ def load_setup_html() -> str:
     return "<h1>ExamGuard Vision — Thiết lập quản trị viên</h1>"
 
 
+def load_recovery_html() -> str:
+    """Load recovery guide HTML template from disk."""
+    if _RECOVERY_TEMPLATE_PATH.is_file():
+        return _RECOVERY_TEMPLATE_PATH.read_text(encoding="utf-8")
+    return "<h1>ExamGuard Vision — Khôi phục tài khoản</h1>"
+
+
 DASHBOARD_HTML = load_dashboard_html()
 LOGIN_HTML = load_login_html()
 SETUP_HTML = load_setup_html()
+RECOVERY_HTML = load_recovery_html()

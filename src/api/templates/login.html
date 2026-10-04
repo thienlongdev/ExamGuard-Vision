@@ -60,12 +60,34 @@
     .form-group {
       margin-bottom: 20px;
     }
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
     .form-label {
       display: block;
       font-size: 0.85rem;
       font-weight: 500;
       color: var(--color-text-secondary, #cbd5e1);
       margin-bottom: 6px;
+    }
+    .label-row .form-label {
+      margin-bottom: 0;
+    }
+    .forgot-link {
+      font-size: 0.82rem;
+      color: #38bdf8;
+      text-decoration: none;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+      transition: color 0.15s ease, text-decoration 0.15s ease;
+    }
+    .forgot-link:hover, .forgot-link:focus-visible {
+      color: #7dd3fc;
+      text-decoration: underline;
     }
     .form-input {
       width: 100%;
@@ -108,12 +130,13 @@
     }
     .auth-error {
       display: none;
-      padding: 10px 14px;
+      padding: 12px 14px;
       background: rgba(239, 68, 68, 0.12);
       border: 1px solid rgba(239, 68, 68, 0.4);
       border-radius: 6px;
       color: #f87171;
       font-size: 0.85rem;
+      line-height: 1.45;
       margin-bottom: 20px;
     }
     .auth-footer {
@@ -123,6 +146,52 @@
       text-align: center;
       font-size: 0.78rem;
       color: #64748b;
+    }
+
+    /* Modal Backdrop & Card */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 16px;
+      box-sizing: border-box;
+    }
+    .modal-card {
+      width: 100%;
+      max-width: 480px;
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #1e293b;
+    }
+    .btn-close-modal {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 1.4rem;
+      cursor: pointer;
+      line-height: 1;
+      padding: 0 4px;
+    }
+    .btn-close-modal:hover {
+      color: #fff;
     }
   </style>
 </head>
@@ -148,7 +217,10 @@
       </div>
 
       <div class="form-group">
-        <label class="form-label" for="password">Mật khẩu</label>
+        <div class="label-row">
+          <label class="form-label" for="password">Mật khẩu</label>
+          <a href="/forgot-password" class="forgot-link" id="forgot-password-link" role="button" tabindex="0">Quên mật khẩu?</a>
+        </div>
         <input class="form-input" type="password" id="password" name="password" autocomplete="current-password" required>
       </div>
 
@@ -162,10 +234,101 @@
     </div>
   </div>
 
+  <!-- Recovery Flow Modal -->
+  <div class="modal-backdrop" id="recovery-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="modal-title" style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #f8fafc;">Khôi phục tài khoản</h2>
+        <button type="button" class="btn-close-modal" id="btn-close-modal" aria-label="Đóng">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: inline-block; background: rgba(56, 189, 248, 0.12); color: #38bdf8; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 600; margin-bottom: 12px;">
+          Chế độ Ngoại tuyến Bảo mật (Offline-First)
+        </div>
+        <p style="font-size: 0.85rem; line-height: 1.5; color: #cbd5e1; margin-bottom: 12px;">
+          ExamGuard Vision là hệ thống phòng thi ngoại tuyến an toàn, không sử dụng dịch vụ email hoặc SMS bên thứ ba qua Internet nhằm chống lộ dữ liệu kỳ thi.
+        </p>
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid #1e293b; border-radius: 6px; padding: 12px; margin-bottom: 12px;">
+          <strong style="font-size: 0.85rem; color: #38bdf8; display: block; margin-bottom: 4px;">Dành cho Giám thị / Người rà soát:</strong>
+          <span style="font-size: 0.82rem; color: #94a3b8; line-height: 1.4; display: block;">
+            Việc mở khóa và đặt lại mật khẩu phải do Quản trị viên phòng thi (Administrator) thực hiện trực tiếp trên trang Quản lý Người dùng của Dashboard. Vui lòng liên hệ Quản trị viên phụ trách.
+          </span>
+        </div>
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid #1e293b; border-radius: 6px; padding: 12px;">
+          <strong style="font-size: 0.85rem; color: #10b981; display: block; margin-bottom: 4px;">Dành cho Quản trị viên hệ thống:</strong>
+          <span style="font-size: 0.82rem; color: #94a3b8; line-height: 1.4; display: block; margin-bottom: 6px;">
+            Đối với tài khoản quản trị viên, hãy sử dụng công cụ khôi phục cục bộ trên máy chủ ExamGuard:
+          </span>
+          <code style="display: block; background: #030712; padding: 6px 10px; border-radius: 4px; font-size: 0.78rem; color: #34d399; font-family: monospace; word-break: break-all;">
+            python tools/security/reset_admin_password.py --username &lt;tên_đăng_nhập&gt;
+          </code>
+        </div>
+      </div>
+      <div class="modal-footer" style="margin-top: 18px; text-align: right;">
+        <button type="button" class="btn-secondary" id="btn-modal-dismiss" style="padding: 8px 16px; background: #1e293b; color: #f1f5f9; border: 1px solid #334155; border-radius: 6px; cursor: pointer;">
+          Quay lại Đăng nhập
+        </button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const form = document.getElementById("login-form");
     const errorBox = document.getElementById("error-box");
     const submitBtn = document.getElementById("submit-btn");
+
+    const modal = document.getElementById("recovery-modal");
+    const openModalBtn = document.getElementById("forgot-password-link");
+    const closeModalBtn = document.getElementById("btn-close-modal");
+    const dismissModalBtn = document.getElementById("btn-modal-dismiss");
+
+    function openModal(e) {
+      if (e) e.preventDefault();
+      modal.style.display = "flex";
+      closeModalBtn.focus();
+    }
+
+    function closeModal() {
+      modal.style.display = "none";
+      document.getElementById("username").focus();
+    }
+
+    openModalBtn.addEventListener("click", openModal);
+    openModalBtn.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        openModal(e);
+      }
+    });
+
+    closeModalBtn.addEventListener("click", closeModal);
+    dismissModalBtn.addEventListener("click", closeModal);
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeModal();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && modal.style.display === "flex") {
+        closeModal();
+      }
+    });
+
+    // Check for #forgot or ?forgot in URL
+    if (window.location.hash === "#forgot" || window.location.search.includes("forgot")) {
+      openModal();
+    }
+
+    // Handle delegated clicks from error box
+    errorBox.addEventListener("click", (e) => {
+      if (e.target.closest(".error-recovery-link")) {
+        e.preventDefault();
+        openModal();
+      }
+    });
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -188,7 +351,8 @@
           window.location.href = "/";
         } else if (res.status === 423) {
           const data = await res.json().catch(() => ({}));
-          errorBox.textContent = data.detail || "Tài khoản tạm thời bị khóa. Vui lòng thử lại sau.";
+          const detail = data.detail || "Tài khoản tạm thời bị khóa do nhập sai nhiều lần. Vui lòng thử lại sau.";
+          errorBox.innerHTML = `<span>${escapeHtml(detail)}</span> <a href="/forgot-password" class="error-recovery-link" style="color: #38bdf8; text-decoration: underline; margin-left: 6px; font-weight: 600;">Quên mật khẩu?</a>`;
           errorBox.style.display = "block";
         } else {
           const data = await res.json().catch(() => ({}));

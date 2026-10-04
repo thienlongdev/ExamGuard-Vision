@@ -4,7 +4,7 @@ Repository for users and auth_sessions database operations.
 
 from datetime import datetime, timedelta
 import logging
-from typing import Optional, List, Tuple, Any
+from typing import Optional, List, Tuple, Any, Union
 from src.persistence.database import DatabaseManager
 from src.security.models import User, AuthSession, Role
 
@@ -71,13 +71,25 @@ class UserRepository:
 
     def update_user(
         self,
-        user_id: str,
+        user_id: Union[str, User],
         display_name: Optional[str] = None,
         role: Optional[str] = None,
         is_active: Optional[int] = None,
         must_change_password: Optional[int] = None,
     ) -> bool:
         """Update user metadata."""
+        if hasattr(user_id, "user_id"):
+            u = user_id
+            user_id = u.user_id
+            if display_name is None:
+                display_name = u.display_name
+            if role is None:
+                role = u.role_value if hasattr(u, "role_value") else str(u.role)
+            if is_active is None:
+                is_active = 1 if u.is_active else 0
+            if must_change_password is None:
+                must_change_password = int(u.must_change_password) if hasattr(u, "must_change_password") else 0
+
         fields = []
         values = []
         if display_name is not None:
@@ -105,20 +117,34 @@ class UserRepository:
             cur.execute(sql, tuple(values))
             return cur.rowcount > 0
 
-    def update_password(self, user_id: str, password_hash: str) -> bool:
-        """Update password hash and reset must_change_password flag."""
+    def update_password(self, user_id: str, password_hash: str, must_change_password: int = 0) -> bool:
+        """Update password hash, reset failed login count, and clear lockout."""
         now_iso = datetime.now().isoformat()
         sql = """
         UPDATE users SET
             password_hash = ?,
-            must_change_password = 0,
+            must_change_password = ?,
             failed_login_count = 0,
             locked_until = NULL,
             updated_at = ?
         WHERE user_id = ?;
         """
         with self.db.transaction() as cur:
-            cur.execute(sql, (password_hash, now_iso, user_id))
+            cur.execute(sql, (password_hash, must_change_password, now_iso, user_id))
+            return cur.rowcount > 0
+
+    def unlock_user(self, user_id: str) -> bool:
+        """Clear lockout and reset failed login count without modifying password."""
+        now_iso = datetime.now().isoformat()
+        sql = """
+        UPDATE users SET
+            failed_login_count = 0,
+            locked_until = NULL,
+            updated_at = ?
+        WHERE user_id = ?;
+        """
+        with self.db.transaction() as cur:
+            cur.execute(sql, (now_iso, user_id))
             return cur.rowcount > 0
 
     def record_login_success(self, user_id: str) -> None:

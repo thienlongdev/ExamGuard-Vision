@@ -914,8 +914,9 @@ class PersistenceService:
         user_id: str,
         new_password: str,
         admin_user_id: Optional[str] = None,
+        must_change_password: bool = False,
     ) -> bool:
-        """Reset a user's password with validation and audit."""
+        """Reset a user's password with validation, lockout clearing, session revocation, and audit."""
         is_valid, err = validate_password_policy(new_password)
         if not is_valid:
             raise ValueError(err)
@@ -924,20 +925,43 @@ class PersistenceService:
         if not user:
             return False
 
-        user.password_hash = hash_password(new_password)
-        user.failed_login_count = 0
-        user.locked_until = None
-        user.updated_at = datetime.now().isoformat()
-        self.users.update_user(user)
+        pwd_hash = hash_password(new_password)
+        self.users.update_password(
+            user.user_id,
+            pwd_hash,
+            must_change_password=1 if must_change_password else 0,
+        )
+        self.users.revoke_all_user_sessions(user.user_id)
 
         self.audit.log_action(
             audit_id=f"aud_{uuid.uuid4().hex[:12]}",
             action="PASSWORD_CHANGED",
             actor_type="USER",
             actor_id=admin_user_id or user_id,
-            details={"target_user": user.username},
+            details={"target_user": user.username, "must_change_password": must_change_password},
         )
         return True
+
+    def unlock_user(
+        self,
+        user_id: str,
+        admin_user_id: Optional[str] = None,
+    ) -> bool:
+        """Clear temporary lockout and reset failed login count for a user."""
+        user = self.users.get_user_by_id(user_id)
+        if not user:
+            return False
+
+        ok = self.users.unlock_user(user.user_id)
+        if ok:
+            self.audit.log_action(
+                audit_id=f"aud_{uuid.uuid4().hex[:12]}",
+                action="USER_UNLOCKED",
+                actor_type="USER",
+                actor_id=admin_user_id or user_id,
+                details={"target_user": user.username},
+            )
+        return ok
 
     def authenticate_user(
         self,
@@ -964,8 +988,12 @@ class PersistenceService:
         if user.locked_until:
             try:
                 locked_dt = datetime.fromisoformat(user.locked_until)
-                if datetime.now() < locked_dt:
-                    return None, "USER_LOCKED"
+                remaining = (locked_dt - datetime.now()).total_seconds()
+                if remaining > 0:
+                    remaining_mins = max(1, int((remaining + 59) // 60))
+                    return None, f"USER_LOCKED:{remaining_mins}"
+                else:
+                    self.users.unlock_user(user.user_id)
             except Exception:
                 pass
 
@@ -984,7 +1012,7 @@ class PersistenceService:
                 details={"username": user.username, "failed_count": count},
             )
             if locked_until:
-                return None, "USER_LOCKED"
+                return None, "USER_LOCKED:15"
             return None, "INVALID_CREDENTIALS"
 
         # Success

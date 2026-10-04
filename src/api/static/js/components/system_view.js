@@ -341,17 +341,30 @@ export class SystemViewComponent {
       }
       tbody.innerHTML = this.users
         .map((u) => {
-          const activeLabel = u.is_active
-            ? `<span style="color: #10b981;">● Hoạt động</span>`
-            : `<span style="color: #f87171;">○ Bị khóa</span>`;
+          const isLocked = u.locked_until && new Date(u.locked_until) > new Date();
+          let statusLabel = `<span style="color: #10b981;">● Hoạt động</span>`;
+          if (!u.is_active) {
+            statusLabel = `<span style="color: #f87171;">○ Bị vô hiệu hóa</span>`;
+          } else if (isLocked) {
+            statusLabel = `<span style="color: #f59e0b;" title="Khóa tạm thời do nhập sai mật khẩu">⚠ Khóa tạm thời</span>`;
+          }
+
           return `
             <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
               <td style="padding: 10px;"><strong>${escapeHtml(u.username)}</strong></td>
               <td style="padding: 10px;">${escapeHtml(u.display_name)}</td>
               <td style="padding: 10px;"><span style="background: rgba(16,185,129,0.12); color: #10b981; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">${escapeHtml(u.role_display || u.role)}</span></td>
-              <td style="padding: 10px;">${activeLabel}</td>
+              <td style="padding: 10px;">${statusLabel}</td>
               <td style="padding: 10px; color: #94a3b8;">${u.last_login_at ? new Date(u.last_login_at).toLocaleString() : 'Chưa đăng nhập'}</td>
-              <td style="padding: 10px; text-align: right;">
+              <td style="padding: 10px; text-align: right; white-space: nowrap;">
+                ${
+                  isLocked
+                    ? `<button class="btn-unlock-user" data-id="${u.user_id}" style="background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #fbbf24; border-radius: 4px; padding: 3px 8px; font-size: 0.75rem; cursor: pointer; margin-right: 6px;">Mở khóa</button>`
+                    : ""
+                }
+                <button class="btn-reset-user-pw" data-id="${u.user_id}" data-username="${escapeHtml(u.username)}" style="background: transparent; border: 1px solid #38bdf8; color: #38bdf8; border-radius: 4px; padding: 3px 8px; font-size: 0.75rem; cursor: pointer; margin-right: 6px;">
+                  Đặt lại MK
+                </button>
                 <button class="btn-toggle-active" data-id="${u.user_id}" data-active="${u.is_active}" style="background: transparent; border: 1px solid #475569; color: #cbd5e1; border-radius: 4px; padding: 3px 8px; font-size: 0.75rem; cursor: pointer;">
                   ${u.is_active ? 'Khóa' : 'Kích hoạt'}
                 </button>
@@ -360,6 +373,40 @@ export class SystemViewComponent {
           `;
         })
         .join("");
+
+      // Bind unlock buttons
+      tbody.querySelectorAll(".btn-unlock-user").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const uid = btn.dataset.id;
+          try {
+            await ApiClient.unlockUser(uid);
+            this.loadUsers();
+          } catch (e) {
+            alert(e.message);
+          }
+        });
+      });
+
+      // Bind reset password buttons
+      tbody.querySelectorAll(".btn-reset-user-pw").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const uid = btn.dataset.id;
+          const uname = btn.dataset.username;
+          const newPw = prompt(`Nhập mật khẩu mới cho ${uname} (tối thiểu 12 ký tự):`);
+          if (!newPw) return;
+          if (newPw.length < 12) {
+            alert("Mật khẩu phải có ít nhất 12 ký tự.");
+            return;
+          }
+          try {
+            await ApiClient.resetUserPassword(uid, newPw);
+            alert(`Đã đặt lại mật khẩu cho ${uname} thành công!`);
+            this.loadUsers();
+          } catch (e) {
+            alert(`Lỗi đặt lại mật khẩu: ${e.message}`);
+          }
+        });
+      });
 
       // Bind toggle active buttons
       tbody.querySelectorAll(".btn-toggle-active").forEach((btn) => {

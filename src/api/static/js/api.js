@@ -179,15 +179,30 @@ export class ApiClient {
     return await res.json();
   }
 
-  static async resetUserPassword(userId, newPassword) {
+  static async resetUserPassword(userId, newPassword, mustChangePassword = false) {
     const res = await fetch(`/api/users/${encodeURIComponent(userId)}/reset-password`, {
       method: "POST",
       headers: ApiClient._headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ new_password: newPassword }),
+      body: JSON.stringify({
+        new_password: newPassword,
+        must_change_password: !!mustChangePassword,
+      }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || "Không thể đặt lại mật khẩu");
+    }
+    return await res.json();
+  }
+
+  static async unlockUser(userId) {
+    const res = await fetch(`/api/users/${encodeURIComponent(userId)}/unlock`, {
+      method: "POST",
+      headers: ApiClient._headers({ "Content-Type": "application/json" }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Không thể mở khóa tài khoản");
     }
     return await res.json();
   }

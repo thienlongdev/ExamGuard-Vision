@@ -47,7 +47,15 @@ from src.api.schemas import (
     SecurityStatusResponse,
 )
 from src.api.websocket import ConnectionManager
-from src.api.static_ui import load_dashboard_html, LOGIN_HTML, SETUP_HTML
+from src.api.static_ui import (
+    load_dashboard_html,
+    load_login_html,
+    load_setup_html,
+    load_recovery_html,
+    LOGIN_HTML,
+    SETUP_HTML,
+    RECOVERY_HTML,
+)
 from src.behavior.event_manager import EventManager, SuspiciousEvent
 from src.orchestration.camera_manager import CameraManager
 from src.persistence.service import PersistenceService, AmbiguousEvidenceError
@@ -458,7 +466,12 @@ def create_app(
             user, _ = _get_auth_context(request)
             if user and user.is_active:
                 return RedirectResponse(url="/", status_code=302)
-        return LOGIN_HTML
+        return load_login_html()
+
+    @app.get("/forgot-password", response_class=HTMLResponse)
+    async def get_forgot_password_page():
+        """Serve offline-first account recovery and password reset guide."""
+        return load_recovery_html()
 
     @app.get("/setup", response_class=HTMLResponse)
     async def get_setup_page():
@@ -512,10 +525,12 @@ def create_app(
     async def login_endpoint(req: LoginRequest, request: Request):
         """Authenticate user credentials with Argon2id and rate-limiting lockout."""
         user, err_code = ps.authenticate_user(req.username.strip(), req.password)
-        if err_code == "USER_LOCKED":
+        if err_code and err_code.startswith("USER_LOCKED"):
+            parts = err_code.split(":")
+            mins_str = f" sau {parts[1]} phút" if len(parts) > 1 and parts[1].isdigit() else " sau"
             raise HTTPException(
                 status_code=423,
-                detail="Tài khoản tạm thời bị khóa do nhập sai nhiều lần. Vui lòng thử lại sau.",
+                detail=f"Tài khoản tạm thời bị khóa do nhập sai nhiều lần. Bạn có thể thử lại{mins_str} hoặc sử dụng 'Quên mật khẩu?' để được hỗ trợ.",
             )
         if not user:
             raise HTTPException(
@@ -534,9 +549,11 @@ def create_app(
                 display_name=user.display_name,
                 role=user.role_value,
                 role_display=user.role_display,
-                is_active=user.is_active,
+                is_active=bool(user.is_active),
                 last_login_at=user.last_login_at,
                 created_at=user.created_at,
+                locked_until=user.locked_until,
+                failed_login_count=user.failed_login_count,
             ),
             csrf_token=csrf,
             role_display=user.role_display,
@@ -575,9 +592,11 @@ def create_app(
                 display_name=user.display_name,
                 role=user.role_value,
                 role_display=user.role_display,
-                is_active=user.is_active,
+                is_active=bool(user.is_active),
                 last_login_at=user.last_login_at,
                 created_at=user.created_at,
+                locked_until=user.locked_until,
+                failed_login_count=user.failed_login_count,
             ),
             csrf_token=csrf,
             role_display=user.role_display,
@@ -597,9 +616,11 @@ def create_app(
                 display_name=u.display_name,
                 role=u.role_value,
                 role_display=u.role_display,
-                is_active=u.is_active,
+                is_active=bool(u.is_active),
                 last_login_at=u.last_login_at,
                 created_at=u.created_at,
+                locked_until=u.locked_until,
+                failed_login_count=u.failed_login_count,
             )
             for u in users
         ]
@@ -641,9 +662,11 @@ def create_app(
             display_name=created.display_name,
             role=created.role_value,
             role_display=created.role_display,
-            is_active=created.is_active,
+            is_active=bool(created.is_active),
             last_login_at=created.last_login_at,
             created_at=created.created_at,
+            locked_until=created.locked_until,
+            failed_login_count=created.failed_login_count,
         )
 
     @app.patch("/api/users/{user_id}", response_model=UserResponse)
@@ -669,9 +692,11 @@ def create_app(
             display_name=updated.display_name,
             role=updated.role_value,
             role_display=updated.role_display,
-            is_active=updated.is_active,
+            is_active=bool(updated.is_active),
             last_login_at=updated.last_login_at,
             created_at=updated.created_at,
+            locked_until=updated.locked_until,
+            failed_login_count=updated.failed_login_count,
         )
 
     @app.post("/api/users/{user_id}/reset-password")
@@ -684,10 +709,26 @@ def create_app(
         if not valid_pw:
             raise HTTPException(status_code=400, detail=pw_err or "Mật khẩu không đạt chính sách bảo mật.")
 
-        success = ps.reset_password(user_id, req.new_password, admin_user_id=admin.user_id)
+        success = ps.reset_password(
+            user_id,
+            req.new_password,
+            admin_user_id=admin.user_id,
+            must_change_password=bool(req.must_change_password),
+        )
         if not success:
             raise HTTPException(status_code=404, detail="Không tìm thấy người dùng.")
         return {"success": True, "message": "Đặt lại mật khẩu thành công."}
+
+    @app.post("/api/users/{user_id}/unlock")
+    async def unlock_user_endpoint(user_id: str, request: Request):
+        """Unlock locked user account without changing password (ADMIN only)."""
+        admin, session = _require_permission(request, Permission.USER_MANAGE)
+        _verify_csrf_if_applicable(request, session)
+
+        success = ps.unlock_user(user_id, admin_user_id=admin.user_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Không tìm thấy người dùng.")
+        return {"success": True, "message": "Mở khóa tài khoản thành công."}
 
     # --- EVIDENCE SERVING WITH RANGE SUPPORT & IN-MEMORY DECRYPTION ---
 
