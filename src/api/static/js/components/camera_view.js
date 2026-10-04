@@ -268,21 +268,32 @@ export class CameraViewComponent {
       boxEl.style.width = `${Math.round(w)}px`;
       boxEl.style.height = `${Math.round(h)}px`;
 
-      // Corner brackets + two-line label
+      // Check for dense multi-student scene to prevent label collision
+      const isDense = tracks.length > 5 || w < 120;
+      const tagHtml = isDense
+        ? `<div class="track-tag compact">
+            <div class="track-tag-top">
+              <span class="track-tag-id">#${t.track_id}</span>
+              ${badgeHtml}
+            </div>
+          </div>`
+        : `<div class="track-tag">
+            <div class="track-tag-top">
+              <span class="track-tag-id">THÍ SINH #${t.track_id}</span>
+              ${badgeHtml}
+            </div>
+            <div class="track-tag-bottom">
+              <span>${bottomText}</span>
+            </div>
+          </div>`;
+
+      // Corner brackets + adaptive label
       boxEl.innerHTML = `
         <div class="track-box-corner tl"></div>
         <div class="track-box-corner tr"></div>
         <div class="track-box-corner bl"></div>
         <div class="track-box-corner br"></div>
-        <div class="track-tag">
-          <div class="track-tag-top">
-            <span class="track-tag-id">THÍ SINH #${t.track_id}</span>
-            ${badgeHtml}
-          </div>
-          <div class="track-tag-bottom">
-            <span>${bottomText}</span>
-          </div>
-        </div>
+        ${tagHtml}
       `;
 
       boxEl.addEventListener("mouseenter", () => {

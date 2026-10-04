@@ -138,29 +138,32 @@ class PhoneAssociator:
                     competing_ids.append(second_track_id)
 
             if is_ambiguous:
-                # Mark both competing tracks as AMBIGUOUS (not associated!)
+                # Mark competing tracks as AMBIGUOUS only if they are not already clearly ASSOCIATED
                 for c_id in competing_ids:
-                    results[c_id] = TrackPhoneAssociation(
-                        track_id=c_id,
-                        status="AMBIGUOUS",
-                        association_status_enum=PhoneAssociationStatus.AMBIGUOUS_ASSOCIATION,
-                        detected=False,
-                        confidence=phone.confidence,
-                        spatial_relation="DESK_PROXIMITY",
-                        phone_bbox=phone.bbox.as_tuple(),
-                        competing_track_ids=competing_ids,
-                    )
+                    if results[c_id].status != "ASSOCIATED":
+                        results[c_id] = TrackPhoneAssociation(
+                            track_id=c_id,
+                            status="AMBIGUOUS",
+                            association_status_enum=PhoneAssociationStatus.AMBIGUOUS_ASSOCIATION,
+                            detected=False,
+                            confidence=phone.confidence,
+                            spatial_relation="DESK_PROXIMITY",
+                            phone_bbox=phone.bbox.as_tuple(),
+                            competing_track_ids=competing_ids,
+                        )
             else:
-                # Clear association for best track
-                results[best_track_id] = TrackPhoneAssociation(
-                    track_id=best_track_id,
-                    status="ASSOCIATED",
-                    association_status_enum=PhoneAssociationStatus.CLEAR_ASSOCIATION,
-                    detected=True,
-                    confidence=phone.confidence,
-                    spatial_relation=best_relation,
-                    phone_bbox=phone.bbox.as_tuple(),
-                    competing_track_ids=[best_track_id],
-                )
+                # Clear association for best track: takes precedence over UNASSOCIATED or AMBIGUOUS
+                prev = results[best_track_id]
+                if prev.status != "ASSOCIATED" or phone.confidence > prev.confidence:
+                    results[best_track_id] = TrackPhoneAssociation(
+                        track_id=best_track_id,
+                        status="ASSOCIATED",
+                        association_status_enum=PhoneAssociationStatus.CLEAR_ASSOCIATION,
+                        detected=True,
+                        confidence=phone.confidence,
+                        spatial_relation=best_relation,
+                        phone_bbox=phone.bbox.as_tuple(),
+                        competing_track_ids=[best_track_id],
+                    )
 
         return results

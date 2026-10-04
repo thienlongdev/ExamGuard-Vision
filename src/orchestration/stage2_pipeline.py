@@ -567,20 +567,28 @@ class Stage2Pipeline:
             macro_ms = 0.0
             macro_eval_status = ObservationStatus.AVAILABLE if self._cached_macro_dets else ObservationStatus.NOT_EVALUATED
 
-        # Match tracks to macro detections via IoU / spatial containment
+        # Match tracks to macro detections via IoU / spatial containment with exclusive matching for stand
         macro_track_map = {}
-        for track in tracks:
-            best_det = None
-            best_iou = 0.0
-            for m_det in (macro_dets or []):
-                iou = track.bbox.iou(m_det.bbox)
-                if iou > best_iou:
-                    best_iou = iou
-                    best_det = m_det
-                elif best_det is None and track.bbox.contains_point(*m_det.bbox.center):
-                    best_det = m_det
-            if best_det and (best_iou >= 0.15 or track.bbox.contains_point(*best_det.bbox.center)):
-                macro_track_map[track.track_id] = best_det
+        if macro_dets and tracks:
+            matches: List[Tuple[float, int, Any]] = []
+            for track in tracks:
+                for m_det in macro_dets:
+                    iou = track.bbox.iou(m_det.bbox)
+                    is_contained = track.bbox.contains_point(*m_det.bbox.center)
+                    if iou >= 0.15 or is_contained:
+                        score = iou + (0.5 if is_contained else 0.0)
+                        matches.append((score, track.track_id, m_det))
+
+            matches.sort(key=lambda x: x[0], reverse=True)
+            assigned_dets = set()
+            for score, tid, m_det in matches:
+                if tid in macro_track_map:
+                    continue
+                det_id = id(m_det)
+                if m_det.behavior != "discuss" and det_id in assigned_dets:
+                    continue
+                macro_track_map[tid] = m_det
+                assigned_dets.add(det_id)
 
         # 6. Physical Fusion Engine & Event Engine Updates
         t_fusion_total = 0.0
@@ -605,13 +613,13 @@ class Stage2Pipeline:
             cur_w = float(track.bbox.width)
             cur_ar = cur_h / max(1.0, cur_w)
 
-            # Update seated baseline during normal/read-write posture or initial stabilization
+            # Update seated baseline during initial stabilization or normal/read-write posture
             is_seated_cue = False
-            if pos_cue and pos_cue.status == ObservationStatus.AVAILABLE:
+            if t_meta.get("track_age_frames", 1) <= 15:
+                is_seated_cue = True
+            elif pos_cue and pos_cue.status == ObservationStatus.AVAILABLE:
                 if pos_cue.predicted_class in ("NORMAL_UPRIGHT", "NORMAL_READ_WRITE"):
                     is_seated_cue = True
-            elif t_meta.get("track_age_frames", 1) <= 15:
-                is_seated_cue = True
 
             if is_seated_cue:
                 y1_list = t_meta.setdefault("baseline_y1_samples", [])

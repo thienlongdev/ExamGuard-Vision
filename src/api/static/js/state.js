@@ -216,10 +216,13 @@ class DashboardState {
   }
 
   getFilteredEvents() {
-    // Stable sort: by start time descending
-    const all = Array.from(this.events.values()).sort(
-      (a, b) => (b.startTime || b.timestamp) - (a.startTime || a.timestamp)
-    );
+    // Event flood control: Prioritize HIGH risk first, then MEDIUM, then LOW, then recency
+    const priorityWeight = { HIGH: 3, MEDIUM: 2, LOW: 1 };
+    const all = Array.from(this.events.values()).sort((a, b) => {
+      const pDiff = (priorityWeight[b.riskLevel] || 1) - (priorityWeight[a.riskLevel] || 1);
+      if (pDiff !== 0) return pDiff;
+      return (b.startTime || b.timestamp) - (a.startTime || a.timestamp);
+    });
     if (this.activeFilter === "awaiting") {
       return all.filter((e) => e.reviewStatus === "awaiting");
     }

@@ -472,6 +472,12 @@ html, body {
   z-index: 5;
 }
 
+.track-tag.compact {
+  top: -28px;
+  padding: 2px 7px;
+  gap: 0;
+}
+
 .track-tag-top {
   display: flex;
   align-items: center;

@@ -465,3 +465,14 @@ class EventEngine:
             to_remove = [k for k in list(self._machines.keys()) if (len(k) == 3 and k[0] == camera_id)]
             for k in to_remove:
                 self._machines.pop(k, None)
+
+    def get_active_events(self, camera_id: Optional[str] = None) -> List[FusedEvent]:
+        """Return all currently active events across all track state machines."""
+        active = []
+        for k, m in self._machines.items():
+            if m.active_event is not None:
+                cam = k[0] if len(k) == 3 else "cam_0"
+                if camera_id is None or cam == camera_id:
+                    active.append(m.active_event)
+        return active
+

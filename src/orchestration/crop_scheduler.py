@@ -207,12 +207,15 @@ class CropScheduler:
                     t_pos_prep_total += (time.perf_counter() - t_p0)
                     posture_scheduled_tracks.append((track.track_id, tensor, scale_status, rel_scale))
                 else:
-                    # Crop sub-resolution: mark UNAVAILABLE
-                    posture_results[track.track_id] = PostureCue(
+                    # Crop sub-resolution: mark UNAVAILABLE and record cadence timestamp
+                    post_cue = PostureCue(
                         status=ObservationStatus.UNAVAILABLE,
                         crop_quality="SUB_RESOLUTION",
                         reliability_weight=0.0,
                     )
+                    posture_results[track.track_id] = post_cue
+                    state.last_posture_timestamp = timestamp_sec
+                    state.latest_posture_cue = post_cue
 
             # Check headpose cadence
             time_since_hp = timestamp_sec - state.last_headpose_timestamp
@@ -227,11 +230,14 @@ class CropScheduler:
                     headpose_scheduled_tracks.append((track.track_id, tensor, hp_status))
                 else:
                     # Capability gating: missing headpose is UNAVAILABLE, never yaw = 0
-                    headpose_results[track.track_id] = HeadPoseCue(
+                    hp_cue = HeadPoseCue(
                         status=ObservationStatus.UNAVAILABLE,
                         yaw_deg=None,
                         support_status=hp_status,
                     )
+                    headpose_results[track.track_id] = hp_cue
+                    state.last_headpose_timestamp = timestamp_sec
+                    state.latest_headpose_cue = hp_cue
         t_prep_end = time.perf_counter()
 
         # 2. Batched Posture Inference
