@@ -21,6 +21,7 @@ class WebcamSource(VideoSource):
         width: int = 1280,
         height: int = 720,
         fps: float = 30.0,
+        preferred_backend: Optional[str] = None,
     ):
         super().__init__(source_id=source_id, source_type="webcam")
         self.source_origin = "PHYSICAL_LIVE_CAMERA"
@@ -28,10 +29,12 @@ class WebcamSource(VideoSource):
         self.requested_width = width
         self.requested_height = height
         self.requested_fps = fps
+        self.preferred_backend = preferred_backend
         self._cap: Optional[cv2.VideoCapture] = None
         self._actual_width = width
         self._actual_height = height
         self._actual_fps = fps
+        self._backend_name = "NONE"
 
     def open(self) -> bool:
         """Open the webcam device with backend fallback."""
@@ -40,12 +43,21 @@ class WebcamSource(VideoSource):
 
         logger.info(f"Opening webcam device index={self.device_index} (id={self.source_id})")
         
-        # On Windows, try CAP_DSHOW, CAP_MSMF, then default CAP_ANY
-        candidate_backends = [
-            ("CAP_DSHOW", cv2.CAP_DSHOW),
-            ("CAP_MSMF", cv2.CAP_MSMF),
-            ("CAP_ANY", cv2.CAP_ANY),
-        ] if hasattr(cv2, "CAP_DSHOW") else [("CAP_ANY", cv2.CAP_ANY)]
+        # On Windows, hardware benchmarks confirmed CAP_MSMF achieves ~30 FPS at 1280x720,
+        # whereas CAP_DSHOW locks to ~7.5 FPS YUY2. Priority: preferred -> CAP_MSMF -> CAP_DSHOW -> CAP_ANY.
+        candidate_backends = []
+        if self.preferred_backend:
+            pb = self.preferred_backend.upper().strip()
+            if pb == "CAP_MSMF" and hasattr(cv2, "CAP_MSMF"):
+                candidate_backends.append(("CAP_MSMF", cv2.CAP_MSMF))
+            elif pb == "CAP_DSHOW" and hasattr(cv2, "CAP_DSHOW"):
+                candidate_backends.append(("CAP_DSHOW", cv2.CAP_DSHOW))
+
+        if hasattr(cv2, "CAP_MSMF") and ("CAP_MSMF", cv2.CAP_MSMF) not in candidate_backends:
+            candidate_backends.append(("CAP_MSMF", cv2.CAP_MSMF))
+        if hasattr(cv2, "CAP_DSHOW") and ("CAP_DSHOW", cv2.CAP_DSHOW) not in candidate_backends:
+            candidate_backends.append(("CAP_DSHOW", cv2.CAP_DSHOW))
+        candidate_backends.append(("CAP_ANY", cv2.CAP_ANY))
 
         self._cap = None
         self._backend_name = "NONE"
@@ -134,3 +146,7 @@ class WebcamSource(VideoSource):
     @property
     def height(self) -> int:
         return self._actual_height
+
+    @property
+    def backend_name(self) -> str:
+        return getattr(self, "_backend_name", "NONE")

@@ -41,8 +41,8 @@ class PersistedEvent:
     opened_at: str
     severity: str
     score: float
-    lifecycle_status: str  # active, closed
-    review_status: str  # awaiting, confirmed, dismissed
+    lifecycle_status: str = "active"  # active, closed
+    review_status: str = "awaiting"  # awaiting, confirmed, dismissed
     source_origin: str = "UNKNOWN"
     seat_id: Optional[str] = None
     closed_at: Optional[str] = None

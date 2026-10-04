@@ -99,10 +99,12 @@ class Stage2FrameMetrics:
     queue_wait_ms: float = 0.0
     processing_ms: float = 0.0
     capture_to_result_ms: float = 0.0
+    ai_frame_age_ms: float = 0.0               # Real-time latency: result_wall_time - capture_timestamp
     active_tracks_count: int = 0
     active_events_count: int = 0
     queue_depth: int = 0
     dropped_frames_count: int = 0
+    stale_skipped_count: int = 0               # Intentional skips for real-time freshness
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -123,33 +125,40 @@ class Stage2FrameResult:
 
 class BoundedFrameQueue:
     """
-    Thread-safe bounded queue for frame ingestion with DROP_STALE_ON_BACKPRESSURE policy.
-    When full, drops the oldest unprocessed frame and records drop telemetry.
+    Thread-safe bounded queue for frame ingestion with latest-frame / drop-stale semantics.
+    Enforces low latency by buffering only the freshest frames (default capacity 1-2).
+    Tracks captured, AI-selected, stale-skipped, and driver-dropped frames honestly.
     """
 
-    def __init__(self, maxsize: int = 5, drop_policy: str = "DROP_STALE_ON_BACKPRESSURE"):
+    def __init__(self, maxsize: int = 2, drop_policy: str = "DROP_STALE_ON_BACKPRESSURE"):
         self.maxsize = max(1, maxsize)
         self.drop_policy = drop_policy
         self._queue: queue.Queue = queue.Queue(maxsize=self.maxsize)
         self._lock = threading.Lock()
+        self.captured_count = 0
+        self.ai_selected_count = 0
+        self.stale_skipped_count = 0
         self.dropped_frames_count = 0
         self.dropped_frames_log: List[Dict[str, Any]] = []
 
     def push(self, frame: VideoFrame) -> Optional[VideoFrame]:
         """Push frame into bounded queue. If full and drop_policy is DROP_STALE, drop oldest."""
         with self._lock:
+            self.captured_count += 1
             dropped = None
             if self._queue.full():
                 if self.drop_policy == "DROP_STALE_ON_BACKPRESSURE":
                     try:
                         item = self._queue.get_nowait()
                         dropped = item[0] if isinstance(item, tuple) else item
+                        self.stale_skipped_count += 1
                         self.dropped_frames_count += 1
                         self.dropped_frames_log.append({
                             "dropped_frame_idx": dropped.frame_idx,
                             "timestamp_sec": dropped.timestamp,
                             "drop_wall_time": time.time(),
                             "queue_depth_at_drop": self._queue.qsize(),
+                            "reason": "STALE_SKIPPED_FOR_FRESHNESS",
                         })
                     except queue.Empty:
                         pass
@@ -161,19 +170,44 @@ class BoundedFrameQueue:
             self._queue.put((frame, enter_t))
             return dropped
 
-    def pop(self, timeout: float = 0.5) -> Optional[VideoFrame]:
+    def pop(self, timeout: float = 0.5, drain_stale: bool = False) -> Optional[VideoFrame]:
+        """Pop next frame. If drain_stale is True, discards intermediate older frames."""
         try:
             item = self._queue.get(timeout=timeout)
-            if isinstance(item, tuple):
-                frame, enter_t = item
-                exit_t = time.time()
-                frame._queue_enter_time = enter_t
-                frame._queue_exit_time = exit_t
-                frame._queue_wait_ms = (exit_t - enter_t) * 1000.0
-                return frame
-            return item
         except queue.Empty:
             return None
+
+        # Drain any older intermediate frames if drain_stale requested
+        if drain_stale and not self._queue.empty():
+            with self._lock:
+                while not self._queue.empty():
+                    try:
+                        stale_item = self._queue.get_nowait()
+                        stale_f = stale_item[0] if isinstance(stale_item, tuple) else stale_item
+                        self.stale_skipped_count += 1
+                        self.dropped_frames_count += 1
+                        item = stale_item
+                    except queue.Empty:
+                        break
+
+        with self._lock:
+            self.ai_selected_count += 1
+
+        if isinstance(item, tuple):
+            frame, enter_t = item
+            exit_t = time.time()
+            frame._queue_enter_time = enter_t
+            frame._queue_exit_time = exit_t
+            frame._queue_wait_ms = (exit_t - enter_t) * 1000.0
+            if hasattr(frame, "timestamp") and frame.timestamp and frame.timestamp > 0:
+                frame._ai_frame_age_ms = (exit_t - frame.timestamp) * 1000.0
+            else:
+                frame._ai_frame_age_ms = frame._queue_wait_ms
+            return frame
+        return item
+
+    def pop_latest(self, timeout: float = 0.5) -> Optional[VideoFrame]:
+        return self.pop(timeout=timeout, drain_stale=True)
 
     @property
     def qsize(self) -> int:
@@ -521,8 +555,9 @@ class Stage2Pipeline:
         if ts is not None and ts > 0:
             self._captured_timestamps.append(ts)
 
-        # Feed rolling clip buffer immediately
-        self.evidence_manager.push_frame(frame, ts)
+        # Feed rolling clip buffer immediately (if not already pushed by capture worker)
+        if not getattr(video_frame, "_evidence_pushed", False):
+            self.evidence_manager.push_frame(frame, ts)
 
         # 1. Full-frame General Object Detection (Person & Phone) or Injected Tracks for C2 load scaling
         if injected_tracks is not None:
@@ -828,6 +863,13 @@ class Stage2Pipeline:
         processing_ms = post_decode_ms
         capture_to_result_ms = queue_wait_ms + processing_ms
 
+        # Real-time latency metric (result timestamp - original capture timestamp)
+        now_wall = time.time()
+        if ts is not None and ts > 0:
+            ai_frame_age_ms = max(0.0, (now_wall - ts) * 1000.0)
+        else:
+            ai_frame_age_ms = getattr(video_frame, "_ai_frame_age_ms", capture_to_result_ms)
+
         # Independent canonical whole-loop end-to-end measurement
         if t_loop_start is not None:
             whole_loop_ms = (t_pipeline_end - t_loop_start) * 1000.0
@@ -868,10 +910,12 @@ class Stage2Pipeline:
             queue_wait_ms=round(queue_wait_ms, 3),
             processing_ms=round(processing_ms, 3),
             capture_to_result_ms=round(capture_to_result_ms, 3),
+            ai_frame_age_ms=round(ai_frame_age_ms, 3),
             active_tracks_count=len(tracks),
             active_events_count=len(self._active_events_map),
             queue_depth=self.ingestion_queue.qsize,
             dropped_frames_count=self.ingestion_queue.dropped_frames_count,
+            stale_skipped_count=self.ingestion_queue.stale_skipped_count,
         )
 
         self.processed_frames_count += 1

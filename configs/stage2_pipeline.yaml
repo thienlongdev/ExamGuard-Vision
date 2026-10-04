@@ -110,7 +110,7 @@ phone_association:
 
 # 7. BACKPRESSURE & BOUNDED QUEUE MANAGEMENT
 backpressure:
-  max_decode_queue_depth: 5 # Bounded low-latency queue (consistent with drop policy)
+  max_decode_queue_depth: 2 # Bounded low-latency queue (latest-frame buffer size: 1-2)
   drop_policy: "DROP_STALE_ON_BACKPRESSURE" # Drop oldest video frame if pipeline lags
   max_frame_latency_ms: 100.0
 
@@ -141,3 +141,18 @@ benchmark:
   warmup_frames: 30
   benchmark_frames: 150
   profile_cuda: true
+
+# 12. RUNTIME PERFORMANCE & ACCELERATION CONFIG
+performance:
+  ai_target_fps: 12.0
+  latest_frame_buffer_size: 2
+  posture_precision: "fp32"
+  headpose_precision: "fp16"
+  adaptive_scheduling: true
+  normal_posture_hz: 4.0
+  attention_posture_hz: 8.0
+  normal_headpose_hz: 4.0
+  attention_headpose_hz: 8.0
+  max_starvation_interval_sec: 0.35 # Maximum 350ms without evaluation (guarantees anti-starvation)
+  phone_roi_enabled: false # Gated default: full-frame YOLO phone recall is primary
+  preferred_camera_backend: "CAP_MSMF" # Windows high-throughput capture backend

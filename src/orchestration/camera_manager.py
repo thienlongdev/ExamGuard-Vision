@@ -48,6 +48,9 @@ class CameraTelemetry:
     processing_fps: float = 0.0
     queue_depth: int = 0
     drop_rate: float = 0.0
+    stale_skipped: int = 0
+    ai_frame_age_ms: float = 0.0
+    backend_name: str = "AUTO"
     active_tracks: int = 0
     reconnect_attempts: int = 0
     last_frame_at: Optional[float] = None
@@ -69,6 +72,9 @@ class CameraTelemetry:
             "fps": round(self.processing_fps or self.capture_fps, 1),
             "queue_depth": self.queue_depth,
             "drop_rate": round(self.drop_rate, 3),
+            "stale_skipped": self.stale_skipped,
+            "ai_frame_age_ms": round(self.ai_frame_age_ms, 1),
+            "backend_name": self.backend_name,
             "active_tracks": self.active_tracks,
             "reconnect_attempts": self.reconnect_attempts,
             "last_frame_at": self.last_frame_at,
@@ -181,6 +187,8 @@ class CameraPipelineWorker:
                 self.telemetry.connected = True
                 self.telemetry.streaming = True
                 self.telemetry.status_display = "TRỰC TIẾP"
+                if hasattr(self.video_source, "backend_name"):
+                    self.telemetry.backend_name = self.video_source.backend_name
             else:
                 self.telemetry.connected = False
                 self.telemetry.streaming = False
@@ -267,9 +275,15 @@ class CameraPipelineWorker:
                     dt = self._capture_timestamps[-1] - self._capture_timestamps[0]
                     self.telemetry.capture_fps = (len(self._capture_timestamps) - 1) / max(0.001, dt)
 
+                # Section 7: Feed rolling evidence buffer immediately from camera capture!
+                if self.pipeline and hasattr(self.pipeline, "evidence_manager"):
+                    frame._evidence_pushed = True
+                    self.pipeline.evidence_manager.push_frame(frame.frame, frame.timestamp)
+
                 dropped = self.pipeline.ingestion_queue.push(frame)
                 if dropped is not None:
                     self._dropped_count += 1
+                self.telemetry.stale_skipped = getattr(self.pipeline.ingestion_queue, "stale_skipped_count", 0)
                 if self._total_captured > 0:
                     self.telemetry.drop_rate = self._dropped_count / self._total_captured
                 self.telemetry.queue_depth = self.pipeline.ingestion_queue.qsize
@@ -292,7 +306,7 @@ class CameraPipelineWorker:
                 time.sleep(0.05)
                 continue
 
-            frame = self.pipeline.ingestion_queue.pop(timeout=0.1)
+            frame = self.pipeline.ingestion_queue.pop(timeout=0.1, drain_stale=True)
             if frame is None:
                 continue
 
@@ -301,6 +315,12 @@ class CameraPipelineWorker:
             if len(self._process_timestamps) >= 2:
                 dt = self._process_timestamps[-1] - self._process_timestamps[0]
                 self.telemetry.processing_fps = (len(self._process_timestamps) - 1) / max(0.001, dt)
+
+            # Record AI frame age
+            if hasattr(frame, "timestamp") and frame.timestamp and frame.timestamp > 0:
+                self.telemetry.ai_frame_age_ms = max(0.0, (now - frame.timestamp) * 1000.0)
+            elif hasattr(frame, "_ai_frame_age_ms"):
+                self.telemetry.ai_frame_age_ms = frame._ai_frame_age_ms
 
             # Process through pipeline
             try:

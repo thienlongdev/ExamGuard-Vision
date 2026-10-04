@@ -46,6 +46,7 @@ def create_video_source(
             width=width,
             height=height,
             fps=fps,
+            preferred_backend=extra.get("preferred_backend"),
         )
 
     elif st in ("video", "video_file", "file"):
