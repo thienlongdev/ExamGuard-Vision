@@ -83,41 +83,53 @@ provisional_thresholds:
     evidence_enter_threshold: 0.55   # Minimum HEAD_REST_SLEEP probability
     evidence_exit_threshold: 0.35    # Hysteresis exit threshold
     read_write_veto_threshold: 0.50  # NORMAL_READ_WRITE score that suppresses sleep
+    exit_grace_seconds: 0.8          # Sustained dip before event close
     cooldown_seconds: 4.0            # Cooldown after event closure
+    normal_reset_seconds: 4.0        # Sustained normal behavior required for real recovery
 
   sustained_lateral_head_orientation:
-    min_candidate_duration_sec: 0.65  # Clear lateral turn sustained ~0.65s promotes to ACTIVE
+    min_candidate_duration_sec: 0.75  # Clear lateral turn sustained ~0.75s promotes to ACTIVE
     posture_turn_enter_threshold: 0.50
     posture_turn_exit_threshold: 0.30
     supporting_yaw_deg_threshold: 24.0 # Continuous yaw orientation threshold
     yaw_consistency_weight: 0.35     # Yaw weight in multi-cue evidence
-    cooldown_seconds: 2.5
+    exit_grace_seconds: 1.2          # Retains ACTIVE during momentary frame flutter
+    cooldown_seconds: 3.0
+    normal_reset_seconds: 3.5        # Real recovery required before opening new turn event
 
   phone_associated:
-    min_candidate_duration_sec: 0.45  # Brief plausible detection captured without silent ignore
-    evidence_enter_threshold: 0.20
-    evidence_exit_threshold: 0.15
-    min_phone_confidence: 0.20
+    min_candidate_duration_sec: 0.75  # Brief plausible detection captured without micro-event noise
+    evidence_enter_threshold: 0.25
+    evidence_exit_threshold: 0.18
+    min_phone_confidence: 0.25
     min_association_confidence: 0.35
     desk_proximity_bonus: 0.15
-    cooldown_seconds: 3.0
+    exit_grace_seconds: 1.2
+    cooldown_seconds: 3.5
+    normal_reset_seconds: 3.5
 
   phone_visible_unassociated:
-    min_candidate_duration_sec: 0.50
+    min_candidate_duration_sec: 0.60
     evidence_enter_threshold: 0.30
     evidence_exit_threshold: 0.20
     min_phone_confidence: 0.30
+    exit_grace_seconds: 1.2
     cooldown_seconds: 3.0
+    normal_reset_seconds: 3.0
 
   discussion_candidate:
     min_candidate_duration_sec: 2.0
     min_discuss_score: 0.45
+    exit_grace_seconds: 1.2
     cooldown_seconds: 4.0
+    normal_reset_seconds: 4.0
 
   standing:
     min_candidate_duration_sec: 1.5
     min_stand_score: 0.50
+    exit_grace_seconds: 1.2
     cooldown_seconds: 4.0
+    normal_reset_seconds: 4.0
 
 # ---------------------------------------------------------------------
 # 5. MULTI-CUE CORRELATION & RELIABILITY WEIGHTS

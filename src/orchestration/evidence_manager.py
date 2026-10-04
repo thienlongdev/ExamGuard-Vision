@@ -251,6 +251,28 @@ class IntegratedEvidenceManager:
         if action == "OPEN":
             event.evidence_summary["snapshot_status"] = "PENDING"
             event.evidence_summary["clip_status"] = "CLIP_FINALIZING"
+
+            # Pre-persist event row so that async snapshot and clip evidence callbacks have a valid foreign key
+            if self.persistence_service and getattr(self.persistence_service, "active_session", None):
+                if hasattr(self.persistence_service, "events"):
+                    sid = self.persistence_service.active_session.session_id
+                    st_iso = datetime.fromtimestamp(event.start_timestamp).isoformat() if event.start_timestamp else datetime.now().isoformat()
+                    from src.persistence.models import PersistedEvent
+                    self.persistence_service.events.upsert_event(
+                        PersistedEvent(
+                            event_id=ev_id,
+                            session_id=sid,
+                            camera_id=getattr(event, "camera_id", "cam_0"),
+                            track_id=getattr(event, "track_id", None),
+                            event_type=getattr(event, "event_type", "OBSERVABLE_EVENT"),
+                            opened_at=st_iso,
+                            duration_sec=float(getattr(event, "duration", 0.0)),
+                            severity=getattr(event, "risk_level", "LOW"),
+                            score=float(getattr(event, "risk_score", 0.0)),
+                            source_origin=getattr(event, "event_origin", "UNKNOWN"),
+                        )
+                    )
+
             count = self._event_snapshot_counts.get(ev_id, 0)
             if count < self.max_snapshots_per_event and self.snapshot_capture is not None:
                 try:
@@ -360,22 +382,22 @@ class IntegratedEvidenceManager:
                 if self.persistence_service and getattr(self.persistence_service, "active_session", None):
                     if hasattr(self.persistence_service, "events"):
                         existing_ev = self.persistence_service.events.get_event(ev_id)
-                        if not existing_ev:
-                            from src.persistence.models import PersistedEvent
-                            self.persistence_service.events.upsert_event(
-                                PersistedEvent(
-                                    event_id=ev_id,
-                                    session_id=sid,
-                                    camera_id=getattr(event, "camera_id", "cam_0"),
-                                    track_id=getattr(event, "track_id", None),
-                                    event_type=getattr(event, "event_type", "OBSERVABLE_EVENT"),
-                                    opened_at=st_iso or datetime.now().isoformat(),
-                                    duration_sec=float(getattr(event, "duration", 0.0)),
-                                    severity=getattr(event, "risk_level", "LOW"),
-                                    score=float(getattr(event, "risk_score", 0.0)),
-                                    source_origin=getattr(event, "event_origin", "UNKNOWN"),
-                                )
+                        from src.persistence.models import PersistedEvent
+                        self.persistence_service.events.upsert_event(
+                            PersistedEvent(
+                                event_id=ev_id,
+                                session_id=sid,
+                                camera_id=getattr(event, "camera_id", "cam_0"),
+                                track_id=getattr(event, "track_id", None),
+                                event_type=getattr(event, "event_type", "OBSERVABLE_EVENT"),
+                                opened_at=existing_ev.opened_at if existing_ev else (st_iso or datetime.now().isoformat()),
+                                closed_at=et_iso or datetime.now().isoformat(),
+                                duration_sec=float(getattr(event, "duration", 0.0)),
+                                severity=getattr(event, "risk_level", "LOW"),
+                                score=float(getattr(event, "risk_score", 0.0)),
+                                source_origin=getattr(event, "event_origin", "UNKNOWN"),
                             )
+                        )
                     rec = self.persistence_service.record_evidence_file(
                         event_id=ev_id,
                         evidence_type="MANIFEST",

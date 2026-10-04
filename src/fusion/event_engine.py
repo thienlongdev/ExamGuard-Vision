@@ -38,6 +38,8 @@ class TrackEventStateMachine:
         enter_threshold: float,
         exit_threshold: float,
         cooldown_seconds: float,
+        exit_grace_seconds: float = 0.0,
+        normal_reset_seconds: Optional[float] = None,
         config_version: str = "4.0.0-v4d",
     ):
         self.track_id = track_id
@@ -46,12 +48,16 @@ class TrackEventStateMachine:
         self.enter_threshold = enter_threshold
         self.exit_threshold = exit_threshold
         self.cooldown_seconds = cooldown_seconds
+        self.exit_grace_seconds = exit_grace_seconds
+        self.normal_reset_seconds = normal_reset_seconds if normal_reset_seconds is not None else 0.0
         self.config_version = config_version
 
         self.state: EventLifecycleState = EventLifecycleState.INACTIVE
         self.candidate_start_time: Optional[float] = None
         self.active_event: Optional[FusedEvent] = None
         self.cooldown_start_time: Optional[float] = None
+        self.exit_grace_start_time: Optional[float] = None
+        self.normal_reset_start_time: Optional[float] = None
         self.last_update_time: Optional[float] = None
 
     def process_frame(
@@ -95,6 +101,7 @@ class TrackEventStateMachine:
             if candidate_duration >= self.min_candidate_duration:
                 # Promote to ACTIVE: Open new event
                 self.state = EventLifecycleState.ACTIVE
+                self.exit_grace_start_time = None
                 event_id = str(uuid.uuid4())
 
                 # Determine dominant posture and confidence
@@ -188,8 +195,10 @@ class TrackEventStateMachine:
 
         # 3. State: ACTIVE
         if self.state == EventLifecycleState.ACTIVE:
-            if not is_vetoed and evidence_score >= self.exit_threshold:
-                # Still active: update event duration and last timestamp (DEDUPLICATION: do not create new event!)
+            is_active_evidence = (not is_vetoed and evidence_score >= self.exit_threshold)
+            if is_active_evidence:
+                # Evidence active: reset exit grace period
+                self.exit_grace_start_time = None
                 if self.active_event is not None:
                     self.active_event.last_update_timestamp = timestamp
                     self.active_event.duration = timestamp - self.active_event.start_timestamp
@@ -202,9 +211,23 @@ class TrackEventStateMachine:
                         )
                 return self.active_event, "UPDATE"
 
-            # Evidence dropped below exit threshold or was vetoed: Close event and enter COOLDOWN
+            # Evidence dropped below exit threshold or was vetoed: check exit grace period to avoid chattering
+            if self.exit_grace_start_time is None:
+                self.exit_grace_start_time = timestamp
+
+            elapsed_grace = timestamp - self.exit_grace_start_time
+            if elapsed_grace < self.exit_grace_seconds:
+                # Within grace period: retain ACTIVE state and update timestamps
+                if self.active_event is not None:
+                    self.active_event.last_update_timestamp = timestamp
+                    self.active_event.duration = timestamp - self.active_event.start_timestamp
+                return self.active_event, "UPDATE"
+
+            # Exit grace period expired: close event and enter COOLDOWN
+            self.exit_grace_start_time = None
             self.state = EventLifecycleState.COOLDOWN
             self.cooldown_start_time = timestamp
+            self.normal_reset_start_time = None
             closed_event = self.active_event
             if closed_event is not None:
                 closed_event.end_timestamp = timestamp
@@ -221,22 +244,39 @@ class TrackEventStateMachine:
         if self.state == EventLifecycleState.COOLDOWN:
             cooldown_start = self.cooldown_start_time if self.cooldown_start_time is not None else timestamp
             elapsed = timestamp - cooldown_start
+
+            # Track genuine normal behavior during cooldown
+            is_normal = (not is_vetoed and evidence_score < self.exit_threshold) or (is_vetoed and evidence_score < self.enter_threshold)
+            if is_normal:
+                if self.normal_reset_start_time is None:
+                    self.normal_reset_start_time = timestamp
+            else:
+                # Suspicious behavior still occurring or re-triggered during cooldown: reset normal timer
+                self.normal_reset_start_time = None
+
+            normal_duration = (timestamp - self.normal_reset_start_time) if self.normal_reset_start_time is not None else 0.0
+
             if elapsed >= self.cooldown_seconds:
-                # Cooldown period has elapsed
-                self.cooldown_start_time = None
-                if evidence_score >= self.enter_threshold and not is_vetoed:
-                    # New distinct incident starting after cooldown
-                    self.state = EventLifecycleState.CANDIDATE
-                    self.candidate_start_time = timestamp
-                else:
+                if normal_duration >= self.normal_reset_seconds:
+                    # Genuine return to normal achieved: reset to INACTIVE
                     self.state = EventLifecycleState.INACTIVE
-                    self.candidate_start_time = None
+                    self.cooldown_start_time = None
+                    self.normal_reset_start_time = None
+                    if evidence_score >= self.enter_threshold and not is_vetoed:
+                        # New distinct incident starting after real recovery
+                        self.state = EventLifecycleState.CANDIDATE
+                        self.candidate_start_time = timestamp
+                else:
+                    # Student has not stayed normal for normal_reset_seconds: remain in cooldown debounce
+                    pass
             return None, "NONE"
 
         return None, "NONE"
 
     def force_close(self, timestamp: float, reason: str = "TRACK_LOST") -> Optional[FusedEvent]:
         """Force close active event due to track expiration or continuity break."""
+        self.exit_grace_start_time = None
+        self.normal_reset_start_time = None
         if self.state == EventLifecycleState.ACTIVE and self.active_event is not None:
             closed_event = self.active_event
             closed_event.end_timestamp = timestamp
@@ -286,6 +326,8 @@ class EventEngine:
             enter_th = float(cfg.get("evidence_enter_threshold", cfg.get("min_phone_confidence", cfg.get("posture_turn_enter_threshold", 0.50))))
             exit_th = float(cfg.get("evidence_exit_threshold", cfg.get("posture_turn_exit_threshold", 0.30)))
             cd = float(cfg.get("cooldown_seconds", 4.0))
+            exit_grace = float(cfg.get("exit_grace_seconds", 1.0))
+            normal_reset = float(cfg.get("normal_reset_seconds", cd))
 
             self._machines[key] = TrackEventStateMachine(
                 track_id=track_id,
@@ -294,6 +336,8 @@ class EventEngine:
                 enter_threshold=enter_th,
                 exit_threshold=exit_th,
                 cooldown_seconds=cd,
+                exit_grace_seconds=exit_grace,
+                normal_reset_seconds=normal_reset,
                 config_version=self.config_version,
             )
         return self._machines[key]

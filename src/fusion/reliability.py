@@ -122,8 +122,10 @@ class ReliabilityModel:
         Frontal head orientation (|yaw| < 20 deg) attenuates posture turn.
         """
         posture_turn_score = 0.0
+        posture_rw_score = 0.0
         if posture.status == ObservationStatus.AVAILABLE:
             posture_turn_score = posture.probabilities.get("TURN_HEAD_CLEAR", 0.0)
+            posture_rw_score = posture.probabilities.get("NORMAL_READ_WRITE", 0.0)
 
         # Baseline: posture alone if headpose unavailable
         if headpose.status != ObservationStatus.AVAILABLE or headpose.yaw_deg is None:
@@ -141,6 +143,15 @@ class ReliabilityModel:
             else:
                 # Pure lateral head turn with upright torso: body lean NOT required!
                 fused = max(yaw_evidence * 0.90, 0.52)
+
+            # Normal read/write paper reading protection:
+            # When a student is strongly engaged in normal reading/writing on their desk (rw_score >= 0.60),
+            # natural downward/diagonal paper glance (abs_yaw < 36 deg) is part of reading paper,
+            # NOT a suspicious lateral head turn away from desk.
+            # However, if abs_yaw >= 36 deg, it is a clear lateral look towards another seat.
+            if posture_rw_score >= 0.60 and abs_yaw < 36.0:
+                rw_attenuation = max(0.35, 1.0 - (posture_rw_score - 0.50) * 1.2)
+                fused = min(fused * rw_attenuation, 0.45)
         elif abs_yaw < 20.0:
             # Head-pose indicates frontal face (|yaw| < 20 deg); attenuates false posture turn
             fused = posture_turn_score * 0.85
