@@ -24,6 +24,8 @@ export class HeaderComponent {
         this.updateBadges();
       } else if (type === "WS_STATUS_CHANGED") {
         this.setWsStatus(payload);
+      } else if (type === "CURRENT_SESSION_UPDATED") {
+        this.updateSessionBadge(payload);
       }
     });
   }
@@ -59,6 +61,12 @@ export class HeaderComponent {
           </svg>
           DUYỆT SỰ KIỆN
         </button>
+        <button class="nav-tab-btn" data-view="history" id="tab-history">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          LỊCH SỬ
+        </button>
         <button class="nav-tab-btn" data-view="system" id="tab-system">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -68,6 +76,11 @@ export class HeaderComponent {
       </nav>
 
       <div class="header-telemetry">
+        <div class="status-pill session-pill" id="header-session-pill" title="Phiên giám sát đang ghi nhận">
+          <span style="color: var(--color-live);">●</span>
+          <span id="header-session-text">Phiên hiện tại</span>
+        </div>
+
         <div id="live-indicator" class="live-badge">
           <span class="live-pulse-dot"></span>
           <span id="live-status-text">TRỰC TIẾP · CAM 01</span>
@@ -131,6 +144,16 @@ export class HeaderComponent {
     if (sys && sys.gpu_vram_allocated_mb !== undefined && vramText) {
       vramText.innerText = `${sys.gpu_vram_allocated_mb.toFixed(0)} MB`;
     }
+  }
+
+  updateSessionBadge(session) {
+    const el = document.getElementById("header-session-text");
+    const pill = document.getElementById("header-session-pill");
+    if (!el || !session) return;
+    const name = session.name || "Phiên giám sát";
+    const room = session.room ? ` · ${session.room}` : "";
+    el.innerText = `${name}${room}`;
+    if (pill) pill.title = `ID: ${session.session_id} | Giám thị: ${session.invigilator_name || "Chưa phân công"}`;
   }
 
   setWsStatus(status) {

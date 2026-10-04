@@ -151,3 +151,63 @@ def test_event_snapshot_url_normalization():
     data = res.json()
     assert data["snapshot_path"] == "/api/evidence/snapshots/snap_test_01.jpg"
     assert "E:\\" not in data["snapshot_path"], "Must never leak host filesystem paths!"
+
+
+def test_history_tab_and_view_rendered():
+    """Verify History tab, view section, and components are integrated."""
+    app = create_app()
+    client = TestClient(app)
+
+    res = client.get("/")
+    assert res.status_code == 200
+    assert 'id="view-history"' in res.text
+
+    # Verify history_view.js serves properly
+    res_hv = client.get("/static/js/components/history_view.js")
+    assert res_hv.status_code == 200
+    assert "HistoryViewComponent" in res_hv.text
+
+    # Verify header tab
+    res_hdr = client.get("/static/js/components/header.js")
+    assert res_hdr.status_code == 200
+    assert "LỊCH SỬ" in res_hdr.text
+    assert 'id="tab-history"' in res_hdr.text
+    assert 'header-session-pill' in res_hdr.text
+
+    # Verify event drawer has video player and integrity badge
+    res_drw = client.get("/static/js/components/event_drawer.js")
+    assert res_drw.status_code == 200
+    assert "<video" in res_drw.text
+    assert "drawer-integrity-badge" in res_drw.text
+    assert "Mã theo dõi tạm thời của camera" in res_drw.text
+
+
+def test_review_queue_scroll_and_card_stability_css():
+    """Verify Review Queue CSS rules guarantee independent scrolling, non-shrinking cards, and stable thumbnails."""
+    app = create_app()
+    client = TestClient(app)
+
+    res = client.get("/static/css/dashboard.css")
+    assert res.status_code == 200
+    css = res.text
+
+    # 1. Queue scroll area must have flex and overflow-y: auto
+    assert ".queue-scroll-area" in css
+    assert "overflow-y: auto" in css
+
+    # 2. Event card must have flex-shrink: 0 and min-height so cards never compress vertically
+    assert ".event-card" in css
+    assert "flex-shrink: 0" in css
+    assert "min-height: 105px" in css
+
+    # 3. Thumbnail wrapper must have fixed/min dimensions and flex-shrink: 0
+    assert ".card-thumbnail-wrapper" in css
+    assert "min-width: 96px" in css
+    assert "min-height: 64px" in css
+    assert ("aspect-ratio: 16 / 10" in css) or ("aspect-ratio: 16/10" in css)
+
+    # 4. History view styles
+    assert ".history-view-container" in css
+    assert ".drawer-evidence-video" in css
+    assert ".integrity-pill" in css
+

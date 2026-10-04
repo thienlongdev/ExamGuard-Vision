@@ -182,7 +182,7 @@ def test_evidence_storage_quota_and_retention(tmp_path):
     )
 
     status, telem = ret_mgr.check_storage_status()
-    assert status in [StorageQuotaStatus.HEALTHY, StorageQuotaStatus.WARNING, StorageQuotaStatus.CRITICAL]
+    assert status in [StorageQuotaStatus.HEALTHY, StorageQuotaStatus.WARNING, StorageQuotaStatus.CRITICAL, StorageQuotaStatus.EXHAUSTED]
 
     # Create dummy snapshot files
     snap_dir = tmp_path / "evidence" / "snapshots"

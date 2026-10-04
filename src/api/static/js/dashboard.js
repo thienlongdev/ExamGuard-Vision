@@ -16,6 +16,7 @@ import { ReviewQueueComponent } from "./components/review_queue.js";
 import { EventDrawerComponent } from "./components/event_drawer.js";
 import { TimelineComponent } from "./components/timeline.js";
 import { ReviewViewComponent } from "./components/review_view.js";
+import { HistoryViewComponent } from "./components/history_view.js";
 import { SystemViewComponent } from "./components/system_view.js";
 
 class DashboardApp {
@@ -37,6 +38,7 @@ class DashboardApp {
     this.components.eventDrawer = new EventDrawerComponent("drawer-backdrop", "event-drawer");
     this.components.timeline = new TimelineComponent("timeline-container");
     this.components.reviewView = new ReviewViewComponent("view-review");
+    this.components.historyView = new HistoryViewComponent("view-history");
     this.components.systemView = new SystemViewComponent("view-system");
 
     // Setup view routing
@@ -58,7 +60,7 @@ class DashboardApp {
     // Deep-linking via URL query params (e.g. ?view=review or ?event=ev_001_phone)
     const urlParams = new URLSearchParams(window.location.search);
     const viewParam = urlParams.get("view");
-    if (viewParam && ["monitor", "review", "system"].includes(viewParam)) {
+    if (viewParam && ["monitor", "review", "history", "system"].includes(viewParam)) {
       appState.setView(viewParam);
     }
     const eventParam = urlParams.get("event");
@@ -77,11 +79,12 @@ class DashboardApp {
 
   async loadInitialData() {
     try {
-      const [eventsRaw, camsRaw, statusRaw, modelsRaw] = await Promise.allSettled([
+      const [eventsRaw, camsRaw, statusRaw, modelsRaw, currentSessionRaw] = await Promise.allSettled([
         ApiClient.getEvents(),
         ApiClient.getCameras(),
         ApiClient.getSystemStatus(),
         ApiClient.getSystemModels(),
+        ApiClient.getCurrentSession(),
       ]);
 
       if (eventsRaw.status === "fulfilled" && Array.isArray(eventsRaw.value)) {
@@ -99,6 +102,10 @@ class DashboardApp {
 
       if (modelsRaw.status === "fulfilled") {
         appState.setSystemModels(modelsRaw.value);
+      }
+
+      if (currentSessionRaw.status === "fulfilled" && currentSessionRaw.value) {
+        appState.setCurrentSession(currentSessionRaw.value);
       }
     } catch (err) {
       console.warn("Initial data load partial failure:", err);

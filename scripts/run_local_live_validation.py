@@ -866,6 +866,15 @@ class LiveValidationOrchestrator:
             if hasattr(self.pipeline, "evidence_manager") and self.pipeline.evidence_manager:
                 self.pipeline.evidence_manager.shutdown()
 
+        # Ensure active session is gracefully closed in persistence
+        try:
+            from src.persistence.service import PersistenceService
+            ps = PersistenceService.get_instance()
+            if ps.active_session:
+                ps.close_active_session(reason="GRACEFUL_STOP")
+        except Exception as e:
+            logger.debug(f"Could not close persistence session on shutdown: {e}")
+
         gc.collect()
         if torch.cuda.is_available():
             torch.cuda.empty_cache()

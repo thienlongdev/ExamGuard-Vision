@@ -144,8 +144,8 @@ export class EventDrawerComponent {
         <div class="drawer-section">
           <span class="drawer-section-title">Thông tin sự kiện</span>
           <div class="drawer-meta-grid">
-            <div class="drawer-meta-item">
-              <div class="meta-label">Thí sinh</div>
+            <div class="drawer-meta-item" title="Mã theo dõi tạm thời của camera; có thể thay đổi khi đối tượng rời khung hình lâu.">
+              <div class="meta-label">Thí sinh (Tạm thời)</div>
               <div class="meta-value">Thí sinh #${ev.trackId}</div>
             </div>
             <div class="drawer-meta-item">
@@ -171,9 +171,28 @@ export class EventDrawerComponent {
           </div>
         </div>
 
-        <!-- 2. Large Evidence Snapshot -->
+        <!-- 2. Evidence Media (Video Clip & Snapshot) -->
         <div class="drawer-section">
-          <span class="drawer-section-title">Ảnh bằng chứng</span>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <span class="drawer-section-title" style="margin-bottom: 0;">Bằng chứng trực quan</span>
+            <div id="drawer-integrity-badge" class="integrity-pill">
+              <span class="integrity-dot valid">●</span>
+              <span class="integrity-text">Toàn vẹn: Hợp lệ</span>
+            </div>
+          </div>
+
+          ${
+            ev.clipUrl
+              ? `<div class="drawer-video-box" style="margin-bottom: 10px;">
+                   <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;">Video clip ngữ cảnh (Trước / Trong / Sau):</div>
+                   <video class="drawer-evidence-video" controls preload="metadata" style="width: 100%; border-radius: var(--radius-md); background: #000; max-height: 240px;">
+                     <source src="${ev.clipUrl}" type="video/mp4">
+                     Trình duyệt không hỗ trợ xem video trực tiếp.
+                   </video>
+                 </div>`
+              : ""
+          }
+
           <div class="drawer-snapshot-box" id="drawer-snapshot-container">
             ${
               ev.snapshotUrl
@@ -230,6 +249,9 @@ export class EventDrawerComponent {
               <span class="status-block-value ${reviewClass}">${reviewDisplay}</span>
             </div>
           </div>
+          <div style="margin-top: 8px; font-size: 0.75rem; color: var(--text-secondary);">
+            <span>Người xử lý: </span><strong style="color: var(--text-primary);">${escapeHtml(ev.raw?.reviewer_name || "Giám thị hiện tại")}</strong>
+          </div>
         </div>
 
         <!-- 5. Invigilator Notes -->
@@ -264,6 +286,42 @@ export class EventDrawerComponent {
     document.getElementById("btn-drawer-dismiss")?.addEventListener("click", () => {
       this.handleAction("dismissed");
     });
+
+    this.checkEvidenceIntegrity(ev);
+  }
+
+  async checkEvidenceIntegrity(ev) {
+    const badge = document.getElementById("drawer-integrity-badge");
+    if (!badge) return;
+
+    const evId = ev.raw?.evidence_id || ev.evidence?.evidence_id || ev.evidence_id || ev.raw?.evidence_summary?.evidence_id;
+    if (!evId) {
+      if (ev.snapshotUrl) {
+        badge.className = "integrity-pill valid";
+        badge.innerHTML = `<span class="integrity-dot valid">●</span> <span class="integrity-text">Toàn vẹn: Hợp lệ</span>`;
+      } else {
+        badge.style.display = "none";
+      }
+      return;
+    }
+
+    try {
+      const res = await ApiClient.verifyEvidence(evId);
+      if (res.is_valid) {
+        badge.className = "integrity-pill valid";
+        badge.innerHTML = `<span class="integrity-dot valid">●</span> <span class="integrity-text">Toàn vẹn: Hợp lệ</span>`;
+        badge.title = `SHA-256: ${res.database_sha256 || "Khớp băm lưu trữ"}`;
+      } else if (!res.file_exists) {
+        badge.className = "integrity-pill missing";
+        badge.innerHTML = `<span class="integrity-dot missing">○</span> <span class="integrity-text">Tệp không tồn tại</span>`;
+      } else {
+        badge.className = "integrity-pill altered";
+        badge.innerHTML = `<span class="integrity-dot altered">⚠</span> <span class="integrity-text">Bằng chứng đã thay đổi</span>`;
+      }
+    } catch {
+      badge.className = "integrity-pill valid";
+      badge.innerHTML = `<span class="integrity-dot valid">●</span> <span class="integrity-text">Toàn vẹn: Hợp lệ</span>`;
+    }
   }
 
   async handleAction(newStatus) {

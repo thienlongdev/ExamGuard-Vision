@@ -77,6 +77,8 @@ export class ReviewQueueComponent {
     const scrollArea = document.getElementById("queue-scroll-area");
     if (!scrollArea) return;
 
+    const prevScrollTop = scrollArea.scrollTop;
+
     const events = appState.getFilteredEvents();
 
     if (events.length === 0) {
@@ -213,6 +215,10 @@ export class ReviewQueueComponent {
         }
       });
     });
+
+    if (prevScrollTop > 5) {
+      scrollArea.scrollTop = prevScrollTop;
+    }
   }
 
   updateRelativeTimes() {

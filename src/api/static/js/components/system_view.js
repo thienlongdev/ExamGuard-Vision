@@ -244,7 +244,62 @@ export class SystemViewComponent {
           </div>
         </div>
       </div>
+
+      <!-- Database & Evidence Storage Card -->
+      <div class="system-card">
+        <div class="system-card-header">
+          <h3>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+            </svg>
+            Dữ liệu & Sao lưu
+          </h3>
+          <span class="system-card-badge" style="background: var(--color-live-dim); color: var(--color-live);">HOẠT ĐỘNG</span>
+        </div>
+        <div class="system-metrics-list">
+          <div class="system-metric-row">
+            <span class="metric-name">Cơ sở dữ liệu</span>
+            <span class="metric-val">SQLite WAL (storage/db/)</span>
+          </div>
+          <div class="system-metric-row">
+            <span class="metric-name">Phiên hiện tại</span>
+            <span class="metric-val" style="font-size: 0.72rem; color: var(--accent-cyan);">${appState.currentSession?.name || "Tự động tạo"}</span>
+          </div>
+          <div class="system-metric-row">
+            <span class="metric-name">Bộ đệm video bằng chứng</span>
+            <span class="metric-val">Ring Buffer (Max 64MB/cam)</span>
+          </div>
+          <div class="system-metric-row">
+            <span class="metric-name">Toàn vẹn băm</span>
+            <span class="metric-val">SHA-256 đối soát tệp</span>
+          </div>
+          <div class="system-metric-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border-subtle);">
+            <button class="btn-action btn-backup-now" id="btn-system-backup-now" style="width: 100%; background: var(--surface-secondary); border: 1px solid var(--border-medium); color: var(--text-primary); font-size: 0.75rem; padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 4px;">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
+              </svg>
+              Sao lưu ngay
+            </button>
+          </div>
+        </div>
+      </div>
     `;
+
+    document.getElementById("btn-system-backup-now")?.addEventListener("click", async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      const originalText = btn.innerHTML;
+      btn.innerText = "Đang sao lưu...";
+      try {
+        const res = await ApiClient.triggerBackup();
+        alert(`Sao lưu thành công!\nĐường dẫn: ${res.backup_path}\nBản ghi tệp: ${res.evidence_count} tệp chứng cứ`);
+      } catch (err) {
+        alert(`Sao lưu thất bại: ${err.message}`);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+      }
+    });
 
     // 2. Render Telemetry Sparklines
     if (sparkBox) {

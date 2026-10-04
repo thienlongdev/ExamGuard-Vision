@@ -343,26 +343,32 @@ Giao diện giám sát hiện đại, tối ưu cho giám thị theo dõi trực
 - **Hero Camera Viewport**: Khung phát video tỉ lệ 16:9 với độ trễ thấp từ luồng downstream MJPEG. Overlay bounding box bo góc hiện đại hiển thị ID học sinh, tư thế hiện tại và nhãn chú ý.
 - **Thanh chỉ số KPI (KPI Bar)**: Bốn thẻ đếm tức thì: Tổng sự kiện (Total Events), Chờ rà soát (Awaiting Review), Giám thị đã xác nhận (Human Confirmed), Giám thị đã bác bỏ (Dismissed).
 - **Thanh đo sức khỏe Telemetry (Health Strip)**: Cung cấp thông tin camera (CAM 01 LIVE), FPS thu nhận, FPS xử lý AI, số thí sinh đang bám vết, độ sâu hàng đợi, tỷ lệ rớt khung hình (0.0%), và dung lượng VRAM GPU đã sử dụng.
-- **Hàng đợi rà soát (Review Queue)**: Danh sách các thẻ sự kiện mới nhất theo thứ tự thời gian, hiển thị ảnh bằng chứng snapshot thu nhỏ, thanh đo mức độ rủi ro (0–100), mốc thời gian tương đối và các nút thao tác nhanh.
+- **Hàng đợi rà soát (Review Queue)**: Danh sách các thẻ sự kiện theo thứ tự ưu tiên, cuộn độc lập mượt mà không co rút thẻ, giữ nguyên kích thước ảnh chụp bằng chứng thu nhỏ, thanh đo rủi ro (0–100), mốc thời gian tương đối và các nút thao tác nhanh.
 - **Dòng thời gian hoạt động (Activity Timeline)**: Biểu đồ trực quan hóa diễn biến hành vi theo thời gian, chứng minh hành vi được theo dõi theo chuỗi chứ không phán xét nhất thời.
 
-### 7.2 Màn hình rà soát lịch sử (REVIEW View)
-- Bảng nhật ký đầy đủ tất cả các sự kiện đã ghi nhận trong toàn bộ ca thi.
-- Bộ lọc thông minh theo trạng thái rà soát (`ALL`, `Chờ rà soát`, `Đã xác nhận`, `Đã bỏ qua`), theo mức độ rủi ro hoặc theo loại sự kiện.
-- Xem chi tiết ảnh bằng chứng và mở ngăn kéo xử lý bất kỳ lúc nào.
+### 7.2 Màn hình rà soát trực tiếp (REVIEW View)
+- Bảng nhật ký sự kiện của phiên hiện tại để giám thị rà soát và đối chiếu.
+- Bộ lọc thông minh theo trạng thái rà soát (`Chờ duyệt`, `Đã xác nhận`, `Đã bỏ qua`), theo mức độ cảnh báo hoặc tìm kiếm thí sinh.
 
-### 7.3 Màn hình quản trị hệ thống (SYSTEM View)
-- Báo cáo chi tiết phần cứng, tình trạng kết nối camera và độ phân giải thực tế.
-- **Bảng phân rã độ trễ AI (AI Latency Breakdown)**: Hiển thị thời gian xử lý chi tiết của từng module: Detector, Tracker, Posture, Headpose, Macro, và Fusion.
-- **Sổ đăng ký Model (Model Registry)**: Liệt kê đầy đủ đường dẫn checkpoint, mã băm SHA-256 đã chứng thực, thiết bị thực thi (`cuda:0`), chế độ chính xác (`fp32`), và kích thước ảnh đầu vào.
-- Thống kê bộ nhớ GPU: VRAM cấp phát, VRAM bảo lưu và dung lượng trống còn lại.
+### 7.3 Màn hình lịch sử phiên giám sát (HISTORY View)
+- **Tự động quản lý phiên (Automatic Sessions)**: Mỗi lần khởi động, hệ thống tự động khởi tạo phiên thi trên SQLite với nhịp tim (heartbeat) định kỳ, tự động phát hiện và khôi phục phiên gián đoạn (`INTERRUPTED`).
+- **Danh sách phiên thi**: Xem lại toàn bộ các buổi thi trong quá khứ, thông tin phòng thi, giám thị, thời lượng, tổng sự kiện, tỷ lệ duyệt.
+- **Xem lại phiên & Chỉnh sửa thông tin**: Mở chi tiết từng phiên, cập nhật tên kỳ thi / phòng / giám thị, duyệt bảng sự kiện đã lưu và nhật ký kiểm toán (Audit Trail) liên kết chuỗi băm chống giả mạo.
 
-### 7.4 Ngăn kéo chi tiết sự kiện (Event Details Slide-in Drawer)
+### 7.4 Màn hình quản trị hệ thống & Dữ liệu sao lưu (SYSTEM View)
+- Báo cáo chi tiết phần cứng ASUS A17, tình trạng kết nối camera và độ phân giải thực tế.
+- **Dữ liệu & Sao lưu (Persistence & Local Backup)**: Theo dõi trạng thái cơ sở dữ liệu SQLite WAL, dung lượng bằng chứng, bộ đệm video vòng lặp an toàn RAM (tối đa 64MB/cam) và nút bấm `[Sao lưu ngay]`.
+- **Sổ đăng ký Model (Model Registry)**: Liệt kê đầy đủ checkpoint, mã băm SHA-256 đã chứng thực, thiết bị thực thi (`cuda:0`), và kích thước ảnh đầu vào.
+
+### 7.5 Ngăn kéo chi tiết sự kiện & Phát video bằng chứng (Event Details Drawer)
 Khi giám thị nhấp chuột vào bất kỳ sự kiện nào trong hàng đợi hoặc bảng lịch sử:
-- Mở ra ảnh chụp bằng chứng JPEG độ nét cao tại thời điểm xảy ra sự kiện.
-- Bảng chẩn đoán đa chiều: Xác suất tư thế (%), góc quay đầu (độ), khoảng cách điện thoại, điểm số rủi ro chi tiết.
-- Ô nhập ghi chú của giám thị (Reviewer Notes).
-- **Hai nút thao tác quyết định**: **Xác nhận sự kiện (Confirm Event)** hoặc **Bác bỏ sự kiện (Dismiss)**. Thao tác được gửi lên máy chủ và đồng bộ tức thời đến toàn bộ các máy giám thị khác qua WebSocket.
+- **Ảnh chụp bằng chứng & Trình phát Video cục bộ**: Xem ảnh snapshot độ nét cao hoặc phát lại video clip ngữ cảnh (trước, trong và sau sự kiện) trực tiếp trên HTML5 video player mà không phụ thuộc internet.
+- **Xác thực toàn vẹn (Evidence Integrity)**: Đối soát tự động mã băm SHA-256 của tệp trên đĩa với cơ sở dữ liệu để phát hiện tệp bị chỉnh sửa hoặc thất lạc.
+- **Giải thích mã theo dõi (Track ID)**: Thể hiện rõ mã theo dõi (`Thí sinh #...`) chỉ là định danh tạm thời của camera trong phiên, không phải nhận diện danh tính sinh trắc học.
+- **Nhật ký xử lý**: Hiển thị tên giám thị xử lý, thời điểm duyệt, ghi chú và các nút Xác nhận / Bỏ qua.
+
+> [!TIP]
+> Chi tiết toàn diện về mô hình phiên, kiến trúc lưu trữ, bộ đệm video, mã băm SHA-256, sao lưu cục bộ và chính sách lưu giữ xem tại: [docs/persistence-and-evidence.md](docs/persistence-and-evidence.md).
 
 ---
 

@@ -37,7 +37,7 @@
           <!-- Right Column (~32%): KPI Chips & Real-time Review Queue -->
           <div class="monitor-queue-col">
             <div id="kpi-container"></div>
-            <div id="review-queue-container" style="flex: 1; min-height: 0; display: flex; flex-direction: column;"></div>
+            <div id="review-queue-container" style="flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden;"></div>
           </div>
         </div>
 
@@ -48,7 +48,10 @@
       <!-- 2. REVIEW VIEW (Full Historical Review Log & Adjudication) -->
       <section class="view-section" id="view-review"></section>
 
-      <!-- 3. SYSTEM VIEW (System Diagnostics, Models, GPU, Queues) -->
+      <!-- 3. HISTORY VIEW (Multi-session History, Deep Inspection & Audit) -->
+      <section class="view-section" id="view-history"></section>
+
+      <!-- 4. SYSTEM VIEW (System Diagnostics, Models, GPU, Queues) -->
       <section class="view-section" id="view-system"></section>
     </main>
 

@@ -12,6 +12,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, FileResponse, StreamingResponse, Response
 from starlette.staticfiles import StaticFiles
 
+from datetime import datetime
+import json
+
 from src.api.schemas import (
     CameraInfo,
     CameraCounts,
@@ -22,10 +25,21 @@ from src.api.schemas import (
     EventStatusUpdateRequest,
     HealthResponse,
     SystemStatusResponse,
+    SessionResponse,
+    SessionSummary,
+    SessionUpdateRequest,
+    EvidenceVerifyResponse,
+    BackupResponse,
 )
 from src.api.websocket import ConnectionManager
 from src.api.static_ui import load_dashboard_html, DASHBOARD_HTML
 from src.behavior.event_manager import EventManager, SuspiciousEvent
+from src.persistence.service import PersistenceService
+from src.persistence.backup import (
+    create_local_backup,
+    verify_backup_directory,
+    preview_retention_candidates,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -39,17 +53,30 @@ def create_app(
     camera_connected: bool = False,
     camera_streaming: bool = False,
     device_present: bool = False,
+    persistence_service: Optional[PersistenceService] = None,
 ) -> FastAPI:
+    ps = persistence_service or PersistenceService.get_instance()
+    if ps.active_session is None:
+        try:
+            ps.initialize_runtime_session()
+        except Exception as e:
+            logger.warning(f"Could not auto-initialize runtime session: {e}")
+
     def _sanitize_evidence_path(raw_path: Optional[str]) -> Optional[str]:
         if not raw_path:
             return None
         raw_str = str(raw_path).replace("\\", "/")
         if raw_str.startswith("/api/evidence/"):
             return raw_str
-        for marker in ["storage/evidence/", "runs/local_live/", "evidence/"]:
+        for marker in ["storage/sessions/", "storage/evidence/", "runs/local_live/", "evidence/"]:
             if marker in raw_str:
                 sub = raw_str.split(marker)[-1].lstrip("/")
+                if marker == "storage/sessions/":
+                    return f"/api/evidence/sessions/{sub}"
                 return f"/api/evidence/{sub}"
+        if "sessions/" in raw_str:
+            sub = "sessions/" + raw_str.split("sessions/")[-1]
+            return f"/api/evidence/{sub}"
         # If path already contains session subfolder structure (e.g. asus_a17_demo/snapshots/...)
         parts = [p for p in raw_str.strip("/").split("/") if p]
         if len(parts) >= 2 and any(p in ["snapshots", "clips", "metadata"] for p in parts):
@@ -130,7 +157,13 @@ def create_app(
             except Exception as e:
                 logger.debug(f"Could not sync Stage 2 event to ev_manager: {e}")
 
-            # 2. Broadcast lifecycle to WebSocket clients
+            # 2. Persist to SQLite via PersistenceService
+            try:
+                ps.persist_stage2_event(event, action)
+            except Exception as e:
+                logger.debug(f"Could not persist stage2 event to DB: {e}")
+
+            # 3. Broadcast lifecycle to WebSocket clients
             try:
                 if loop is None or not loop.is_running():
                     try:
@@ -162,7 +195,26 @@ def create_app(
         nonlocal loop
         loop = asyncio.get_running_loop()
         logger.info("FastAPI backend started.")
-        yield
+
+        async def _heartbeat_loop():
+            while True:
+                try:
+                    await asyncio.sleep(5.0)
+                    ps.heartbeat()
+                except asyncio.CancelledError:
+                    break
+                except Exception:
+                    pass
+
+        hb_task = asyncio.create_task(_heartbeat_loop())
+        try:
+            yield
+        finally:
+            hb_task.cancel()
+            try:
+                ps.close_active_session(reason="GRACEFUL_STOP")
+            except Exception as e:
+                logger.debug(f"Error closing session on shutdown: {e}")
 
     app = FastAPI(
         title="Exam Suspicious Behavior Detection API",
@@ -238,11 +290,19 @@ def create_app(
             return []
         return getattr(stage2_pipeline, "_latest_tracks_summary", [])
 
+    @app.get("/api/evidence/verify/{evidence_id}", response_model=EvidenceVerifyResponse)
+    async def verify_evidence_endpoint(evidence_id: str):
+        """Verify evidence file integrity on disk against database SHA-256."""
+        res = ps.verify_evidence_integrity(evidence_id)
+        return EvidenceVerifyResponse(**res)
+
     @app.get("/api/evidence/{file_path:path}")
     async def get_evidence_file(file_path: str):
         """Safely serve snapshot evidence images and video clips with strict path traversal prevention."""
         allowed_roots = [
+            Path("storage/sessions").resolve(),
             Path("storage/evidence").resolve(),
+            Path("storage").resolve(),
             Path("evidence").resolve(),
             Path("runs/local_live").resolve(),
         ]
@@ -425,12 +485,28 @@ def create_app(
     @app.patch("/api/events/{event_id}", response_model=EventResponse)
     async def update_event_status(event_id: str, req: EventStatusUpdateRequest):
         """Update review status (confirmed / dismissed) by human invigilator."""
+        norm_decision = (
+            "CONFIRMED"
+            if req.status.lower() in ["confirmed", "confirmed_event", "reviewed"]
+            else "DISMISSED"
+        )
+        try:
+            ps.record_review_decision(
+                event_id=event_id,
+                decision=norm_decision,
+                note=req.reviewer_notes,
+            )
+        except Exception as e:
+            logger.error(f"Failed to persist review decision for {event_id}: {e}")
+
         success = ev_manager.update_event_status(
             event_id=event_id,
             new_status=req.status,
             reviewer_notes=req.reviewer_notes,
         )
-        if not success:
+
+        db_ev = ps.events.get_event(event_id)
+        if not success and not db_ev:
             raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found.")
 
         updated_event = ev_manager.get_event(event_id)
@@ -441,7 +517,236 @@ def create_app(
             "status": req.status,
             "reviewer_notes": req.reviewer_notes,
         })
-        return EventResponse(**_sanitize_event_dict(updated_event.to_dict()))
+        if updated_event:
+            return EventResponse(**_sanitize_event_dict(updated_event.to_dict()))
+
+        if db_ev:
+            st_ts = datetime.fromisoformat(db_ev.opened_at).timestamp() if db_ev.opened_at else time.time()
+            et_ts = datetime.fromisoformat(db_ev.closed_at).timestamp() if db_ev.closed_at else st_ts
+            d = {
+                "event_id": db_ev.event_id,
+                "track_id": db_ev.track_id or 0,
+                "camera_id": db_ev.camera_id,
+                "timestamp": st_ts,
+                "start_time": st_ts,
+                "end_time": et_ts,
+                "event_type": db_ev.event_type,
+                "risk_level": db_ev.severity,
+                "score": db_ev.score,
+                "evidence": json.loads(db_ev.evidence_summary_json or "{}"),
+                "snapshot_path": _sanitize_evidence_path(json.loads(db_ev.evidence_summary_json or "{}").get("snapshot_path")),
+                "clip_path": _sanitize_evidence_path(json.loads(db_ev.evidence_summary_json or "{}").get("clip_path")),
+                "status": db_ev.review_status,
+                "lifecycle_status": db_ev.lifecycle_status,
+                "review_status": db_ev.review_status,
+                "observation_snapshot": json.loads(db_ev.observation_snapshot_json or "{}"),
+                "reviewer_notes": req.reviewer_notes,
+                "event_origin": db_ev.source_origin,
+            }
+            return EventResponse(**_sanitize_event_dict(d))
+        raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found.")
+
+    # --- SESSION MANAGEMENT & HISTORY ENDPOINTS ---
+
+    @app.get("/api/sessions", response_model=List[SessionResponse])
+    async def list_sessions(
+        status: Optional[str] = None,
+        search: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0,
+    ):
+        """List historical and active exam monitoring sessions."""
+        sessions = ps.sessions.list_sessions(limit=limit, offset=offset, status=status, search=search)
+        resp = []
+        for s in sessions:
+            summary_dict = ps.sessions.get_session_summary(s.session_id)
+            resp.append(
+                SessionResponse(
+                    session_id=s.session_id,
+                    name=s.name,
+                    room=s.room,
+                    invigilator_name=s.invigilator_name,
+                    started_at=s.started_at,
+                    ended_at=s.ended_at,
+                    status=s.status,
+                    camera_count=s.camera_count,
+                    created_at=s.created_at,
+                    updated_at=s.updated_at,
+                    last_heartbeat_at=s.last_heartbeat_at,
+                    close_reason=s.close_reason,
+                    summary=SessionSummary(**summary_dict),
+                )
+            )
+        return resp
+
+    @app.get("/api/sessions/current", response_model=SessionResponse)
+    async def get_current_session():
+        """Retrieve the currently active monitoring session."""
+        active = ps.active_session or ps.sessions.get_active_session()
+        if not active:
+            raise HTTPException(status_code=404, detail="No active session found.")
+        summary_dict = ps.sessions.get_session_summary(active.session_id)
+        return SessionResponse(
+            session_id=active.session_id,
+            name=active.name,
+            room=active.room,
+            invigilator_name=active.invigilator_name,
+            started_at=active.started_at,
+            ended_at=active.ended_at,
+            status=active.status,
+            camera_count=active.camera_count,
+            created_at=active.created_at,
+            updated_at=active.updated_at,
+            last_heartbeat_at=active.last_heartbeat_at,
+            close_reason=active.close_reason,
+            summary=SessionSummary(**summary_dict),
+        )
+
+    @app.get("/api/sessions/{session_id}", response_model=SessionResponse)
+    async def get_session_detail(session_id: str):
+        """Retrieve details and KPI summary for a specific session."""
+        sess = ps.sessions.get_session(session_id)
+        if not sess:
+            raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
+        summary_dict = ps.sessions.get_session_summary(session_id)
+        return SessionResponse(
+            session_id=sess.session_id,
+            name=sess.name,
+            room=sess.room,
+            invigilator_name=sess.invigilator_name,
+            started_at=sess.started_at,
+            ended_at=sess.ended_at,
+            status=sess.status,
+            camera_count=sess.camera_count,
+            created_at=sess.created_at,
+            updated_at=sess.updated_at,
+            last_heartbeat_at=sess.last_heartbeat_at,
+            close_reason=sess.close_reason,
+            summary=SessionSummary(**summary_dict),
+        )
+
+    @app.patch("/api/sessions/{session_id}", response_model=SessionResponse)
+    async def update_session_meta(session_id: str, req: SessionUpdateRequest):
+        """Update session metadata (name, room, invigilator_name)."""
+        success = ps.update_session_metadata(
+            session_id=session_id,
+            name=req.name,
+            room=req.room,
+            invigilator_name=req.invigilator_name,
+        )
+        if not success:
+            raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
+        sess = ps.sessions.get_session(session_id)
+        summary_dict = ps.sessions.get_session_summary(session_id)
+        return SessionResponse(
+            session_id=sess.session_id,
+            name=sess.name,
+            room=sess.room,
+            invigilator_name=sess.invigilator_name,
+            started_at=sess.started_at,
+            ended_at=sess.ended_at,
+            status=sess.status,
+            camera_count=sess.camera_count,
+            created_at=sess.created_at,
+            updated_at=sess.updated_at,
+            last_heartbeat_at=sess.last_heartbeat_at,
+            close_reason=sess.close_reason,
+            summary=SessionSummary(**summary_dict),
+        )
+
+    @app.get("/api/sessions/{session_id}/events", response_model=List[EventResponse])
+    async def get_session_events(
+        session_id: str,
+        severity: Optional[str] = None,
+        review_status: Optional[str] = None,
+        limit: int = 500,
+    ):
+        """Retrieve all events belonging to a historical or active session."""
+        persisted_events = ps.events.list_events_by_session(
+            session_id=session_id,
+            severity=severity,
+            review_status=review_status,
+            limit=limit,
+        )
+        results = []
+        for pe in persisted_events:
+            obs = {}
+            if pe.observation_snapshot_json:
+                try:
+                    obs = json.loads(pe.observation_snapshot_json)
+                except Exception:
+                    pass
+            ev_sum = {}
+            if pe.evidence_summary_json:
+                try:
+                    ev_sum = json.loads(pe.evidence_summary_json)
+                except Exception:
+                    pass
+
+            latest_rev = ps.reviews.get_latest_review(pe.event_id)
+            reviewer_note = latest_rev.note if latest_rev else None
+
+            snap_path = ev_sum.get("snapshot_path") or ev_sum.get("open_snapshot_path")
+            clip_path = ev_sum.get("clip_path")
+            if not snap_path or not clip_path:
+                for evd in ps.evidence.list_evidence_for_event(pe.event_id):
+                    if evd.evidence_type == "SNAPSHOT" and not snap_path:
+                        snap_path = evd.relative_path
+                    elif evd.evidence_type == "VIDEO_CLIP" and not clip_path:
+                        clip_path = evd.relative_path
+
+            st_ts = datetime.fromisoformat(pe.opened_at).timestamp() if pe.opened_at else time.time()
+            et_ts = datetime.fromisoformat(pe.closed_at).timestamp() if pe.closed_at else st_ts
+
+            d = {
+                "event_id": pe.event_id,
+                "track_id": pe.track_id or 0,
+                "camera_id": pe.camera_id,
+                "timestamp": st_ts,
+                "start_time": st_ts,
+                "end_time": et_ts,
+                "event_type": pe.event_type,
+                "risk_level": pe.severity,
+                "score": pe.score,
+                "evidence": ev_sum,
+                "snapshot_path": _sanitize_evidence_path(snap_path),
+                "clip_path": _sanitize_evidence_path(clip_path),
+                "status": pe.review_status,
+                "lifecycle_status": pe.lifecycle_status,
+                "review_status": pe.review_status,
+                "observation_snapshot": obs,
+                "reviewer_notes": reviewer_note,
+                "event_origin": pe.source_origin,
+            }
+            results.append(EventResponse(**d))
+        return results
+
+    @app.get("/api/sessions/{session_id}/audit")
+    async def get_session_audit_logs(session_id: str):
+        """Retrieve audit log history for a session."""
+        logs = ps.audit.list_logs_for_session(session_id)
+        return [l.to_dict() for l in logs]
+
+    @app.post("/api/backup", response_model=BackupResponse)
+    async def trigger_backup():
+        """Create a complete local backup of ExamGuard database and evidence files."""
+        res = create_local_backup(ps)
+        return BackupResponse(**res)
+
+    @app.get("/api/backup/status")
+    async def get_backup_status():
+        """Retrieve the latest backup logs and status."""
+        logs = ps.audit.list_all_logs(limit=200)
+        backup_logs = [l.to_dict() for l in logs if "BACKUP" in l.action]
+        return {
+            "last_backup": backup_logs[-1] if backup_logs else None,
+            "total_backups": len(backup_logs),
+        }
+
+    @app.get("/api/retention/preview")
+    async def preview_retention_endpoint():
+        """Preview retention cleanup candidates without deletion."""
+        return preview_retention_candidates(ps)
 
     @app.get("/api/system/status", response_model=SystemStatusResponse)
     async def get_system_status():
@@ -526,7 +831,7 @@ def create_app(
             drop_percentage=drop_pct,
             queue_depth=q_depth,
             gpu_vram_allocated_mb=round(vram, 1),
-            evidence_storage_status="HEALTHY",
+            evidence_storage_status="HEALTHY" if ps.db.check_health() else "ERROR",
             operator_warnings=[],
         )
 

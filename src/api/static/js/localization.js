@@ -5,6 +5,13 @@
  */
 
 export const ALERT_SEMANTICS_TOOLTIP = "Mức cảnh báo dùng để ưu tiên giám thị xem xét, không phải kết luận gian lận.";
+export const TRACK_ID_TOOLTIP = "Mã theo dõi tạm thời của camera; có thể thay đổi khi đối tượng rời khung hình lâu.";
+
+export const SESSION_STATUS_VI = {
+  ACTIVE: { label: "Đang diễn ra", class: "status-active", color: "var(--color-live)" },
+  CLOSED: { label: "Đã kết thúc", class: "status-closed", color: "var(--text-secondary)" },
+  INTERRUPTED: { label: "Bị gián đoạn", class: "status-interrupted", color: "var(--color-medium)" },
+};
 
 export const POSTURE_NAMES_VI = {
   NORMAL_UPRIGHT: "Bình thường",

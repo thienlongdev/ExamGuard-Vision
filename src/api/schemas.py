@@ -113,3 +113,55 @@ class SystemStatusResponse(BaseModel):
     evidence_storage_status: Optional[str] = "HEALTHY"
     operator_warnings: Optional[List[str]] = None
 
+
+class SessionSummary(BaseModel):
+    total_events: int = 0
+    high_risk_count: int = 0
+    medium_risk_count: int = 0
+    low_risk_count: int = 0
+    awaiting_count: int = 0
+    confirmed_count: int = 0
+    dismissed_count: int = 0
+    duration_sec: float = 0.0
+
+
+class SessionResponse(BaseModel):
+    session_id: str
+    name: str
+    room: str
+    invigilator_name: Optional[str] = None
+    started_at: str
+    ended_at: Optional[str] = None
+    status: str
+    camera_count: int = 1
+    created_at: str
+    updated_at: str
+    last_heartbeat_at: Optional[str] = None
+    close_reason: Optional[str] = None
+    summary: Optional[SessionSummary] = None
+
+
+class SessionUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    room: Optional[str] = None
+    invigilator_name: Optional[str] = None
+
+
+class EvidenceVerifyResponse(BaseModel):
+    status: str
+    valid: bool
+    message: str
+    sha256: Optional[str] = None
+    expected_sha256: Optional[str] = None
+    actual_sha256: Optional[str] = None
+    relative_path: Optional[str] = None
+
+
+class BackupResponse(BaseModel):
+    success: bool
+    backup_id: str
+    backup_path: str
+    database_sha256: str
+    evidence_count: int
+    message: str
+

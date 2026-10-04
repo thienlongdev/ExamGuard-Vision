@@ -15,6 +15,7 @@ class DashboardState {
     this.systemStatus = null;
     this.systemModels = null;
     this.sessionStartTime = Date.now();
+    this.currentSession = null;
     this.listeners = new Set();
     this.wsStatus = "disconnected";
 
@@ -203,6 +204,11 @@ class DashboardState {
   setSystemModels(models) {
     this.systemModels = models;
     this.notify("SYSTEM_MODELS_UPDATED", models);
+  }
+
+  setCurrentSession(session) {
+    this.currentSession = session;
+    this.notify("CURRENT_SESSION_UPDATED", session);
   }
 
   // Derived KPIs based on human review status

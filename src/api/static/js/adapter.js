@@ -26,13 +26,20 @@ export function normalizeSnapshotUrl(rawPath) {
   let clean = rawPath.replace(/\\/g, "/");
 
   // Keep subpaths within known storage roots
-  const markers = ["storage/evidence/", "runs/local_live/", "evidence/"];
+  const markers = ["storage/sessions/", "storage/evidence/", "storage/", "runs/local_live/", "evidence/"];
   for (const marker of markers) {
     const idx = clean.indexOf(marker);
     if (idx !== -1) {
       const sub = clean.substring(idx + marker.length).replace(/^\/+/, "");
+      if (marker === "storage/sessions/") {
+        return `/api/evidence/sessions/${sub}`;
+      }
       return `/api/evidence/${sub}`;
     }
+  }
+
+  if (clean.startsWith("sessions/")) {
+    return `/api/evidence/${clean}`;
   }
 
   const snapIdx = clean.indexOf("snapshots/");
