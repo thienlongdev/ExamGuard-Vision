@@ -12,12 +12,12 @@ Every metric reported herein is accompanied by its explicit **Validation Origin*
 - **RAM**: 16 GB DDR5 (4800 MT/s)
 - **GPU**: NVIDIA GeForce RTX 3050 Laptop GPU (4,096 MB VRAM, GA107, compute capability 8.6)
 - **Host OS**: Microsoft Windows 11 Home 64-bit
-- **Runtime**: Python 3.13.11 64-bit, PyTorch 2.14.1+cu126, CUDA 12.6, DirectShow (`CAP_DSHOW`)
+- **Runtime**: Python 3.12 64-bit, PyTorch 2.14.1+cu126, CUDA 12.6, Microsoft Media Foundation (`CAP_MSMF`)
 
 ### 1.2 Physical Camera Discovery
-DirectShow device enumeration on the pilot hardware confirmed:
-- **Device Index 0**: `USB2.0 HD UVC WebCam` (Hardware ID `USB\VID_322E&PID_202C&MI_00\7&359322B1&0&0000`, 1280x720 @ 30 FPS, DirectShow). **Functional & Opened Successfully**.
-- **Device Index 1**: DirectShow probe returned `isOpened() == False`. No secondary physical camera is connected.
+Device enumeration on the pilot hardware confirmed:
+- **Device Index 0**: `USB2.0 HD UVC WebCam` (Hardware ID `USB\VID_322E&PID_202C&MI_00\7&359322B1&0&0000`, 1280x720 @ 30 FPS, Microsoft Media Foundation `CAP_MSMF`). **Functional & Certified**.
+- **Device Index 1**: Hardware probe returned `isOpened() == False`. No secondary physical camera is connected.
 
 **Authoritative Status**:
 - `AVAILABLE_PHYSICAL_CAMERAS = 1`

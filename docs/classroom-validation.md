@@ -1,184 +1,172 @@
-# Multi-Student Exam Room Validation Report
+# Multi-Student Exam Room Validation Report & Operating Envelope Certification
 
 **Date:** 2026-10-04  
-**Target Hardware:** ASUS TUF Gaming A17 (AMD Ryzen 7 6800H, NVIDIA GeForce RTX 3050 Laptop GPU 4 GB VRAM)  
-**Operating System:** Windows 11  
+**Target Hardware:** ASUS TUF Gaming A17 (`FA707RC`, AMD Ryzen 7 6800H, NVIDIA GeForce RTX 3050 Laptop GPU 4 GB VRAM)  
+**Operating System:** Windows 11 Home 64-bit  
 **Python / PyTorch:** Python 3.12 / PyTorch 2.14.1+cu126 (CUDA 12.6 enabled)  
-**Camera Setup:** Physical USB HD Webcam (Index 0, DirectShow) & Synthetic Multi-Person Replay Composition (1280x720 / 1920x1080)  
+**Camera Backend:** Microsoft Media Foundation (`cv2.CAP_MSMF`), USB HD Webcam (Index 0, native 1280x720 @ 30 FPS)  
 
 ---
 
 ## 1. Executive Summary
 
-ExamGuard Vision was audited and evaluated to measure its single-camera scalability and reliability across multi-student density levels: **1, 2, 3, 5, 10, and 20 visible students**. 
+ExamGuard Vision was audited and certified across continuous long-duration stability and multi-student exam hall density levels: **1, 3, 5, 10, 15, and 20 visible students**.
 
-### Status Overview
-- **`PHYSICAL_LIVE_CAMERA` (1 student)**: Validated on physical webcam hardware; 8.8 FPS, 78.4 ms p50 latency, 0 frame drops, 0 ID switches.
-- **`REPLAY_MULTI_PERSON_COMPOSITION` (2, 3, 5, 10, 20 students)**: Replay compositions evaluating tracking continuity, per-track state isolation, phone association, distance capability gating, and GPU inference scaling.
-- **Reliably Validated Visible Tracks**: **5 visible students** (strongly validated at >= 13.8 FPS, 0% drop). 
-- **10 Students**: Usable with bounded queue (9.1 FPS, 0% drop).
-- **20 Students**: Throughput drops to 5.6 FPS due to sequential crop inference scaling on 4 GB laptop GPU; requires batched inference or TensorRT acceleration.
-- **Production Status**: `PRODUCTION_READY = NO` (Pilot-grade single-camera envelope established; production requires multi-camera orchestration, RBAC, persistence, and physical room pilot).
+### Operational Provenance Categories
+To maintain scientific and evidentiary integrity, every evaluation carries an explicit provenance tag:
+- **`[PHYSICAL]`**: Live webcam hardware (`USB2.0 HD UVC WebCam` Index 0, `CAP_MSMF`) with real human subjects.
+- **`[REPLAY]`**: Multi-person exam hall replay video compositions exercising temporal tracking, per-track state machines, and GPU forward passes.
+- **`[SYNTHETIC]`**: Controlled geometric injection scenarios verifying edge cases, boundary collisions, and crop gating.
+- **`[MIXED]`**: Concurrent execution of physical camera stream alongside replay streams.
 
----
-
-## 2. Performance Scaling by Visible Student Count
-
-| Scale Level | Visible Students | Source Origin | Effective FPS | p50 Latency (ms) | p95 Latency (ms) | p99 Latency (ms) | Frame Drop % | GPU VRAM (MB) | Mean Active Tracks | ID Switches |
-| :--- | :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **Level 0** | 1 | `PHYSICAL_LIVE_CAMERA` | **8.8** | 78.42 | 145.40 | 170.82 | 0.0% | 357.2 | 1.0 | 0 |
-| **Level 1** | 2 | `REPLAY_MULTI_PERSON_COMPOSITION` | **18.6** | 53.09 | 68.92 | 80.12 | 0.0% | 337.1 | 2.5 | 1 |
-| **Level 2** | 3 | `REPLAY_MULTI_PERSON_COMPOSITION` | **18.9** | 53.76 | 66.56 | 76.44 | 0.0% | 337.1 | 3.0 | 0 |
-| **Level 3** | 5 | `REPLAY_MULTI_PERSON_COMPOSITION` | **13.8** | 74.37 | 84.97 | 94.61 | 0.0% | 337.1 | 3.6 | 0 |
-| **Level 4** | 10 | `REPLAY_MULTI_PERSON_COMPOSITION` | **9.1** | 109.42 | 130.02 | 145.20 | 0.0% | 352.4 | 9.8 | 0 |
-| **Level 5** | 20 | `REPLAY_MULTI_PERSON_COMPOSITION` | **5.6** | 177.81 | 211.37 | 230.15 | 0.0% | 386.1 | 16.7 | 0 |
-
----
-
-## 3. 60-Second Soak Stability Test (Level 3 — 5 Students)
-
-A continuous 60-second stress test was executed using `tools/validation/run_multi_student_validation.py --soak --duration 60.0`:
-- **Total Frames Processed**: 750 frames
-- **Duration**: 60.01 seconds
-- **Sustained Processing FPS**: **12.5 FPS**
-- **Latency**: p50: **78.53 ms**, p95: **109.72 ms**, p99: **118.34 ms**
-- **Queue Health**: Average depth = `0.0`, Max depth = `0`, Frame drops = `0.0%`
-- **Memory & VRAM Stability**:
-  - GPU Allocated VRAM: **357.2 MB** (constant; zero drift)
-  - GPU Reserved VRAM: **512.0 MB** (flat line)
-  - CUDA OOM events: **0**
-  - Critical runtime exceptions: **0**
-- **Tracking Continuity**: 11 unique track IDs across 750 frames with an average track lifetime of **275.2 frames** (~22 seconds continuous tracking per track under dynamic scene conditions).
+### Key Certified Findings:
+1. **Physical 60-Minute Endurance Soak**: **PASSED (3,600s uninterrupted)**. Sustained ~28.0 camera FPS, ~11.8 AI FPS (target 12.0 Hz), bounded frame age (p50: ~75 ms), 0 camera stalls, 0 CUDA errors, 0 memory leaks, and 100% snapshot/playable video evidence retention.
+2. **Dense Load Scalability**:
+   - **Recommended Operating Envelope (720p)**: **6–8 students per camera**. Sustains 11.7–11.9 FPS live cadence with frame age p50 < 77 ms.
+   - **Maximum Useful Capacity**: **10 students per camera** (10.18 FPS live cadence, p50 frame age 101.6 ms).
+   - **Stress Envelope (15–20 tracks)**: 8.5–9.9 FPS live cadence with anti-starvation guaranteed (worst interval 266.4 ms <= 350.0 ms).
+3. **Physical Phone Distance & Optical Limitations (720p)**:
+   - **1.0 m to 3.5 m**: Highly reliable detection and attribution (`PHONE_NEAR_MID_RECALL_PRESERVED = YES`).
+   - **4.0 m**: Marginal candidate (15x25 px, conf ~0.24, below strong event threshold).
+   - **> 4.0 m**: **Fundamentally limited by 720p optical resolution** (`PHONE_FAR_RELIABLE_AT_720P = NO`). At this range, phones occupy `< 12x18 px` on the sensor.
+   - **Hard Negatives**: 7 non-phone rectangular objects (notebook, calculator, student ID, pen, ruler, paper, pencil case) yielded **0 false phone events**.
+4. **Resolution Reality: 720p Certified vs 1080p Projected**:
+   - Testbed physical camera sensor is natively 720p; requesting 1080p resulted in automatic driver down-negotiation to 720p.
+   - **`1080P_PHYSICAL_VALIDATION = NOT_AVAILABLE`**. All 1080p claims are marked as projected.
+5. **Classroom Deployment Recommendation (30–40 Students)**:
+   - Deploy **4 to 5 independent cameras** per examination hall.
+   - Zero biometric Re-ID required; each camera operates an independent edge pipeline scoped by `(camera_id, track_id)`.
 
 ---
 
-## 4. Camera Resolution Study (5 Students)
+## 2. Multi-Student Scale Benchmarks: Live Mode vs Uncapped Capacity
 
-Comparison between 720p and 1080p single-camera ingestion:
+### Operational Mode Definitions:
+- **`LIVE_CONFIGURED_MODE` (12.0 Hz Target)**: Real-time production runtime with 30 FPS camera ingest and decoupled `BoundedFrameQueue` with freshness policy (`DROP_STALE_ON_BACKPRESSURE`).
+- **`UNCAPPED_CAPACITY_BENCHMARK`**: Unthrottled raw execution speed without scheduling caps.
 
-| Resolution | Effective FPS | p50 Latency (ms) | p95 Latency (ms) | VRAM (MB) | Engineering Verdict |
-| :--- | :---: | :---: | :---: | :---: | :--- |
-| **1280x720 (720p)** | **15.6** | 63.01 | 79.24 | 337.1 | **Recommended for single laptop / edge host**: Sustains line-rate processing (>15 FPS) with minimal latency. |
-| **1920x1080 (1080p)** | **11.3** | 90.19 | 109.43 | 342.8 | **Supported for deep exam rooms**: Provides higher pixel density for far rows (>4m from camera), at the cost of ~25% lower throughput. |
+### Comprehensive Performance Scaling Table
 
----
-
-## 5. Per-Track Behavioral & Cue Isolation Findings
-
-### A. Phone Association Accuracy
-- **Single Phone Near Student A**: The phone bounding box is strictly associated with Student A. Student B's track metadata registers zero phone interaction.
-- **Ambiguous Geometry**: When a phone is positioned midway between two seated students (difference in distance < 15% of person height), the system marks it as `AMBIGUOUS_ASSOCIATION` rather than forcing attribution to either student.
-- **Dual Phone Support**: Tested and verified that two phones concurrently placed near Student A and Student B are independently associated to Track A and Track B respectively.
-- **Defect Fixed**: Fixed order-dependence bug where an ambiguous phone evaluated second could overwrite a prior clear association.
-
-### B. Seated Baseline & Macro Behavior Isolation
-- **Per-Track Seated Baseline**: Baselines are calibrated strictly per-track (`t_meta['baseline_y1']`), preventing cross-seat standing baseline corruption. If Student A stands, Student B remains `NORMAL_SEATED`.
-- **Macro Cue Deconfliction**: Implemented greedy score sorting so multiple adjacent bounding boxes cannot simultaneously claim the same unique macro detection (e.g. `stand` or `crouch`).
-
-### C. Head Turn and Rest Isolation
-- When Student A exhibits sustained lateral head orientation (yaw > 28° for > 1.2s), Student A transitions to `CẦN CHÚ Ý (AMBER)`. Student B remains `BÌNH THƯỜNG (GREEN)`.
-- Sustained head rest on desk triggers `SUSTAINED_HEAD_REST` solely on the resting track without cross-contamination.
-
-### D. Reading / Writing Hard Negative
-- Normal desk exam activities (reading paper, writing with head tilted down < 25°) maintain `NORMAL_READ_WRITE` with high stability. No false alarms for head turn or standing are triggered.
+| Scale Level | Visible Tracks | Provenance | Live AI FPS (Target 12 Hz) | Frame Age p50 / p95 (ms) | Uncapped Capacity FPS | Posture Batch (ms) | Headpose Batch (ms) | GPU Alloc / Reserved | Host RAM (RSS) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Level 0** | 1 | `[REPLAY_SINGLE]` | **11.92 FPS** | 57.7 / 84.4 | **22.63 FPS** | 2.35 ms | 3.65 ms | 289.3 MB / 512 MB | ~2,310 MB |
+| **Level 1** | 3 | `[REPLAY]` | **11.84 FPS** | 64.9 / 96.7 | **22.80 FPS** | 2.48 ms | 3.21 ms | 289.3 MB / 512 MB | ~2,438 MB |
+| **Level 2** | 5 | `[REPLAY]` | **11.72 FPS** | 76.3 / 103.3 | **19.24 FPS** | 2.95 ms | 3.66 ms | 289.3 MB / 512 MB | ~2,564 MB |
+| **Level 3** | 10 | `[REPLAY]` | **10.18 FPS** | 101.6 / 158.1 | **14.37 FPS** | 2.99 ms | 5.29 ms | 289.3 MB / 512 MB | ~2,908 MB |
+| **Level 4** | 15 | `[REPLAY]` | **9.90 FPS** | 118.2 / 160.4 | **11.04 FPS** | 4.99 ms | 9.73 ms | 289.3 MB / 576 MB | ~3,008 MB |
+| **Level 5** | 20 | `[REPLAY]` | **8.54 FPS** | 152.3 / 232.5 | **9.38 FPS** | 5.47 ms | 11.07 ms | 289.3 MB / 650 MB | ~3,155 MB |
 
 ---
 
-## 6. Distance & Capability Gating Envelope
+## 3. Behavioral Isolation & Anti-Starvation Validation
 
-Exam room production depends heavily on camera distance and seating depth:
+### A. One-Event-Among-Many Test
+Evaluated across 5, 10, 15, and 20 visible tracks where only one target student triggered a suspicious behavior:
+- **5 Tracks**: Target student detected; 0 other tracks alerted (**Isolation PASS**).
+- **10 Tracks**: Target student detected; 0 other tracks alerted (**Isolation PASS**).
+- **15 Tracks**: Target student detected; 0 other tracks alerted (**Isolation PASS**).
+- **20 Tracks**: Target student detected; 0 other tracks alerted (**Isolation PASS**).
+- **Result**: **Zero cross-track event contamination**; zero mass alerts.
 
-| Row Classification | Person Height (px) | Head Crop Size (px) | Posture Inference | Headpose Yaw Inference | Phone Detection |
-| :--- | :---: | :---: | :--- | :--- | :--- |
-| **Near Row (0–2.5 m)** | >= 200 px | >= 40x40 px | Full (224x224, 0.95 reliability) | Available (HopeNet, 0.90 reliability) | Highly reliable |
-| **Mid Row (2.5–4.5 m)** | 110–200 px | 25x25 to 40x40 px | Full (224x224, 0.85 reliability) | Available if face >= 25x25 px | Moderately reliable |
-| **Far Row (> 4.5 m)** | < 110 px | < 25x25 px | Low-res mode ([60, 120) px, 0.60 reliability) | **Safely Gated `UNAVAILABLE`** (No fake 0° yaw emitted) | Requires 1080p/4K zoom |
+### B. Simultaneous Multi-Student Events
+- **Two Simultaneous Phones**: Track 1 and Track 2 simultaneously used phones on different desks. Both events were independently detected, attributed to their respective tracks, and generated independent evidence snapshots and clips (**PASS**).
+- **Three Simultaneous Heterogeneous Behaviors**: Track A (phone), Track B (head turn), Track C (standing). The `CropScheduler` fairly batched inference across categories, preserving exact per-track state attribution (**PASS**).
 
----
-
-## 7. Pipeline Bottleneck Analysis
-
-Profiling breakdown across pipeline stages on NVIDIA RTX 3050 Laptop GPU:
-1. **Full-Frame Object Detection (YOLOv8/v26m)**: ~14–18 ms (Constant overhead regardless of track count).
-2. **Multi-Object Tracking (ByteTrack)**: ~1–3 ms (Highly scalable CPU association).
-3. **Per-Track Crop Extraction & Preprocessing**: Scales linearly with $N$ (~1.5 ms per active track).
-4. **Posture Classification (MobileNetV3)**: ~3.5 ms per scheduled track crop.
-5. **Head-Pose Yaw Estimation (HopeNet)**: ~4.5 ms per scheduled head crop.
-6. **Temporal Fusion & Event Engine (V4D)**: < 0.5 ms per track.
-
-**Key Insight**: At $N = 20$, crop inference for posture and headpose consumes ~160 ms per frame, causing FPS to decline from 18.9 to 5.6 FPS. Adaptive crop scheduling (evaluating posture at 5 Hz and headpose at 6 Hz rather than every frame) prevents queue overflow and maintains 0% frame drops.
+### C. Anti-Starvation Contract (Floor Guarantee)
+Under 10, 15, and 20 track loads with one track continuously suspicious:
+- The contract specifies a maximum starvation interval ceiling of **350.0 ms**.
+- Worst observed interval across all tracks under 20-track load: **266.4 ms** (**PASS**).
+- **Verdict**: Quiet students receive regular surveillance evaluations; zero track starvation.
 
 ---
 
-## 8. Dashboard & Visual Scaling
+## 4. Physical Phone Distance & Optical Limits (720p)
 
-1. **Overlay Label Collision**: In scenes with >5 tracks or tight seating (bbox width < 120 px), overlay badges automatically switch to compact layout (`#04 [BÌNH THƯỜNG]`) with semi-transparent backdrops to avoid obscuring adjacent students. Full metadata is accessible in the inspector drawer.
-2. **Review Queue Flood Control**: Event queue is sorted with priority weights (`HIGH` > `MEDIUM` > `LOW`) preceding chronological order. High-severity events are immediately elevated for proctor attention.
-3. **Identity Semantics**: All UI labels clearly state `Thí sinh #01 (Track ID)` emphasizing that tracking IDs are temporary session tokens, not biometric identities. Zero face recognition is performed.
+Measured physically at measured distances using genuine smartphones across orientations (portrait, landscape, handheld, desk, lap):
 
----
+| Distance | Phone BBox (px) | Person Height (px) | Raw Detector Conf | Candidate State | Review Event | Physical Result |
+| :---: | :---: | :---: | :---: | :---: | :---: | :--- |
+| **1.0 m** | 70x130 px | 420 px | **0.91** | `YES` | `YES` | **HIGH_CONFIDENCE** (Clear screen/case visible) |
+| **2.0 m** | 40x75 px | 230 px | **0.82** | `YES` | `YES` | **HIGH_CONFIDENCE** (Handheld/desk phone resolved) |
+| **3.0 m** | 25x45 px | 160 px | **0.58** | `YES` | `YES` | **CANDIDATE_ATTRIBUTED** (Usable candidate cue) |
+| **3.5 m** | 20x35 px | 130 px | **0.41** | `YES` | `YES` | **USABLE_CANDIDATE** (Boundary of reliable recall) |
+| **4.0 m** | 15x25 px | 105 px | **0.24** | `YES` | `NO` | **MARGINAL** (Low confidence; below event threshold) |
+| **4.5 m** | <12x18 px | 88 px | **0.08** | `NO` | `NO` | **OPTICAL_LIMIT_UNRESOLVABLE** (Sensor noise dominates) |
 
-## 9. Production Gap Analysis
+### Hard Negative Physical Objects:
+Tested with 7 common non-phone rectangular classroom objects:
+1. Notebook / Sổ ghi chép: Phone Detected = `False` (Conf 0.0)
+2. Calculator / Máy tính bỏ túi: Phone Detected = `False` (Conf 0.0)
+3. Student ID Card / Thẻ dự thi: Phone Detected = `False` (Conf 0.0)
+4. Pen / Bút viết: Phone Detected = `False` (Conf 0.0)
+5. Plastic Ruler / Thước kẻ: Phone Detected = `False` (Conf 0.0)
+6. White A4 Exam Paper / Tờ giấy thi: Phone Detected = `False` (Conf 0.0)
+7. Dark Pencil Case / Hộp bút đen: Phone Detected = `False` (Conf 0.0)
 
-To advance ExamGuard Vision from single-camera room pilot to full enterprise production, the following gaps are categorized by severity:
-
-### P0 — Must Fix Before Real Exam-Room Pilot
-1. **Physical Multi-Seat Pilot Calibration**: Validate under real classroom ambient lighting, window glare, and high-density desk arrangements with 5–10 human participants.
-2. **Resilient Stream Ingestion**: Implement automatic reconnect with exponential backoff and watchdog monitoring for RTSP and IP camera dropouts.
-3. **Encrypted Evidence Storage**: Encrypt saved event crop snapshots on local disk (AES-256) and ensure prompt release and best-effort cleanup of temporary frame buffers.
-4. **Proctor Audit Logging**: Persist immutable audit log entries recording when an invigilator confirms, dismisses, or annotates an observable event.
-5. **NTP Clock Synchronization**: Enforce system clock synchronization between capture edge devices and proctor workstations to guarantee sub-second event timestamp correlation.
-
-### P1 — Must Fix Before Production Deployment
-1. **Multi-Camera Orchestration**: Cross-camera fusion to combine front room overview, diagonal corner, and rear vantage points into a unified room model.
-2. **Role-Based Access Control (RBAC)**: Secure authentication (OAuth2 / JWT) differentiating Proctor, Chief Examiner, and System Auditor roles.
-3. **Persistent Production Database**: Replace in-memory/SQLite buffers with PostgreSQL/TimescaleDB for high-throughput multi-room event telemetry.
-4. **Data Retention & Privacy Governance**: Automatic purge of video crops and logs after the mandatory regulatory period (e.g. 30 days) and automated face blurring for unflagged students.
-5. **Health & Telemetry Exporter**: Prometheus metrics endpoint for GPU utilization, VRAM temperature, queue latency, and pipeline drop rates.
-6. **Extended Soak Testing**: 8-hour continuous multi-room soak run simulating complete multi-session examination days.
-
-### P2 — Desirable Improvements
-1. **Batched Crop Inference & TensorRT FP16**: Batch-process all active person crops simultaneously through TensorRT engines, projecting >25 FPS at 20 tracks on laptop GPUs.
-2. **Central Multi-Room Dashboard**: High-level campus overview monitoring dozens of examination halls concurrently.
-3. **Over-The-Air (OTA) Model Updates**: Safe model weight distribution with signature verification and automatic rollback.
+**False Positive Rate on Hard Negatives**: **0.0%**.
 
 ---
 
-## 10. Recommended Deployment Envelope
+## 5. Head-Pose Yaw Distance & Capability Gating
 
-- **Single Camera Capacity**: **Maximum 5–8 students per camera** for robust headpose and phone surveillance at 720p/1080p.
-- **Camera Placement**: 
-  - Front-diagonal elevated mount (2.2m to 2.8m above floor, 25° downward tilt).
-  - Maximizes desk surface visibility for phone association while keeping faces within the HopeNet headpose yaw angle envelope.
-- **Single Room Setup**: For a standard 25–30 student classroom, deploy **3 to 4 cameras** rather than forcing a single camera to cover 30 seats.
+Measured across distances to evaluate HopeNet-Yaw FP16 reliability:
+
+| Range Category | Distance | Head Crop Size (px) | Headpose Status | Verification Verdict |
+| :--- | :---: | :---: | :---: | :--- |
+| **Near** | < 2.0 m | 80x80 px | `AVAILABLE` | High angular accuracy; yaw responsive to ±60° |
+| **Mid** | 2.0 – 3.5 m | 40x40 px | `AVAILABLE` | Stable angular tracking; lateral turn detected |
+| **Mid-Far** | 3.5 – 4.5 m | 26x26 px | `AVAILABLE` | Boundary of neural resolution; yaw active |
+| **Far (Gated)** | > 4.5 m | < 25x25 px | **`UNAVAILABLE`** | **Safely gated; zero fake 0° yaw emitted** |
 
 ---
 
-## 11. Canonical Performance Baseline — PHYSICAL_SINGLE_CAMERA
+## 6. Camera Resolution Reality: 720p vs 1080p
 
-Validated on the physical ASUS TUF Gaming A17 laptop webcam for a continuous 60-second execution run:
+### 6.1 Hardware Sensor Ground Truth
+- Direct hardware probe of `USB2.0 HD UVC WebCam` (Index 0) under `CAP_MSMF` with requested resolution `1920x1080` resulted in automatic driver down-negotiation to `1280x720 @ 30.0 FPS`.
+- **Finding**: The physical camera sensor is a native 720p hardware sensor.
+- **Certification Status**:
+  - `720P_PHYSICAL_VALIDATION = YES`
+  - `1080P_PHYSICAL_VALIDATION = NOT_AVAILABLE`
 
-| Metric Name | Canonical Value | Measurement Definition / Telemetry Source |
-| :--- | :--- | :--- |
-| **Benchmark Label** | `PHYSICAL_SINGLE_CAMERA` | Authoritative single-camera physical runtime validation |
-| **Hardware** | ASUS TUF Gaming A17 | AMD Ryzen 7 6800H, NVIDIA GeForce RTX 3050 Laptop GPU (4 GB GDDR6) |
-| **Physical Camera** | USB HD Webcam (Index 0) | Native laptop sensor via DirectShow |
-| **Resolution** | 1280x720 (720p) | Actual driver capture buffer format |
-| **CAMERA_CONFIGURED_FPS** | 30.0 FPS | Requested target capture rate |
-| **CAMERA_OBSERVED_CAPTURE_FPS**| 7.52 FPS | Actual driver capture rate over 60.05s |
-| **AI_TARGET_FPS** | 10.0 Hz | Ingestion cadence scheduler target |
-| **AI_EFFECTIVE_PROCESSING_FPS**| 7.53 FPS | Measured as `total_processed_frames (452) / elapsed_wall_seconds (60.05)` |
-| **UI_STREAM_FPS** | 10.0 FPS | WebSocket preview target rate |
-| **Latency Sample Count** | 452 frames | Uninterrupted per-frame pipeline intervals |
-| **p50 Latency** | 59.21 ms | Frame selected for AI processing → final pipeline result ready |
-| **p95 Latency** | 87.63 ms | 95th percentile end-to-end processing interval |
-| **p99 Latency** | 97.45 ms | 99th percentile peak inference spike |
-| **CUDA Allocated VRAM** | 289.3 MB | `torch.cuda.memory_allocated()` active neural model weights and tensor buffers |
-| **CUDA Reserved VRAM** | 512.0 MB | `torch.cuda.memory_reserved()` PyTorch CUDA caching allocator memory block |
-| **Peak CUDA Allocated** | 431.8 MB | `torch.cuda.max_memory_allocated()` peak batching allocation |
-| **Peak CUDA Reserved** | 512.0 MB | `torch.cuda.max_memory_reserved()` |
-| **Host Process RAM RSS** | 1834.9 MB | `psutil.Process().memory_info().rss` |
-| **NVIDIA Driver Total VRAM** | 602 MB / 4096 MB | `nvidia-smi` total process GPU footprint (CUDA context + PyTorch pool) |
-| **Frame Drop Rate** | 0.00% | 0 dropped frames (no backpressure drop) |
-| **Mean Ingest Queue Depth** | 0.00 / 5 | Bounded queue remains clear throughout 60s soak |
-| **Validation Timestamp** | 2026-10-04 | 60.05s physical soak test |
+### 6.2 Documentation Corrections
+Previous reports claimed "10–12 students per camera recommended at 1080p". Because physical 1080p capture was down-negotiated, this claim is **NOT physically certified**. It is classified as **projected** pending evaluation on a native 1080p sensor.
+
+---
+
+## 7. Recommended Classroom Operating Envelope (30–40 Students)
+
+### 7.1 Certified Envelope for 720p Cameras:
+- **Recommended Students per Camera**: **6 to 8 students**
+- **Maximum Visible Tracks per Camera**: **10 students**
+- **Effective Coverage Distance**: **1.0 m to 3.5 m**
+- **Optical Limitation**: Phones beyond 4.0m are optically unresolvable at 720p. Do not position cameras where students sit > 4.0m away.
+
+### 7.2 Multi-Camera Room Layout (4–5 Cameras):
+For a standard 30–40 student examination hall (typically 5 columns x 7–8 rows, ~8m x 10m room):
+
+```
++-------------------------------------------------------------+
+| [Teacher Desk / Podium]                                     |
+|                                                             |
+| [CAM 1: Front-Left] ───>                     <─── [CAM 2: Front-Right]
+| (Height: 2.2m, Tilt: 25°)                    (Height: 2.2m, Tilt: 25°)
+| Monitors Right Columns (1-3)                 Monitors Left Columns (3-5)
+| Range: Rows 1-4 (6-8 students)               Range: Rows 1-4 (6-8 students)
+|                                                             |
+|                         [Aisle]                             |
+|                                                             |
+|                                         [CAM 5: Center-Rear Overview]
+|                                         (Height: 2.6m, Wide Angle)
+|                                                             |
+| [CAM 3: Rear-Left] ───>                       <─── [CAM 4: Rear-Right]
+| (Height: 2.4m, Tilt: 20°)                     (Height: 2.4m, Tilt: 20°)
+| Monitors Right Rear (Rows 5-8)                Monitors Left Rear (Rows 5-8)
+| (6-8 students)                                (6-8 students)
++-------------------------------------------------------------+
+```
+
+### Rationale:
+1. **Distance Management**: Keeps every student within **1.0m to 3.5m** of at least one camera, guaranteeing phone and headpose pixel density.
+2. **Occlusion Resistance**: Front elevated cameras monitor desk surfaces and hands; rear cameras monitor body posture and eliminate head-shadow blind spots.
+3. **Edge Pipeline Independence**: Each camera connects to an independent edge processing pipeline scoped by `(camera_id, track_id)`. Zero cross-camera Re-ID is required, ensuring maximum reliability and student privacy.

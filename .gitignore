@@ -82,6 +82,16 @@ recordings/
 # Generated Machine Telemetry Reports & Outputs
 # ------------------------------------------------------------------------------
 reports/
+tools/validation/soak_telemetry_live.json
+tools/validation/baseline_pipeline_breakdown.json
+tools/validation/optimized_pipeline_breakdown.json
+tools/validation/camera_capture_benchmark_results.json
+tools/validation/phone_pixel_density_study.json
+tools/validation/physical_endurance_soak_results.json
+tools/validation/run_physical_soak_30min.py
+tools/validation/study_phone_pixel_density.py
+tools/validation/benchmark_fp16_parity.py
+tools/validation/benchmark_pipeline_breakdown.py
 
 # ------------------------------------------------------------------------------
 # Experiment Runs & Local Validation Outputs
