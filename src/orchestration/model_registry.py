@@ -11,6 +11,7 @@ import logging
 import os
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple
+import threading
 import torch
 import torch.nn as nn
 
@@ -130,6 +131,7 @@ class ModelRegistry:
             "cuda:0" if torch.cuda.is_available() and self.config.get("device", "cuda:0").startswith("cuda") else "cpu"
         )
         self.models_cfg = self.config.get("models", {})
+        self.inference_lock = threading.RLock()
 
         # Registry metadata dictionary
         self._registry_metadata: Dict[str, Dict[str, Any]] = {}

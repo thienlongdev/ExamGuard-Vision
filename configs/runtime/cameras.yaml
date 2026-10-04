@@ -1,0 +1,21 @@
+# ExamGuard Vision Multi-Camera Configuration
+# ============================================
+# Manages multi-camera edge ingestion on single node (ASUS TUF A17 / RTX 3050).
+# Track IDs are strictly scoped to (camera_id, track_id).
+# Cross-camera person re-identification and facial recognition are STRICTLY PROHIBITED.
+
+version: "2.0-orchestration"
+max_buffer_mb_per_camera: 64
+default_camera_id: "cam01"
+
+cameras:
+  - camera_id: "cam01"
+    name: "Camera phòng thi 1"
+    source_type: "webcam"
+    device_index: 0
+    source_uri_ref: null
+    enabled: true
+    resolution_width: 1280
+    resolution_height: 720
+    target_capture_fps: 30.0
+    room: "Phòng thi chính"

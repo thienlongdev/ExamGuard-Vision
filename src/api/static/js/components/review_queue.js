@@ -41,11 +41,14 @@ export class ReviewQueueComponent {
             <span class="queue-subtext">Quan sát theo thời gian thực</span>
           </div>
 
-          <div class="queue-filter-tabs">
+          <div class="queue-filter-tabs" style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
             <button class="filter-tab active" data-filter="all" id="tab-filter-all">Tất cả</button>
             <button class="filter-tab" data-filter="awaiting" id="tab-filter-awaiting">Chờ duyệt</button>
             <button class="filter-tab" data-filter="reviewed" id="tab-filter-reviewed">Đã xác nhận</button>
             <button class="filter-tab" data-filter="dismissed" id="tab-filter-dismissed">Đã bỏ qua</button>
+            <select id="queue-camera-select" style="background: #1e293b; color: #cbd5e1; border: 1px solid #334155; border-radius: 4px; padding: 2px 6px; font-size: 0.75rem; margin-left: auto;">
+              <option value="all">Tất cả camera</option>
+            </select>
           </div>
         </div>
 
@@ -71,6 +74,13 @@ export class ReviewQueueComponent {
         appState.setFilter(filter);
       });
     });
+
+    const camSel = this.container.querySelector("#queue-camera-select");
+    if (camSel) {
+      camSel.addEventListener("change", (e) => {
+        appState.setCameraFilter(e.target.value);
+      });
+    }
   }
 
   renderQueue() {
@@ -156,6 +166,7 @@ export class ReviewQueueComponent {
               <div class="card-details">
                 <div class="card-meta-line">
                   <span>Thí sinh: <strong>#${ev.trackId}</strong></span>
+                  <span class="cam-badge" style="background: rgba(255,255,255,0.08); padding: 1px 5px; border-radius: 3px; font-size: 0.72rem; color: #94a3b8;">${ev.cameraId || 'cam01'}</span>
                   ${ev.duration ? `<span>·</span><span>${formatDuration(ev.duration)}</span>` : ""}
                 </div>
 

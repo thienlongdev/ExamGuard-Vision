@@ -192,6 +192,8 @@ class Stage2Pipeline:
         config_path: str = "configs/stage2_pipeline.yaml",
         video_source: Optional[VideoSource] = None,
         enable_debug_overlay: bool = True,
+        camera_id: Optional[str] = None,
+        model_registry: Optional[ModelRegistry] = None,
     ):
         self.config_path = config_path
         with open(config_path, "r", encoding="utf-8") as f:
@@ -201,7 +203,7 @@ class Stage2Pipeline:
         self.enable_debug_overlay = enable_debug_overlay
 
         # 1. Model Registry (Singleton, cached, self-describing, warmed up)
-        self.registry = ModelRegistry.get_instance(self.config)
+        self.registry = model_registry or ModelRegistry.get_instance(self.config)
         self.registry.initialize_models()
 
         # 2. Tracking (ByteTrack)
@@ -269,13 +271,15 @@ class Stage2Pipeline:
         )
 
         # 9. Video Source
+        vs_cfg = self.config.get("video_source", {})
+        cid = camera_id or vs_cfg.get("camera_id", "cam_0")
+        self.camera_id = cid
+
         if video_source is not None:
             self.source = video_source
         else:
-            vs_cfg = self.config.get("video_source", {})
             stype = vs_cfg.get("default_type", "video_file")
             spath = vs_cfg.get("default_path", "samples/sample_exam.mp4")
-            cid = vs_cfg.get("camera_id", "cam_0")
             fps = float(vs_cfg.get("target_fps", 30.0))
             self.source = create_video_source(source_type=stype, source=spath, source_id=cid, fps=fps)
 
@@ -491,7 +495,8 @@ class Stage2Pipeline:
             track_ms = 0.0
         else:
             t_det_start = time.perf_counter()
-            detections = self.registry.detector.detect(frame)
+            with self.registry.inference_lock:
+                detections = self.registry.detector.detect(frame)
             t_det_end = time.perf_counter()
             general_det_ms = (t_det_end - t_det_start) * 1000.0
 
@@ -549,14 +554,16 @@ class Stage2Pipeline:
         phone_assoc_ms = (t_phone_end - t_phone_start) * 1000.0
 
         # 4. Cadence-scheduled batched GPU crop inference (Posture & Head-Pose)
-        posture_cues, headpose_cues, crop_timings = self.crop_scheduler.schedule_and_infer(frame, tracks, ts)
+        with self.registry.inference_lock:
+            posture_cues, headpose_cues, crop_timings = self.crop_scheduler.schedule_and_infer(frame, tracks, ts)
 
         # 5. Macro behavior detection with cadence gating
         time_since_macro = ts - self._last_macro_timestamp
         if self._last_macro_timestamp < 0.0 or time_since_macro >= (self.macro_interval - 1e-4):
             t_macro_start = time.perf_counter()
             person_boxes = [t.bbox for t in tracks]
-            macro_dets = self.registry.macro_detector.detect(frame, person_boxes)
+            with self.registry.inference_lock:
+                macro_dets = self.registry.macro_detector.detect(frame, person_boxes)
             t_macro_end = time.perf_counter()
             macro_ms = (t_macro_end - t_macro_start) * 1000.0
             self._last_macro_timestamp = ts

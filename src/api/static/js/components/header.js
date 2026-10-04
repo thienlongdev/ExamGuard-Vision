@@ -97,6 +97,21 @@ export class HeaderComponent {
         </div>
 
         <div class="header-clock" id="header-clock">--:--:--</div>
+
+        <div class="user-profile-badge" id="header-user-badge" style="display: flex; align-items: center; gap: 8px; padding-left: 8px; border-left: 1px solid var(--color-border, #1e293b);">
+          <div class="user-info" style="display: flex; flex-direction: column; text-align: right;">
+            <span id="header-user-name" style="font-size: 0.8rem; font-weight: 600; color: #f1f5f9;">—</span>
+            <span id="header-user-role" style="font-size: 0.7rem; color: #10b981; font-weight: 500;">—</span>
+          </div>
+          <button id="header-logout-btn" title="Đăng xuất khỏi hệ thống" style="background: rgba(239, 68, 68, 0.12); border: 1px solid rgba(239, 68, 68, 0.35); color: #f87171; border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Đăng xuất</span>
+          </button>
+        </div>
       </div>
     `;
   }
@@ -108,6 +123,29 @@ export class HeaderComponent {
         appState.setView(view);
       });
     });
+
+    const logoutBtn = this.container.querySelector("#header-logout-btn");
+    if (logoutBtn) {
+      logoutBtn.addEventListener("click", async () => {
+        const { ApiClient } = await import("../api.js");
+        ApiClient.logout();
+      });
+    }
+
+    this.loadUserProfile();
+  }
+
+  async loadUserProfile() {
+    try {
+      const { ApiClient } = await import("../api.js");
+      const auth = await ApiClient.initAuth();
+      if (auth && auth.user) {
+        const nameEl = document.getElementById("header-user-name");
+        const roleEl = document.getElementById("header-user-role");
+        if (nameEl) nameEl.innerText = auth.user.display_name || auth.user.username;
+        if (roleEl) roleEl.innerText = auth.role_display || auth.user.role;
+      }
+    } catch {}
   }
 
   updateNavActive(viewName) {

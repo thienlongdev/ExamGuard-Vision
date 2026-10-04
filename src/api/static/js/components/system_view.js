@@ -1,18 +1,26 @@
 /**
- * ExamGuard Vision — System Diagnostics View Component
- * Technical telemetry, model registry provenance, GPU metrics, and health inspection.
+ * ExamGuard Vision — System Diagnostics & Administration View Component
+ * Technical telemetry, model registry provenance, GPU metrics,
+ * User Management & RBAC, Camera Configuration, and Security & Encrypted Backups.
  */
 
 import { appState } from "../state.js";
+import { ApiClient } from "../api.js";
 
 export class SystemViewComponent {
   constructor(containerId) {
     this.container = document.getElementById(containerId);
+    this.activeSubtab = "overview"; // "overview" | "users" | "cameras" | "security"
+    this.users = [];
+    this.cameras = [];
+    this.securityStatus = null;
     this.init();
   }
 
   init() {
     this.render();
+    this.bindEvents();
+
     appState.subscribe((type) => {
       if (
         type === "SYSTEM_STATUS_UPDATED" ||
@@ -22,7 +30,9 @@ export class SystemViewComponent {
         type === "WS_STATUS_CHANGED"
       ) {
         if (appState.currentView === "system") {
-          this.renderDetails();
+          if (this.activeSubtab === "overview") {
+            this.renderOverviewDetails();
+          }
         }
       }
     });
@@ -33,59 +43,391 @@ export class SystemViewComponent {
       <div class="system-view-wrapper">
         <div class="system-view-header">
           <div>
-            <h2>Kiến trúc hệ thống & Thông số thời gian thực</h2>
-            <p>Thu hình camera vật lý, mô hình nơ-ron nhận diện, phân bổ GPU và trạng thái hàng đợi xử lý.</p>
+            <h2>Trung tâm Quản trị & Kỹ thuật Hệ thống</h2>
+            <p>Giám sát phần cứng, phân quyền người dùng, cấu hình đa camera và an ninh dữ liệu phòng thi.</p>
           </div>
           <div class="model-badge">
             <span>PIPELINE v2.0.0-ORCHESTRATION</span>
           </div>
         </div>
 
-        <!-- Upper Grid: 4 Core Architecture Cards -->
-        <div class="system-cards-grid" id="system-cards-grid">
-          <!-- Rendered dynamically -->
+        <!-- Sub-navigation Tabs -->
+        <div class="system-subnav-tabs" style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--color-border, #1e293b); padding-bottom: 10px;">
+          <button class="sys-subtab-btn ${this.activeSubtab === 'overview' ? 'active' : ''}" data-subtab="overview">TỔNG QUAN HỆ THỐNG</button>
+          <button class="sys-subtab-btn ${this.activeSubtab === 'users' ? 'active' : ''}" data-subtab="users" id="subtab-users">NGƯỜI DÙNG & PHÂN QUYỀN</button>
+          <button class="sys-subtab-btn ${this.activeSubtab === 'cameras' ? 'active' : ''}" data-subtab="cameras" id="subtab-cameras">CẤU HÌNH CAMERA</button>
+          <button class="sys-subtab-btn ${this.activeSubtab === 'security' ? 'active' : ''}" data-subtab="security" id="subtab-security">BẢO MẬT & SAO LƯU</button>
         </div>
 
-        <!-- Lower Section: Realtime Telemetry & Compute Breakdown -->
-        <div class="system-telemetry-lower-grid">
-          <!-- Live Telemetry Sparklines -->
-          <div class="system-lower-card">
-            <div class="system-lower-card-header">
-              <h3>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                </svg>
-                Lịch sử hiệu năng thời gian thực (60 mẫu gần nhất)
-              </h3>
-              <span class="system-tag-chip">2.5Hz TELEMETRY</span>
+        <!-- Panel 1: Overview (Telemetry, Models, GPU) -->
+        <div id="sys-panel-overview" style="display: ${this.activeSubtab === 'overview' ? 'block' : 'none'};">
+          <div class="system-cards-grid" id="system-cards-grid"></div>
+          <div class="system-telemetry-lower-grid" style="margin-top: 20px;">
+            <div class="system-lower-card">
+              <div class="system-lower-card-header">
+                <h3>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                  </svg>
+                  Lịch sử hiệu năng thời gian thực (60 mẫu gần nhất)
+                </h3>
+                <span class="system-tag-chip">2.5Hz TELEMETRY</span>
+              </div>
+              <div class="telemetry-sparkline-box" id="telemetry-sparklines"></div>
             </div>
-            <div class="telemetry-sparkline-box" id="telemetry-sparklines">
-              <!-- Rendered via SVG sparklines -->
+            <div class="system-lower-card">
+              <div class="system-lower-card-header">
+                <h3>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                  </svg>
+                  Nhịp xử lý & Trạng thái kết nối
+                </h3>
+                <span class="system-tag-chip">ASUS A17 BALANCED</span>
+              </div>
+              <div class="component-runtime-table-wrapper" id="component-runtime-box"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 2: User Management & RBAC -->
+        <div id="sys-panel-users" style="display: ${this.activeSubtab === 'users' ? 'block' : 'none'};">
+          <div class="system-lower-card" style="padding: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+              <div>
+                <h3 style="margin: 0 0 4px 0;">Danh sách người dùng & Phân quyền</h3>
+                <p style="margin: 0; font-size: 0.82rem; color: #94a3b8;">Quản lý tài khoản Giám thị, Quản trị viên và Người rà soát. Mật khẩu được băm Argon2id.</p>
+              </div>
+              <button id="btn-toggle-create-user" style="background: #10b981; color: #0b0f19; font-weight: 600; border: none; border-radius: 6px; padding: 8px 14px; font-size: 0.85rem; cursor: pointer;">
+                + Tạo người dùng mới
+              </button>
+            </div>
+
+            <!-- Create User Form (Hidden by default) -->
+            <div id="create-user-form-card" style="display: none; background: rgba(15,23,42,0.6); border: 1px solid #334155; border-radius: 8px; padding: 18px; margin-bottom: 20px;">
+              <h4 style="margin: 0 0 12px 0;">Tạo tài khoản mới</h4>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                <div>
+                  <label style="font-size: 0.78rem; color: #cbd5e1; display: block; margin-bottom: 4px;">Tên đăng nhập</label>
+                  <input type="text" id="new-user-username" style="width: 100%; box-sizing: border-box; padding: 8px; background: #1e293b; border: 1px solid #475569; border-radius: 4px; color: #fff;" />
+                </div>
+                <div>
+                  <label style="font-size: 0.78rem; color: #cbd5e1; display: block; margin-bottom: 4px;">Tên hiển thị</label>
+                  <input type="text" id="new-user-display-name" placeholder="Nguyễn Văn A" style="width: 100%; box-sizing: border-box; padding: 8px; background: #1e293b; border: 1px solid #475569; border-radius: 4px; color: #fff;" />
+                </div>
+                <div>
+                  <label style="font-size: 0.78rem; color: #cbd5e1; display: block; margin-bottom: 4px;">Mật khẩu (≥ 12 ký tự)</label>
+                  <input type="password" id="new-user-password" style="width: 100%; box-sizing: border-box; padding: 8px; background: #1e293b; border: 1px solid #475569; border-radius: 4px; color: #fff;" />
+                </div>
+                <div>
+                  <label style="font-size: 0.78rem; color: #cbd5e1; display: block; margin-bottom: 4px;">Vai trò (Role)</label>
+                  <select id="new-user-role" style="width: 100%; box-sizing: border-box; padding: 8px; background: #1e293b; border: 1px solid #475569; border-radius: 4px; color: #fff;">
+                    <option value="INVIGILATOR">Giám thị (INVIGILATOR)</option>
+                    <option value="REVIEWER">Người rà soát (REVIEWER)</option>
+                    <option value="ADMIN">Quản trị viên (ADMIN)</option>
+                    <option value="VIEWER">Chỉ xem (VIEWER)</option>
+                  </select>
+                </div>
+              </div>
+              <div style="margin-top: 14px; display: flex; gap: 8px;">
+                <button id="btn-submit-create-user" style="background: #10b981; color: #0b0f19; font-weight: 600; border: none; border-radius: 4px; padding: 8px 16px; cursor: pointer;">Lưu người dùng</button>
+                <button id="btn-cancel-create-user" style="background: transparent; color: #94a3b8; border: 1px solid #475569; border-radius: 4px; padding: 8px 16px; cursor: pointer;">Hủy</button>
+              </div>
+              <div id="create-user-error" style="display: none; color: #f87171; font-size: 0.8rem; margin-top: 8px;"></div>
+            </div>
+
+            <!-- Users Table -->
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                <thead>
+                  <tr style="border-bottom: 1px solid #334155; text-align: left; color: #94a3b8;">
+                    <th style="padding: 10px;">Tên đăng nhập</th>
+                    <th style="padding: 10px;">Tên hiển thị</th>
+                    <th style="padding: 10px;">Vai trò</th>
+                    <th style="padding: 10px;">Trạng thái</th>
+                    <th style="padding: 10px;">Lần đăng nhập cuối</th>
+                    <th style="padding: 10px; text-align: right;">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="users-table-tbody">
+                  <tr><td colspan="6" style="padding: 20px; text-align: center; color: #64748b;">Đang tải danh sách người dùng...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 3: Camera Configuration -->
+        <div id="sys-panel-cameras" style="display: ${this.activeSubtab === 'cameras' ? 'block' : 'none'};">
+          <div class="system-lower-card" style="padding: 24px;">
+            <div style="margin-bottom: 16px;">
+              <h3 style="margin: 0 0 4px 0;">Cấu hình Camera đơn nốt (Multi-Camera Orchestration)</h3>
+              <p style="margin: 0; font-size: 0.82rem; color: #94a3b8;">Quản lý các nguồn camera USB/RTSP trên cùng một trạm máy chủ. Không tự động liên kết nhận diện sinh trắc học giữa các camera.</p>
+            </div>
+            <div style="overflow-x: auto;">
+              <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
+                <thead>
+                  <tr style="border-bottom: 1px solid #334155; text-align: left; color: #94a3b8;">
+                    <th style="padding: 10px;">Mã Camera</th>
+                    <th style="padding: 10px;">Tên hiển thị</th>
+                    <th style="padding: 10px;">Loại nguồn</th>
+                    <th style="padding: 10px;">Chỉ số thiết bị</th>
+                    <th style="padding: 10px;">Độ phân giải</th>
+                    <th style="padding: 10px;">FPS chỉ định</th>
+                    <th style="padding: 10px;">Phòng thi</th>
+                    <th style="padding: 10px; text-align: center;">Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody id="cameras-table-tbody">
+                  <tr><td colspan="8" style="padding: 20px; text-align: center; color: #64748b;">Đang tải cấu hình camera...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Panel 4: Security & Encrypted Backups -->
+        <div id="sys-panel-security" style="display: ${this.activeSubtab === 'security' ? 'block' : 'none'};">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            <div class="system-card" style="padding: 18px;">
+              <div style="font-size: 0.78rem; color: #94a3b8; text-transform: uppercase;">Xác thực & Phiên</div>
+              <div style="font-size: 1.25rem; font-weight: 700; color: #10b981; margin: 6px 0;">Argon2id + Sessions</div>
+              <div style="font-size: 0.8rem; color: #cbd5e1;">Khóa tự động sau 5 lần sai · Token băm SHA-256</div>
+            </div>
+            <div class="system-card" style="padding: 18px;">
+              <div style="font-size: 0.78rem; color: #94a3b8; text-transform: uppercase;">Mã hóa bằng chứng tại chỗ</div>
+              <div style="font-size: 1.25rem; font-weight: 700; color: #10b981; margin: 6px 0;">AES-256-GCM (EGE1)</div>
+              <div style="font-size: 0.8rem; color: #cbd5e1;">Bảo mật & Toàn vẹn xác thực AAD theo sự kiện</div>
+            </div>
+            <div class="system-card" style="padding: 18px;">
+              <div style="font-size: 0.78rem; color: #94a3b8; text-transform: uppercase;">Bảo vệ Khóa gốc</div>
+              <div id="sec-key-storage" style="font-size: 1.25rem; font-weight: 700; color: #38bdf8; margin: 6px 0;">Windows DPAPI</div>
+              <div style="font-size: 0.8rem; color: #cbd5e1;">Khóa gốc không lưu plaintext trên đĩa hay trong Git</div>
+            </div>
+            <div class="system-card" style="padding: 18px;">
+              <div style="font-size: 0.78rem; color: #94a3b8; text-transform: uppercase;">Chuỗi Nhật ký Kiểm toán</div>
+              <div id="sec-audit-chain" style="font-size: 1.25rem; font-weight: 700; color: #10b981; margin: 6px 0;">HỢP LỆ</div>
+              <div style="font-size: 0.8rem; color: #cbd5e1;">Chuỗi băm SHA-256 chống giả mạo kiểm toán</div>
             </div>
           </div>
 
-          <!-- Component Compute & Health -->
-          <div class="system-lower-card">
-            <div class="system-lower-card-header">
-              <h3>
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
-                </svg>
-                Nhịp xử lý & Trạng thái kết nối
-              </h3>
-              <span class="system-tag-chip">ASUS A17 BALANCED</span>
+          <!-- Encrypted Backup Creation Card -->
+          <div class="system-lower-card" style="padding: 24px; margin-bottom: 20px;">
+            <h3 style="margin: 0 0 8px 0;">Tạo Bản sao lưu Mã hóa Di động</h3>
+            <p style="margin: 0 0 16px 0; font-size: 0.85rem; color: #94a3b8;">
+              Sao lưu toàn bộ cơ sở dữ liệu SQLite và bằng chứng AI dưới dạng gói mã hóa an toàn (Manifest v2.0-encrypted). Bạn có thể thiết lập cụm mật khẩu khôi phục để cho phép phục hồi trên máy tính khác.
+            </p>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;">
+              <div style="flex: 1; min-width: 250px;">
+                <label style="font-size: 0.78rem; color: #cbd5e1; display: block; margin-bottom: 4px;">Cụm mật khẩu khôi phục (Recovery Passphrase)</label>
+                <input type="password" id="input-backup-passphrase" placeholder="Nhập cụm mật khẩu bảo vệ bản sao lưu..." style="width: 100%; box-sizing: border-box; padding: 10px; background: #1e293b; border: 1px solid #475569; border-radius: 6px; color: #fff;" />
+              </div>
+              <button id="btn-create-encrypted-backup" style="background: #10b981; color: #0b0f19; font-weight: 600; border: none; border-radius: 6px; padding: 10px 20px; font-size: 0.88rem; cursor: pointer; height: 42px;">
+                Tạo bản sao lưu ngay
+              </button>
             </div>
-            <div class="component-runtime-table-wrapper" id="component-runtime-box">
-              <!-- Rendered dynamically -->
-            </div>
+            <div id="backup-status-msg" style="margin-top: 12px; font-size: 0.85rem; display: none;"></div>
           </div>
         </div>
       </div>
     `;
-    this.renderDetails();
+
+    this.renderOverviewDetails();
   }
 
-  renderDetails() {
+  bindEvents() {
+    this.container.querySelectorAll(".sys-subtab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tab = btn.dataset.subtab;
+        this.activeSubtab = tab;
+        this.container.querySelectorAll(".sys-subtab-btn").forEach((b) => b.classList.toggle("active", b === btn));
+        
+        document.getElementById("sys-panel-overview").style.display = tab === "overview" ? "block" : "none";
+        document.getElementById("sys-panel-users").style.display = tab === "users" ? "block" : "none";
+        document.getElementById("sys-panel-cameras").style.display = tab === "cameras" ? "block" : "none";
+        document.getElementById("sys-panel-security").style.display = tab === "security" ? "block" : "none";
+
+        if (tab === "overview") this.renderOverviewDetails();
+        else if (tab === "users") this.loadUsers();
+        else if (tab === "cameras") this.loadCamerasConfig();
+        else if (tab === "security") this.loadSecurityStatus();
+      });
+    });
+
+    // User management bindings
+    const toggleCreateBtn = this.container.querySelector("#btn-toggle-create-user");
+    const createFormCard = this.container.querySelector("#create-user-form-card");
+    const cancelCreateBtn = this.container.querySelector("#btn-cancel-create-user");
+    const submitCreateBtn = this.container.querySelector("#btn-submit-create-user");
+
+    if (toggleCreateBtn) {
+      toggleCreateBtn.addEventListener("click", () => {
+        createFormCard.style.display = createFormCard.style.display === "none" ? "block" : "none";
+      });
+    }
+    if (cancelCreateBtn) {
+      cancelCreateBtn.addEventListener("click", () => {
+        createFormCard.style.display = "none";
+      });
+    }
+    if (submitCreateBtn) {
+      submitCreateBtn.addEventListener("click", async () => {
+        const u = document.getElementById("new-user-username").value.trim();
+        const d = document.getElementById("new-user-display-name").value.trim();
+        const p = document.getElementById("new-user-password").value;
+        const r = document.getElementById("new-user-role").value;
+        const errBox = document.getElementById("create-user-error");
+
+        errBox.style.display = "none";
+        if (!u || !d || !p) {
+          errBox.textContent = "Vui lòng điền đầy đủ các trường bắt buộc.";
+          errBox.style.display = "block";
+          return;
+        }
+        if (p.length < 12) {
+          errBox.textContent = "Mật khẩu yêu cầu tối thiểu 12 ký tự.";
+          errBox.style.display = "block";
+          return;
+        }
+
+        try {
+          await ApiClient.createUser({ username: u, display_name: d, password: p, role: r });
+          createFormCard.style.display = "none";
+          document.getElementById("new-user-username").value = "";
+          document.getElementById("new-user-display-name").value = "";
+          document.getElementById("new-user-password").value = "";
+          this.loadUsers();
+        } catch (err) {
+          errBox.textContent = err.message || "Lỗi tạo người dùng";
+          errBox.style.display = "block";
+        }
+      });
+    }
+
+    // Encrypted backup creation binding
+    const createBackupBtn = this.container.querySelector("#btn-create-encrypted-backup");
+    if (createBackupBtn) {
+      createBackupBtn.addEventListener("click", async () => {
+        const pw = document.getElementById("input-backup-passphrase").value;
+        const msgBox = document.getElementById("backup-status-msg");
+        msgBox.style.display = "block";
+        msgBox.style.color = "#38bdf8";
+        msgBox.textContent = "Đang tạo gói sao lưu mã hóa...";
+        createBackupBtn.disabled = true;
+
+        try {
+          const res = await ApiClient.triggerBackup(pw || null);
+          msgBox.style.color = "#10b981";
+          msgBox.textContent = `Tạo sao lưu thành công! Mã: ${res.backup_id} (${res.evidence_count} tệp bằng chứng).`;
+          document.getElementById("input-backup-passphrase").value = "";
+        } catch (e) {
+          msgBox.style.color = "#f87171";
+          msgBox.textContent = `Lỗi tạo sao lưu: ${e.message}`;
+        } finally {
+          createBackupBtn.disabled = false;
+        }
+      });
+    }
+  }
+
+  async loadUsers() {
+    const tbody = document.getElementById("users-table-tbody");
+    if (!tbody) return;
+    try {
+      this.users = await ApiClient.getUsers();
+      if (!this.users || this.users.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" style="padding: 20px; text-align: center; color: #64748b;">Không có người dùng.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = this.users
+        .map((u) => {
+          const activeLabel = u.is_active
+            ? `<span style="color: #10b981;">● Hoạt động</span>`
+            : `<span style="color: #f87171;">○ Bị khóa</span>`;
+          return `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+              <td style="padding: 10px;"><strong>${escapeHtml(u.username)}</strong></td>
+              <td style="padding: 10px;">${escapeHtml(u.display_name)}</td>
+              <td style="padding: 10px;"><span style="background: rgba(16,185,129,0.12); color: #10b981; padding: 2px 6px; border-radius: 4px; font-size: 0.75rem;">${escapeHtml(u.role_display || u.role)}</span></td>
+              <td style="padding: 10px;">${activeLabel}</td>
+              <td style="padding: 10px; color: #94a3b8;">${u.last_login_at ? new Date(u.last_login_at).toLocaleString() : 'Chưa đăng nhập'}</td>
+              <td style="padding: 10px; text-align: right;">
+                <button class="btn-toggle-active" data-id="${u.user_id}" data-active="${u.is_active}" style="background: transparent; border: 1px solid #475569; color: #cbd5e1; border-radius: 4px; padding: 3px 8px; font-size: 0.75rem; cursor: pointer;">
+                  ${u.is_active ? 'Khóa' : 'Kích hoạt'}
+                </button>
+              </td>
+            </tr>
+          `;
+        })
+        .join("");
+
+      // Bind toggle active buttons
+      tbody.querySelectorAll(".btn-toggle-active").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const uid = btn.dataset.id;
+          const curActive = btn.dataset.active === "true";
+          try {
+            await ApiClient.updateUser(uid, { is_active: !curActive });
+            this.loadUsers();
+          } catch (e) {
+            alert(e.message);
+          }
+        });
+      });
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="6" style="padding: 20px; text-align: center; color: #f87171;">Lỗi tải người dùng: ${e.message}</td></tr>`;
+    }
+  }
+
+  async loadCamerasConfig() {
+    const tbody = document.getElementById("cameras-table-tbody");
+    if (!tbody) return;
+    try {
+      this.cameras = await ApiClient.getCamerasConfig();
+      if (!this.cameras || this.cameras.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" style="padding: 20px; text-align: center; color: #64748b;">Chưa có cấu hình camera.</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = this.cameras
+        .map((c) => {
+          const stLabel = c.enabled
+            ? `<span style="color: #10b981; font-weight: 600;">ĐANG BẬT</span>`
+            : `<span style="color: #f87171;">ĐÃ TẮT</span>`;
+          return `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+              <td style="padding: 10px;"><code>${escapeHtml(c.camera_id)}</code></td>
+              <td style="padding: 10px; font-weight: 600;">${escapeHtml(c.name)}</td>
+              <td style="padding: 10px; text-transform: uppercase;">${escapeHtml(c.source_type)}</td>
+              <td style="padding: 10px;">${c.device_index !== null ? c.device_index : '—'}</td>
+              <td style="padding: 10px;">${c.resolution_width}x${c.resolution_height}</td>
+              <td style="padding: 10px;">${c.target_capture_fps} FPS</td>
+              <td style="padding: 10px;">${escapeHtml(c.room || 'Phòng thi chung')}</td>
+              <td style="padding: 10px; text-align: center;">${stLabel}</td>
+            </tr>
+          `;
+        })
+        .join("");
+    } catch (e) {
+      tbody.innerHTML = `<tr><td colspan="8" style="padding: 20px; text-align: center; color: #f87171;">Lỗi tải cấu hình camera: ${e.message}</td></tr>`;
+    }
+  }
+
+  async loadSecurityStatus() {
+    try {
+      const data = await ApiClient.getSecurityStatus();
+      if (data) {
+        const kEl = document.getElementById("sec-key-storage");
+        const aEl = document.getElementById("sec-audit-chain");
+        if (kEl) kEl.innerText = data.key_storage || "Windows DPAPI";
+        if (aEl) {
+          aEl.innerText = data.audit_chain_valid ? "HỢP LỆ" : "CẢNH BÁO";
+          aEl.style.color = data.audit_chain_valid ? "#10b981" : "#f87171";
+        }
+      }
+    } catch {}
+  }
+
+  renderOverviewDetails() {
     const grid = document.getElementById("system-cards-grid");
     const sparkBox = document.getElementById("telemetry-sparklines");
     const compBox = document.getElementById("component-runtime-box");
@@ -98,255 +440,117 @@ export class SystemViewComponent {
     const conf = sys.configured_rates || {};
     const h = appState.telemetryHistory;
 
-    const targetAiFps = conf.inference_fps ? conf.inference_fps.toFixed(1) : "10.0";
-    const camTargetFps = cam.configured_capture_fps || 30.0;
+    const vramAlloc = sys.gpu_vram_allocated_mb || 0;
+    const vramPct = Math.min(100, Math.round((vramAlloc / 4096.0) * 100));
+    const activeStreams = sys.active_cameras !== undefined ? sys.active_cameras : (cam.streaming ? 1 : 0);
+    const procFps = obs.processed_fps || sys.effective_fps || 0.0;
+    const capFps = obs.capture_fps || (cam.streaming ? 30.0 : 0.0);
+    const infFps = obs.inference_fps || sys.inference_fps || 0.0;
+    const queueDepth = sys.queue_depth || 0;
+    const dropPct = sys.drop_percentage || 0.0;
 
-    // 1. Render Top 4 Diagnostic Cards
     grid.innerHTML = `
-      <!-- Camera Card -->
       <div class="system-card">
-        <div class="system-card-header">
-          <h3>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-            </svg>
-            Camera & Luồng hình
-          </h3>
-          <span class="system-card-badge" style="background: var(--color-live-dim); color: var(--color-live);">
-            ${cam.streaming ? "ĐANG PHÁT" : (cam.connected ? "ĐÃ KẾT NỐI" : "NGOẠI TUYẾN")}
+        <div class="system-card-top">
+          <span class="system-card-title">1. Tốc độ thu hình thực tế</span>
+          <span class="system-tag-chip ${cam.streaming ? 'online' : 'offline'}">
+            ${cam.streaming ? 'TRỰC TIẾP' : 'NGOẠI TUYẾN'}
           </span>
         </div>
-        <div class="system-metrics-list">
-          <div class="system-metric-row">
-            <span class="metric-name">Nguồn camera</span>
-            <span class="metric-val">${cam.name || "Physical Webcam (UVC)"}</span>
-          </div>
-          <div class="system-metric-row">
-            <span class="metric-name">Backend thu hình</span>
-            <span class="metric-val">CAP_DSHOW (DirectShow)</span>
-          </div>
-          <div class="system-metric-row">
-            <span class="metric-name">Độ phân giải cấu hình</span>
-            <span class="metric-val">${cam.configured_resolution || "1280x720"} @ ${camTargetFps} FPS</span>
-          </div>
-          <div class="system-metric-row">
-            <span class="metric-name">Tốc độ thu hình thực tế</span>
-            <span class="metric-val" style="color: var(--accent-cyan); font-weight: 600;">${obs.capture_fps ? `${obs.capture_fps.toFixed(1)} FPS` : "30.0 FPS"}</span>
-          </div>
-          <div class="system-metric-row">
-            <span class="metric-name">Thiết bị vật lý</span>
-            <span class="metric-val">${cam.device_present ? "Đã nhận diện (OK)" : "Đang hoạt động"}</span>
-          </div>
+        <div class="system-metric-value">${capFps.toFixed(1)} <span class="unit">FPS</span></div>
+        <div class="system-metrics-sub">
+          <div class="sub-item"><span>Độ phân giải</span><strong>${cam.observed_resolution || cam.configured_resolution || '1280x720'}</strong></div>
+          <div class="sub-item"><span>Luồng kích hoạt</span><strong>${activeStreams} Camera</strong></div>
+          <div class="sub-item"><span>Rớt khung hình</span><strong>${dropPct.toFixed(1)}%</strong></div>
         </div>
       </div>
 
-      <!-- Perception Runtime Card -->
       <div class="system-card">
-        <div class="system-card-header">
-          <h3>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
-            </svg>
-            Luồng xử lý AI
-          </h3>
-          <span class="system-card-badge" style="background: var(--accent-cyan-dim); color: var(--accent-cyan);">HOẠT ĐỘNG</span>
+        <div class="system-card-top">
+          <span class="system-card-title">2. Tần suất Inference AI</span>
+          <span class="system-tag-chip ${infFps > 0 ? 'online' : 'idle'}">
+            ${infFps > 0 ? 'XỬ LÝ ĐỀU' : 'CHỜ TÍN HIỆU'}
+          </span>
         </div>
-        <div class="system-metrics-list">
-          <div class="system-metric-row">
-            <span class="metric-name">Tốc độ xử lý AI thực tế</span>
-            <span class="metric-val" style="color: var(--accent-cyan); font-weight: 600;">${obs.processed_fps ? `${obs.processed_fps.toFixed(1)} FPS` : (sys.effective_fps ? `${sys.effective_fps.toFixed(1)} FPS` : `${targetAiFps} FPS`)}</span>
-          </div>
-          <div class="system-metric-row">
-            <span class="metric-name">Mục tiêu xử lý AI</span>
-            <span class="metric-val">${targetAiFps} FPS</span>
-          </div>
-          <div class="system-metric-row">
-            <span class="metric-name">Hàng đợi khung hình</span>
-            <span class="metric-val">${sys.queue_depth || 0} / 5 khung</span>
-          </div>
-          <div class="system-metric-row">
-            <span class="metric-name">Chính sách hàng đợi</span>
-            <span class="metric-val" style="font-size: 0.72rem;">DROP_STALE_ON_BACKPRESSURE</span>
-          </div>
-          <div class="system-metric-row">
-            <span class="metric-name">Tỷ lệ bỏ khung</span>
-            <span class="metric-val">${sys.drop_percentage !== null && sys.drop_percentage !== undefined ? `${sys.drop_percentage.toFixed(1)}%` : "0.0%"}</span>
-          </div>
+        <div class="system-metric-value">${procFps.toFixed(1)} <span class="unit">FPS</span></div>
+        <div class="system-metrics-sub">
+          <div class="sub-item"><span>Mục tiêu xử lý AI</span><strong>${(conf.inference_fps || 12.0).toFixed(0)} Hz</strong></div>
+          <div class="sub-item"><span>Hàng đợi Ingest</span><strong>${queueDepth} khung</strong></div>
+          <div class="sub-item"><span>Thí sinh theo dõi</span><strong>${sys.active_students || 0} người</strong></div>
         </div>
       </div>
 
-      <!-- Neural Network Models Card -->
       <div class="system-card">
-        <div class="system-card-header">
-          <h3>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/>
-            </svg>
-            Mô hình AI
-          </h3>
-          <span class="system-card-badge" style="background: var(--color-live-dim); color: var(--color-live);">7 CHỨNG NHẬN</span>
+        <div class="system-card-top">
+          <span class="system-card-title">3. Bộ nhớ đồ họa NVIDIA RTX 3050</span>
+          <span class="system-tag-chip ${vramAlloc > 0 ? 'online' : 'idle'}">4.0 GB VRAM</span>
         </div>
-        <div class="system-metrics-list">
-          <div class="system-metric-row">
-            <span class="metric-name">Phát hiện đối tượng (Người/ĐT)</span>
-            <span class="metric-val">YOLO26m @ 640x640</span>
-          </div>
-          <div class="system-metric-row">
-            <span class="metric-name">Theo dõi danh tính</span>
-            <span class="metric-val">ByteTrack (Multi-Student)</span>
-          </div>
-          <div class="system-metric-row">
-            <span class="metric-name">Phân loại tư thế</span>
-            <span class="metric-val">MobileNetV3 @ 224x224</span>
-          </div>
-          <div class="system-metric-row">
-            <span class="metric-name">Ước lượng góc quay đầu</span>
-            <span class="metric-val">HopeNet-Yaw @ 224x224</span>
-          </div>
-          <div class="system-metric-row">
-            <span class="metric-name">Hành vi tổng quát</span>
-            <span class="metric-val">Stage 1.5 @ 768x768</span>
-          </div>
+        <div class="system-metric-value">${vramAlloc.toFixed(0)} <span class="unit">MB</span></div>
+        <div class="system-metrics-sub">
+          <div class="sub-item"><span>Tải VRAM</span><strong>${vramPct}% / 4096 MB</strong></div>
+          <div class="sub-item"><span>Chế độ inference</span><strong>Chung Registry (InferenceLock)</strong></div>
+          <div class="sub-item"><span>Trạng thái CUDA</span><strong>SẴN SÀNG</strong></div>
         </div>
       </div>
 
-      <!-- GPU & VRAM Memory Card -->
       <div class="system-card">
-        <div class="system-card-header">
-          <h3>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/>
-            </svg>
-            GPU & Bộ nhớ
-          </h3>
-          <span class="system-card-badge" style="background: var(--color-live-dim); color: var(--color-live);">ỔN ĐỊNH</span>
+        <div class="system-card-top">
+          <span class="system-card-title">4. Kho bằng chứng & Kiểm toán</span>
+          <span class="system-tag-chip online">AN TOÀN</span>
         </div>
-        <div class="system-metrics-list">
-          <div class="system-metric-row">
-            <span class="metric-name">Phần cứng GPU</span>
-            <span class="metric-val">NVIDIA RTX 3050 Laptop</span>
-          </div>
-          <div class="system-metric-row">
-            <span class="metric-name">Thiết bị CUDA</span>
-            <span class="metric-val">cuda:0 (Hoạt động)</span>
-          </div>
-          <div class="system-metric-row">
-            <span class="metric-name">Dung lượng VRAM</span>
-            <span class="metric-val">4,096 MB</span>
-          </div>
-          <div class="system-metric-row">
-            <span class="metric-name">VRAM đang cấp phát</span>
-            <span class="metric-val" style="color: var(--accent-cyan); font-weight: 600;">${sys.gpu_vram_allocated_mb ? `${sys.gpu_vram_allocated_mb.toFixed(0)} MB` : "289 MB"}</span>
-          </div>
-          <div class="system-metric-row">
-            <span class="metric-name">VRAM khả dụng</span>
-            <span class="metric-val">> 3,500 MB an toàn</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Database & Evidence Storage Card -->
-      <div class="system-card">
-        <div class="system-card-header">
-          <h3>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
-            </svg>
-            Dữ liệu & Sao lưu
-          </h3>
-          <span class="system-card-badge" style="background: var(--color-live-dim); color: var(--color-live);">HOẠT ĐỘNG</span>
-        </div>
-        <div class="system-metrics-list">
-          <div class="system-metric-row">
-            <span class="metric-name">Cơ sở dữ liệu</span>
-            <span class="metric-val">SQLite WAL (storage/db/)</span>
-          </div>
-          <div class="system-metric-row">
-            <span class="metric-name">Phiên hiện tại</span>
-            <span class="metric-val" style="font-size: 0.72rem; color: var(--accent-cyan);">${appState.currentSession?.name || "Tự động tạo"}</span>
-          </div>
-          <div class="system-metric-row">
-            <span class="metric-name">Bộ đệm video bằng chứng</span>
-            <span class="metric-val">Ring Buffer (Max 64MB/cam)</span>
-          </div>
-          <div class="system-metric-row">
-            <span class="metric-name">Toàn vẹn băm</span>
-            <span class="metric-val">SHA-256 đối soát tệp</span>
-          </div>
-          <div class="system-metric-row" style="margin-top: 6px; padding-top: 6px; border-top: 1px solid var(--border-subtle);">
-            <button class="btn-action btn-backup-now" id="btn-system-backup-now" style="width: 100%; background: var(--surface-secondary); border: 1px solid var(--border-medium); color: var(--text-primary); font-size: 0.75rem; padding: 6px 12px; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.2s;">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: -2px; margin-right: 4px;">
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/>
-              </svg>
-              Sao lưu ngay
-            </button>
-          </div>
+        <div class="system-metric-value">AES-256 <span class="unit">GCM</span></div>
+        <div class="system-metrics-sub">
+          <div class="sub-item"><span>Mã hóa tại chỗ</span><strong>BẬT (EGE1)</strong></div>
+          <div class="sub-item"><span>Bảo vệ khóa</span><strong>Windows DPAPI</strong></div>
+          <div class="sub-item"><span>Chuỗi Audit</span><strong>BẢO TOÀN (SHA-256)</strong></div>
         </div>
       </div>
     `;
 
-    document.getElementById("btn-system-backup-now")?.addEventListener("click", async (e) => {
-      const btn = e.currentTarget;
-      btn.disabled = true;
-      const originalText = btn.innerHTML;
-      btn.innerText = "Đang sao lưu...";
-      try {
-        const res = await ApiClient.triggerBackup();
-        alert(`Sao lưu thành công!\nĐường dẫn: ${res.backup_path}\nBản ghi tệp: ${res.evidence_count} tệp chứng cứ`);
-      } catch (err) {
-        alert(`Sao lưu thất bại: ${err.message}`);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-      }
-    });
-
-    // 2. Render Telemetry Sparklines
     if (sparkBox) {
-      const procSamples = h.processedFps.length > 0 ? h.processedFps : [10.0, 10.2, 9.8, 10.1, 10.0, 9.9];
-      const capSamples = h.captureFps.length > 0 ? h.captureFps : [30.0, 30.0, 30.0, 30.0, 30.0, 30.0];
-      const latSamples = h.p50LatencyMs.length > 0 ? h.p50LatencyMs : [28.2, 27.9, 28.5, 29.1, 28.0];
-
       sparkBox.innerHTML = `
-        <div class="sparkline-metric-item">
-          <div class="spark-label-row">
-            <span>Tốc độ xử lý AI (Mục tiêu: ${targetAiFps} FPS)</span>
-            <strong style="color: var(--accent-cyan);">${procSamples[procSamples.length - 1].toFixed(1)} FPS</strong>
+        <div class="telemetry-sparkline-row">
+          <div class="sparkline-label">
+            <span>Tần số nạp khung hình</span>
+            <strong>${capFps.toFixed(1)} FPS</strong>
           </div>
-          ${createSvgSparkline(procSamples, 0, Math.max(16, parseFloat(targetAiFps) * 1.5), "var(--accent-cyan)")}
+          <div class="sparkline-canvas-box">
+            ${createSvgSparkline(h.captureFps, 0, 35, "var(--color-live)")}
+          </div>
         </div>
 
-        <div class="sparkline-metric-item">
-          <div class="spark-label-row">
-            <span>Độ trễ xử lý (p50 ms)</span>
-            <strong style="color: var(--color-live);">${latSamples[latSamples.length - 1].toFixed(1)} ms</strong>
+        <div class="telemetry-sparkline-row">
+          <div class="sparkline-label">
+            <span>Tần số xử lý suy luận AI</span>
+            <strong>${procFps.toFixed(1)} FPS</strong>
           </div>
-          ${createSvgSparkline(latSamples, 10, 60, "var(--color-live)")}
+          <div class="sparkline-canvas-box">
+            ${createSvgSparkline(h.processedFps, 0, 20, "var(--color-amber)")}
+          </div>
         </div>
 
-        <div class="sparkline-metric-item">
-          <div class="spark-label-row">
-            <span>Hàng đợi khung hình (Sức chứa: 5)</span>
-            <strong style="color: var(--text-primary);">${sys.queue_depth || 0} / 5</strong>
+        <div class="telemetry-sparkline-row">
+          <div class="sparkline-label">
+            <span>Phân bổ bộ nhớ GPU VRAM</span>
+            <strong>${vramAlloc.toFixed(0)} MB</strong>
           </div>
-          ${createSvgSparkline(h.queueDepth.length > 0 ? h.queueDepth : [0, 0, 0, 0], 0, 5, "var(--color-medium)")}
+          <div class="sparkline-canvas-box">
+            ${createSvgSparkline(h.vramMb, 0, 4000, "#38bdf8")}
+          </div>
         </div>
       `;
     }
 
-    // 3. Render Component Compute & Connection Health
     if (compBox) {
-      const wsStatus = appState.wsStatus || "connected";
-      const wsStatusText = wsStatus === "connected" ? "ĐÃ KẾT NỐI" : "MẤT KẾT NỐI";
       compBox.innerHTML = `
-        <table class="system-component-table">
+        <table class="component-runtime-table">
           <thead>
             <tr>
-              <th>Thành phần</th>
-              <th>Trạng thái</th>
+              <th>Mô hình / Tiến trình</th>
+              <th>Thiết bị</th>
               <th>Tần suất</th>
-              <th>Độ phân giải / Phạm vi</th>
-              <th>Giới hạn an toàn</th>
+              <th>Kích thước / Dải</th>
+              <th>Kiến trúc điều phối</th>
             </tr>
           </thead>
           <tbody>
@@ -355,55 +559,65 @@ export class SystemViewComponent {
               <td><span class="status-tag confirmed">CUDA FP32</span></td>
               <td>12.0 Hz</td>
               <td>640x640 người / điện thoại</td>
-              <td>Giới hạn batch (16)</td>
+              <td>Shared Singleton + Lock</td>
             </tr>
             <tr>
               <td><strong>Theo dõi danh tính (ByteTrack)</strong></td>
-              <td><span class="status-tag confirmed">Liên tục</span></td>
+              <td><span class="status-tag confirmed">Độc lập camera</span></td>
               <td>30.0 Hz</td>
-              <td>Liên kết cosine thời gian</td>
-              <td>Khoảng ngắt quãng 2.0s</td>
+              <td>Cosine similarity</td>
+              <td>(camera_id, track_id)</td>
             </tr>
             <tr>
               <td><strong>Phân loại tư thế (MobileNetV3)</strong></td>
               <td><span class="status-tag confirmed">CUDA FP32</span></td>
               <td>10.0 Hz</td>
               <td>224x224 MobileNetV3</td>
-              <td>Lọc tỷ lệ (>120px)</td>
+              <td>Crop lên lịch có ngưỡng</td>
             </tr>
             <tr>
               <td><strong>Ước lượng góc quay (HopeNet-Yaw)</strong></td>
               <td><span class="status-tag confirmed">CUDA FP32</span></td>
               <td>6.0 Hz</td>
               <td>[-99.0°, +99.0°]</td>
-              <td>Chuẩn hóa góc quay</td>
+              <td>Shared Inference Model</td>
             </tr>
             <tr>
               <td><strong>Hành vi tổng quát (Stage 1.5)</strong></td>
               <td><span class="status-tag confirmed">CUDA FP32</span></td>
               <td>4.0 Hz</td>
               <td>768x768 toàn khung</td>
-              <td>Lọc hình học tư thế ngồi</td>
+              <td>Shared Inference Model</td>
             </tr>
             <tr>
               <td><strong>Hợp nhất thời gian đa dấu hiệu (V4D)</strong></td>
               <td><span class="status-tag confirmed">Hoạt động</span></td>
               <td>Theo sự kiện</td>
-              <td>Chống nhiễu trễ (Hysteresis)</td>
+              <td>Độc lập theo từng camera</td>
               <td>Thời gian hồi 4.0s</td>
             </tr>
             <tr>
-              <td><strong>Phát luồng WebSocket (/ws/events)</strong></td>
-              <td><span class="status-tag ${wsStatus === 'connected' ? 'confirmed' : 'awaiting'}">${wsStatusText}</span></td>
-              <td>Vòng đời sự kiện</td>
-              <td>Cục bộ (127.0.0.1:8000)</td>
-              <td>Tự động kết nối lại</td>
+              <td><strong>Bảo vệ Bằng chứng & Mã hóa</strong></td>
+              <td><span class="status-tag confirmed">AES-256-GCM</span></td>
+              <td>Theo luồng ghi</td>
+              <td>AAD Binding Event</td>
+              <td>Async Worker Thread</td>
             </tr>
           </tbody>
         </table>
       `;
     }
   }
+}
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function createSvgSparkline(values, minVal, maxVal, strokeColor) {

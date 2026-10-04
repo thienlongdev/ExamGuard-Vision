@@ -314,6 +314,9 @@ export class HistoryViewComponent {
                 </svg>
                 Sự kiện ghi nhận trong phiên
               </h3>
+              <select id="history-detail-cam-select" style="margin-left: auto; background: #1e293b; color: #cbd5e1; border: 1px solid #334155; border-radius: 4px; padding: 2px 6px; font-size: 0.75rem; margin-right: 8px;">
+                <option value="all">Tất cả camera</option>
+              </select>
               <span id="session-events-count-badge" class="count-badge">0 sự kiện</span>
             </div>
 
@@ -323,6 +326,7 @@ export class HistoryViewComponent {
                   <tr>
                     <th style="width: 70px;">Bằng chứng</th>
                     <th>Sự kiện</th>
+                    <th>Camera</th>
                     <th>Thí sinh</th>
                     <th>Thời điểm</th>
                     <th>Thời lượng</th>
@@ -333,7 +337,7 @@ export class HistoryViewComponent {
                 </thead>
                 <tbody id="session-events-tbody">
                   <tr>
-                    <td colspan="8" style="text-align: center; padding: 36px; color: var(--text-dim);">
+                    <td colspan="9" style="text-align: center; padding: 36px; color: var(--text-dim);">
                       Đang tải danh sách sự kiện...
                     </td>
                   </tr>
@@ -508,6 +512,11 @@ export class HistoryViewComponent {
                 <strong>${norm.displayName}</strong>
                 <span class="cell-subtext">${norm.canonicalType}</span>
               </div>
+            </td>
+            <td>
+              <span class="cam-badge" style="background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 3px; font-size: 0.72rem; color: #94a3b8;">
+                ${escapeHtml(norm.cameraId || 'cam01')}
+              </span>
             </td>
             <td>
               <span class="student-track-badge" title="Mã theo dõi tạm thời của camera; có thể thay đổi khi đối tượng rời khung hình lâu.">
