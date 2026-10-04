@@ -106,10 +106,11 @@ class IntegratedEvidenceManager:
                     event_id=event_id,
                     evidence_type="SNAPSHOT",
                     file_path=filepath,
+                    artifact_state="READY",
                 )
-                if rec and rec.file_path:
-                    resolved_path = rec.file_path
-                    self._event_hashes[event_id]["snapshot_path"] = rec.file_path
+                if rec and (rec.relative_path or rec.file_path):
+                    resolved_path = rec.relative_path or rec.file_path
+                    self._event_hashes[event_id]["snapshot_path"] = resolved_path
             except Exception as e:
                 logger.debug(f"Could not record snapshot evidence in DB: {e}")
 
@@ -123,8 +124,18 @@ class IntegratedEvidenceManager:
             except Exception as e:
                 logger.debug(f"on_evidence_ready callback error: {e}")
 
-    def _on_clip_ready(self, event_id: str, filepath: str, sha256: str, size: int) -> None:
-        """Callback when an MP4 clip has been successfully encoded to disk."""
+    def _on_clip_ready(
+        self,
+        event_id: str,
+        filepath: str,
+        sha256: str,
+        size: int,
+        duration_sec: float = 0.0,
+        frame_count: int = 0,
+        codec: Optional[str] = None,
+        mime_type: Optional[str] = None,
+    ) -> None:
+        """Callback when a video clip has been successfully encoded to disk."""
         if event_id not in self._event_hashes:
             self._event_hashes[event_id] = {}
         self._event_hashes[event_id]["clip_sha256"] = sha256
@@ -137,10 +148,16 @@ class IntegratedEvidenceManager:
                     event_id=event_id,
                     evidence_type="VIDEO_CLIP",
                     file_path=filepath,
+                    mime_type=mime_type or "video/mp4",
+                    artifact_state="READY",
+                    codec=codec or "H264",
+                    container="MP4",
+                    duration_sec=duration_sec,
+                    frame_count=frame_count,
                 )
-                if rec and rec.file_path:
-                    resolved_path = rec.file_path
-                    self._event_hashes[event_id]["clip_path"] = rec.file_path
+                if rec and (rec.relative_path or rec.file_path):
+                    resolved_path = rec.relative_path or rec.file_path
+                    self._event_hashes[event_id]["clip_path"] = resolved_path
             except Exception as e:
                 logger.debug(f"Could not record video clip evidence in DB: {e}")
 
@@ -178,6 +195,11 @@ class IntegratedEvidenceManager:
                     session_id=sid,
                     event_id=event_id,
                     details={"filepath": filepath, "error": str(err)},
+                )
+                # Persist failed artifact state in SQLite
+                self.persistence_service.events.update_evidence_summary(
+                    event_id,
+                    {"clip_state": "FAILED", "clip_error": str(err)}
                 )
             except Exception:
                 pass

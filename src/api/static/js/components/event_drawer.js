@@ -182,13 +182,16 @@ export class EventDrawerComponent {
           </div>
 
           ${
-            ev.clipUrl
+            ev.clipUrl && ev.clipStatus !== "FAILED"
               ? `<div class="drawer-video-box" style="margin-bottom: 10px;">
                    <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 4px;">Video clip ngữ cảnh (Trước / Trong / Sau):</div>
-                   <video class="drawer-evidence-video" controls preload="metadata" style="width: 100%; border-radius: var(--radius-md); background: #000; max-height: 240px;">
+                   <video id="drawer-evidence-video" class="drawer-evidence-video" controls preload="metadata" style="width: 100%; border-radius: var(--radius-md); background: #000; max-height: 240px;" onloadedmetadata="if(this.duration <= 0){ this.style.display='none'; const el = document.getElementById('drawer-video-err'); if(el) el.style.display='block'; }" onerror="this.style.display='none'; const el = document.getElementById('drawer-video-err'); if(el) el.style.display='block';">
                      <source src="${ev.clipUrl}" type="video/mp4">
                      Trình duyệt không hỗ trợ xem video trực tiếp.
                    </video>
+                   <div id="drawer-video-err" style="display: none; padding: 12px; background: rgba(239, 68, 68, 0.08); border: 1px dashed rgba(239, 68, 68, 0.3); border-radius: var(--radius-md); text-align: center; font-size: 0.8rem; color: #f87171;">
+                     Không thể phát video bằng chứng (thời lượng không hợp lệ hoặc lỗi định dạng)
+                   </div>
                  </div>`
               : (ev.clipStatus === "FAILED"
                   ? `<div class="drawer-video-box" style="margin-bottom: 10px; padding: 12px; background: rgba(239, 68, 68, 0.08); border: 1px dashed rgba(239, 68, 68, 0.3); border-radius: var(--radius-md); text-align: center;">
@@ -205,19 +208,24 @@ export class EventDrawerComponent {
           <div class="drawer-snapshot-box" id="drawer-snapshot-container">
             ${
               ev.snapshotUrl
-                ? `<img class="drawer-snapshot-img" src="${ev.snapshotUrl}" alt="Ảnh bằng chứng" loading="lazy" onerror="this.style.display='none'; document.getElementById('drawer-snap-placeholder').style.display='flex';" />
+                ? `<img id="drawer-snapshot-img" class="drawer-snapshot-img" src="${ev.snapshotUrl}" alt="Ảnh bằng chứng" loading="lazy" onerror="this.style.display='none'; document.getElementById('drawer-snap-placeholder').style.display='flex';" />
                    <div class="drawer-snapshot-placeholder" id="drawer-snap-placeholder" style="display: none;">
                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                        <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                      </svg>
-                     <span>Chưa có ảnh bằng chứng cho sự kiện này</span>
+                     <span>Không thể tải ảnh bằng chứng</span>
                    </div>`
-                : `<div class="drawer-snapshot-placeholder">
-                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                       <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-                     </svg>
-                     <span>Chưa có ảnh bằng chứng cho sự kiện này</span>
-                   </div>`
+                : (ev.snapshotStatus === "PENDING"
+                    ? `<div class="drawer-snapshot-placeholder">
+                         <span class="live-pulse-dot small" style="background: var(--accent-cyan); width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px;"></span>
+                         <span>Đang tạo ảnh bằng chứng…</span>
+                       </div>`
+                    : `<div class="drawer-snapshot-placeholder">
+                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                           <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+                         </svg>
+                         <span>Chưa có ảnh bằng chứng cho sự kiện này</span>
+                       </div>`)
             }
           </div>
         </div>
@@ -303,13 +311,29 @@ export class EventDrawerComponent {
     const badge = document.getElementById("drawer-integrity-badge");
     if (!badge) return;
 
+    // Workstream 25: Never present missing/failed evidence as valid
+    if (!ev.snapshotUrl && !ev.clipUrl) {
+      if (ev.snapshotStatus === "PENDING" || ev.clipStatus === "CLIP_FINALIZING") {
+        badge.className = "integrity-pill pending";
+        badge.innerHTML = `<span class="integrity-dot pending">◌</span> <span class="integrity-text">Đang hoàn tất bằng chứng</span>`;
+      } else if (ev.snapshotStatus === "FAILED" || ev.clipStatus === "FAILED") {
+        badge.className = "integrity-pill altered";
+        badge.innerHTML = `<span class="integrity-dot altered">⚠</span> <span class="integrity-text">Bằng chứng lỗi</span>`;
+      } else {
+        badge.className = "integrity-pill missing";
+        badge.innerHTML = `<span class="integrity-dot missing">○</span> <span class="integrity-text">Chưa có bằng chứng</span>`;
+      }
+      return;
+    }
+
     const evId = ev.raw?.evidence_id || ev.evidence?.evidence_id || ev.evidence_id || ev.raw?.evidence_summary?.evidence_id;
     if (!evId) {
-      if (ev.snapshotUrl) {
+      if (ev.snapshotUrl && ev.snapshotStatus === "READY") {
         badge.className = "integrity-pill valid";
         badge.innerHTML = `<span class="integrity-dot valid">●</span> <span class="integrity-text">Toàn vẹn: Hợp lệ</span>`;
       } else {
-        badge.style.display = "none";
+        badge.className = "integrity-pill missing";
+        badge.innerHTML = `<span class="integrity-dot missing">○</span> <span class="integrity-text">Chưa xác minh</span>`;
       }
       return;
     }
@@ -328,8 +352,8 @@ export class EventDrawerComponent {
         badge.innerHTML = `<span class="integrity-dot altered">⚠</span> <span class="integrity-text">Bằng chứng đã thay đổi</span>`;
       }
     } catch {
-      badge.className = "integrity-pill valid";
-      badge.innerHTML = `<span class="integrity-dot valid">●</span> <span class="integrity-text">Toàn vẹn: Hợp lệ</span>`;
+      badge.className = "integrity-pill missing";
+      badge.innerHTML = `<span class="integrity-dot missing">○</span> <span class="integrity-text">Lỗi kiểm tra toàn vẹn</span>`;
     }
   }
 

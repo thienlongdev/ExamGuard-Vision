@@ -114,20 +114,44 @@ export class ReviewQueueComponent {
           </div>
         `;
 
-        const thumbHtml = ev.snapshotUrl
-          ? `<img class="card-thumbnail-img" src="${ev.snapshotUrl}" alt="Ảnh bằng chứng" loading="lazy" onerror="this.style.display='none'; const el = this.parentElement.querySelector('.card-thumbnail-empty'); if (el) el.style.display='flex';" />
-             <div class="card-thumbnail-empty" style="display: none;">
-               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-               </svg>
-               <span>Bằng chứng</span>
-             </div>`
-          : `<div class="card-thumbnail-empty">
-               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
-               </svg>
-               <span>Bằng chứng</span>
-             </div>`;
+        let thumbHtml = "";
+        if (ev.snapshotUrl && ev.snapshotStatus !== "FAILED") {
+          thumbHtml = `
+            <img class="card-thumbnail-img" src="${ev.snapshotUrl}" alt="Ảnh bằng chứng" loading="lazy" 
+                 onerror="this.style.display='none'; const el = this.parentElement.querySelector('.card-thumbnail-failed'); if (el) el.style.display='flex';" />
+            <div class="card-thumbnail-failed" style="display: none; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #94a3b8; font-size: 0.65rem; gap: 4px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span>Lỗi ảnh</span>
+            </div>
+          `;
+        } else if (ev.snapshotStatus === "FAILED") {
+          thumbHtml = `
+            <div class="card-thumbnail-failed" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #f87171; font-size: 0.65rem; gap: 4px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+              <span>Lỗi ảnh</span>
+            </div>
+          `;
+        } else if (ev.snapshotStatus === "PENDING" || ev.lifecycle === "open") {
+          thumbHtml = `
+            <div class="card-thumbnail-pending" style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; color: #38bdf8; font-size: 0.65rem; gap: 4px;">
+              <div class="spinner-small" style="width: 14px; height: 14px; border: 2px solid #38bdf8; border-top-color: transparent; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+              <span>Đang tạo</span>
+            </div>
+          `;
+        } else {
+          thumbHtml = `
+            <div class="card-thumbnail-empty">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <span>Bằng chứng</span>
+            </div>
+          `;
+        }
 
         const isLive = ev.lifecycle === "open" || ev.lifecycle === "active";
         const lifecycleBadge = isLive

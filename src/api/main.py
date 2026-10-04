@@ -28,6 +28,8 @@ from src.api.schemas import (
     SystemStatusResponse,
     SessionResponse,
     SessionSummary,
+    SessionStartRequest,
+    SessionEndRequest,
     SessionUpdateRequest,
     EvidenceVerifyResponse,
     BackupResponse,
@@ -78,16 +80,19 @@ def create_app(
     enforce_auth: bool = True,
 ) -> FastAPI:
     ps = persistence_service or PersistenceService.get_instance()
+    # Reconnect to active session in database if one exists, otherwise leave idle awaiting explicit start (Workstream 3)
     if ps.active_session is None:
         try:
-            ps.initialize_runtime_session()
+            ps.get_current_monitoring_session()
         except Exception as e:
-            logger.warning(f"Could not auto-initialize runtime session: {e}")
+            logger.warning(f"Could not load active monitoring session: {e}")
 
     def _sanitize_evidence_path(raw_path: Optional[str]) -> Optional[str]:
         if not raw_path:
             return None
         raw_str = str(raw_path).replace("\\", "/")
+        if raw_str.endswith(".enc"):
+            raw_str = raw_str[:-4]
         if raw_str.startswith("/api/evidence/"):
             return raw_str
         for marker in ["storage/sessions/", "storage/evidence/", "runs/local_live/", "evidence/"]:
@@ -1050,15 +1055,84 @@ def create_app(
             d["lifecycle_status"] = "closed" if d.get("status") == "closed" else "active"
         return d
 
+    def _persisted_event_to_dict(pe: Any) -> dict:
+        obs = {}
+        if pe.observation_snapshot_json:
+            try:
+                obs = json.loads(pe.observation_snapshot_json)
+            except Exception:
+                pass
+        ev_sum = {}
+        if pe.evidence_summary_json:
+            try:
+                ev_sum = json.loads(pe.evidence_summary_json)
+            except Exception:
+                pass
+
+        latest_rev = ps.reviews.get_latest_review(pe.event_id)
+        reviewer_note = latest_rev.note if latest_rev else None
+
+        snap_path = ev_sum.get("snapshot_path") or ev_sum.get("open_snapshot_path")
+        clip_path = ev_sum.get("clip_path")
+        if not snap_path or not clip_path:
+            for evd in ps.evidence.list_evidence_for_event(pe.event_id):
+                if evd.evidence_type == "SNAPSHOT" and not snap_path:
+                    snap_path = evd.relative_path
+                elif evd.evidence_type == "VIDEO_CLIP" and not clip_path:
+                    clip_path = evd.relative_path
+
+        st_ts = datetime.fromisoformat(pe.opened_at).timestamp() if pe.opened_at else time.time()
+        et_ts = datetime.fromisoformat(pe.closed_at).timestamp() if pe.closed_at else st_ts
+
+        d = {
+            "event_id": pe.event_id,
+            "track_id": pe.track_id or 0,
+            "camera_id": pe.camera_id,
+            "timestamp": st_ts,
+            "start_time": st_ts,
+            "end_time": et_ts,
+            "event_type": pe.event_type,
+            "risk_level": pe.severity,
+            "score": pe.score,
+            "evidence": ev_sum,
+            "snapshot_path": _sanitize_evidence_path(snap_path),
+            "clip_path": _sanitize_evidence_path(clip_path),
+            "status": pe.review_status,
+            "review_status": pe.review_status,
+            "lifecycle_status": pe.lifecycle_status or "active",
+            "observation_snapshot": obs,
+            "created_at": pe.created_at,
+            "reviewer_notes": reviewer_note,
+            "event_origin": pe.source_origin,
+        }
+        return _sanitize_event_dict(d)
+
     @app.get("/api/events", response_model=List[EventResponse])
     async def get_events(
         request: Request,
         risk_level: Optional[str] = None,
         status: Optional[str] = None,
+        session_id: Optional[str] = None,
+        all_sessions: bool = False,
         limit: int = 100,
     ):
         if enforce_auth:
             _require_permission(request, Permission.MONITOR_VIEW)
+
+        target_sid = session_id
+        if not target_sid and not all_sessions and ps.active_session:
+            target_sid = ps.active_session.session_id
+
+        if target_sid:
+            persisted = ps.events.list_events_by_session(
+                session_id=target_sid,
+                severity=risk_level,
+                review_status=status,
+                limit=limit,
+            )
+            if persisted:
+                return [EventResponse(**_persisted_event_to_dict(pe)) for pe in persisted]
+
         events = ev_manager.list_events(risk_level=risk_level, status=status, limit=limit)
         return [EventResponse(**_sanitize_event_dict(e.to_dict())) for e in events]
 
@@ -1067,9 +1141,12 @@ def create_app(
         if enforce_auth:
             _require_permission(request, Permission.MONITOR_VIEW)
         event = ev_manager.get_event(event_id)
-        if not event:
-            raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found.")
-        return EventResponse(**_sanitize_event_dict(event.to_dict()))
+        if event:
+            return EventResponse(**_sanitize_event_dict(event.to_dict()))
+        db_ev = ps.events.get_event(event_id)
+        if db_ev:
+            return EventResponse(**_persisted_event_to_dict(db_ev))
+        raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found.")
 
     @app.patch("/api/events/{event_id}", response_model=EventResponse)
     async def update_event_status(event_id: str, req: EventStatusUpdateRequest, request: Request):
@@ -1155,6 +1232,28 @@ def create_app(
 
     # --- SESSION MANAGEMENT & HISTORY ENDPOINTS ---
 
+    def _build_session_response(s: Any) -> SessionResponse:
+        summary_dict = ps.sessions.get_session_summary(s.session_id)
+        return SessionResponse(
+            session_id=s.session_id,
+            name=s.name,
+            room=s.room,
+            class_name=getattr(s, "class_name", None),
+            subject_code=getattr(s, "subject_code", None),
+            invigilator_name=s.invigilator_name,
+            notes=getattr(s, "notes", None),
+            started_at=s.started_at,
+            ended_at=s.ended_at,
+            status=s.status,
+            camera_count=s.camera_count,
+            created_at=s.created_at,
+            updated_at=s.updated_at,
+            last_heartbeat_at=s.last_heartbeat_at,
+            close_reason=s.close_reason,
+            evidence_failure_count=getattr(s, "evidence_failure_count", 0) or 0,
+            summary=SessionSummary(**summary_dict),
+        )
+
     @app.get("/api/sessions", response_model=List[SessionResponse])
     async def list_sessions(
         request: Request,
@@ -1168,27 +1267,7 @@ def create_app(
             _require_permission(request, Permission.HISTORY_VIEW)
 
         sessions = ps.sessions.list_sessions(limit=limit, offset=offset, status=status, search=search)
-        resp = []
-        for s in sessions:
-            summary_dict = ps.sessions.get_session_summary(s.session_id)
-            resp.append(
-                SessionResponse(
-                    session_id=s.session_id,
-                    name=s.name,
-                    room=s.room,
-                    invigilator_name=s.invigilator_name,
-                    started_at=s.started_at,
-                    ended_at=s.ended_at,
-                    status=s.status,
-                    camera_count=s.camera_count,
-                    created_at=s.created_at,
-                    updated_at=s.updated_at,
-                    last_heartbeat_at=s.last_heartbeat_at,
-                    close_reason=s.close_reason,
-                    summary=SessionSummary(**summary_dict),
-                )
-            )
-        return resp
+        return [_build_session_response(s) for s in sessions]
 
     @app.get("/api/sessions/current", response_model=SessionResponse)
     async def get_current_session(request: Request):
@@ -1196,25 +1275,118 @@ def create_app(
         if enforce_auth:
             _require_permission(request, Permission.MONITOR_VIEW)
 
-        active = ps.active_session or ps.sessions.get_active_session()
+        active = ps.get_current_monitoring_session()
         if not active:
-            raise HTTPException(status_code=404, detail="No active session found.")
-        summary_dict = ps.sessions.get_session_summary(active.session_id)
-        return SessionResponse(
-            session_id=active.session_id,
-            name=active.name,
-            room=active.room,
-            invigilator_name=active.invigilator_name,
-            started_at=active.started_at,
-            ended_at=active.ended_at,
-            status=active.status,
-            camera_count=active.camera_count,
-            created_at=active.created_at,
-            updated_at=active.updated_at,
-            last_heartbeat_at=active.last_heartbeat_at,
-            close_reason=active.close_reason,
-            summary=SessionSummary(**summary_dict),
+            raise HTTPException(status_code=404, detail="No active monitoring session found.")
+        return _build_session_response(active)
+
+    @app.post("/api/sessions/start", response_model=SessionResponse)
+    async def start_session(req: SessionStartRequest, request: Request):
+        """
+        Explicitly begin a new exam monitoring session (Workstream 4 & 7).
+        Resets live tracking state, buffer, queue, and KPIs.
+        """
+        actor_id = None
+        actor_name = None
+        if enforce_auth:
+            user, session = _require_permission(request, Permission.SESSION_EDIT)
+            _verify_csrf_if_applicable(request, session)
+            actor_id = user.user_id
+            actor_name = user.display_name
+            if not req.invigilator_name:
+                req.invigilator_name = user.display_name
+
+        # Flush any active recordings from previous session
+        if stage2_pipeline and hasattr(stage2_pipeline, "evidence_manager") and stage2_pipeline.evidence_manager:
+            try:
+                stage2_pipeline.evidence_manager.clip_recorder.finalize_all_active()
+            except Exception:
+                pass
+        if camera_manager and hasattr(camera_manager, "finalize_all_active"):
+            try:
+                camera_manager.finalize_all_active()
+            except Exception:
+                pass
+
+        new_sess = ps.start_monitoring_session(
+            name=req.get_name(),
+            room=req.get_room(),
+            class_name=req.class_name,
+            subject_code=req.subject_code,
+            invigilator_name=req.invigilator_name,
+            notes=req.notes,
+            camera_ids=req.camera_ids,
+            actor_id=actor_id,
         )
+
+        # Workstream 10: Reset transient runtime state
+        if stage2_pipeline and hasattr(stage2_pipeline, "reset"):
+            try:
+                stage2_pipeline.reset()
+            except Exception:
+                pass
+        if camera_manager and hasattr(camera_manager, "reset"):
+            try:
+                camera_manager.reset()
+            except Exception:
+                pass
+
+        ev_manager.clear()
+
+        # Broadcast session start event to WebSockets
+        payload = {
+            "type": "MONITORING_SESSION_STARTED",
+            "session": new_sess.to_dict(),
+        }
+        if loop and loop.is_running():
+            asyncio.run_coroutine_threadsafe(ws_manager.broadcast(payload), loop)
+
+        return _build_session_response(new_sess)
+
+    @app.post("/api/sessions/{session_id}/end", response_model=SessionResponse)
+    async def end_session(session_id: str, req: SessionEndRequest, request: Request):
+        """
+        Explicitly close an active monitoring session with bounded finalization (Workstream 6).
+        """
+        actor_id = None
+        if enforce_auth:
+            user, session = _require_permission(request, Permission.SESSION_EDIT)
+            _verify_csrf_if_applicable(request, session)
+            actor_id = user.user_id
+
+        existing = ps.sessions.get_session(session_id)
+        if not existing:
+            raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
+
+        # Finalize any pending clips across workers
+        if stage2_pipeline and hasattr(stage2_pipeline, "evidence_manager") and stage2_pipeline.evidence_manager:
+            try:
+                stage2_pipeline.evidence_manager.clip_recorder.finalize_all_active()
+            except Exception:
+                pass
+        if camera_manager and hasattr(camera_manager, "finalize_all_active"):
+            try:
+                camera_manager.finalize_all_active()
+            except Exception:
+                pass
+
+        summary_dict = ps.sessions.get_session_summary(session_id)
+        closed_sess = ps.end_monitoring_session(
+            session_id=session_id,
+            reason=req.reason,
+            summary=summary_dict,
+            actor_id=actor_id,
+        )
+
+        res_sess = closed_sess or existing
+        payload = {
+            "type": "MONITORING_SESSION_ENDED",
+            "session": res_sess.to_dict(),
+        }
+        if loop and loop.is_running():
+            asyncio.run_coroutine_threadsafe(ws_manager.broadcast(payload), loop)
+
+        return _build_session_response(res_sess)
 
     @app.get("/api/sessions/{session_id}", response_model=SessionResponse)
     async def get_session_detail(session_id: str, request: Request):
@@ -1225,22 +1397,7 @@ def create_app(
         sess = ps.sessions.get_session(session_id)
         if not sess:
             raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
-        summary_dict = ps.sessions.get_session_summary(session_id)
-        return SessionResponse(
-            session_id=sess.session_id,
-            name=sess.name,
-            room=sess.room,
-            invigilator_name=sess.invigilator_name,
-            started_at=sess.started_at,
-            ended_at=sess.ended_at,
-            status=sess.status,
-            camera_count=sess.camera_count,
-            created_at=sess.created_at,
-            updated_at=sess.updated_at,
-            last_heartbeat_at=sess.last_heartbeat_at,
-            close_reason=sess.close_reason,
-            summary=SessionSummary(**summary_dict),
-        )
+        return _build_session_response(sess)
 
     @app.patch("/api/sessions/{session_id}", response_model=SessionResponse)
     async def update_session_metadata(session_id: str, req: SessionUpdateRequest, request: Request):
@@ -1265,37 +1422,7 @@ def create_app(
             actor_id=actor_id,
         )
         existing = ps.sessions.get_session(session_id)
-
-        # Audit session update
-        try:
-            ps.audit.log_action(
-                audit_id=f"aud_sess_upd_{int(time.time() * 1000) % 1000000}",
-                action="SESSION_METADATA_UPDATED",
-                session_id=session_id,
-                actor_type="USER" if actor_id else "SYSTEM",
-                actor_id=actor_id,
-                actor_display_name=actor_name,
-                details={"name": existing.name, "room": existing.room, "invigilator": existing.invigilator_name},
-            )
-        except Exception:
-            pass
-
-        summary_dict = ps.sessions.get_session_summary(session_id)
-        return SessionResponse(
-            session_id=existing.session_id,
-            name=existing.name,
-            room=existing.room,
-            invigilator_name=existing.invigilator_name,
-            started_at=existing.started_at,
-            ended_at=existing.ended_at,
-            status=existing.status,
-            camera_count=existing.camera_count,
-            created_at=existing.created_at,
-            updated_at=existing.updated_at,
-            last_heartbeat_at=existing.last_heartbeat_at,
-            close_reason=existing.close_reason,
-            summary=SessionSummary(**summary_dict),
-        )
+        return _build_session_response(existing)
 
     @app.get("/api/sessions/{session_id}/events", response_model=List[EventResponse])
     async def get_session_events(

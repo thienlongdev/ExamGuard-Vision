@@ -12,10 +12,11 @@ from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 import hashlib
+import inspect
 import logging
 import os
 import time
-from typing import Deque, List, Optional, Callable, Dict, Any
+from typing import Deque, List, Optional, Callable, Dict, Any, Tuple
 import cv2
 import numpy as np
 
@@ -30,8 +31,114 @@ class BufferedFrame:
     height: int
 
 
+@dataclass
+class CodecCapability:
+    backend_api: int
+    fourcc_str: str
+    extension: str
+    mime_type: str
+    container: str
+    is_valid: bool = False
+
+
+_PROBED_CODEC: Optional[CodecCapability] = None
+
+
+def probe_video_codec() -> CodecCapability:
+    """
+    Startup capability probe.
+    Tests candidate encoders with a short synthetic clip to ensure browser-compatible
+    video output (duration > 0, frame count > 0, non-empty, parseable container).
+    Caches result.
+    """
+    global _PROBED_CODEC
+    if _PROBED_CODEC is not None:
+        return _PROBED_CODEC
+
+    import tempfile
+    candidates: List[Tuple[int, str, str, str, str]] = []
+    if os.name == "nt":
+        # Windows: cv2.CAP_MSMF with H264 produces AVC1 in MP4 that Chromium plays natively
+        candidates.append((cv2.CAP_MSMF, "H264", ".mp4", "video/mp4", "MP4"))
+        candidates.append((cv2.CAP_FFMPEG, "avc1", ".mp4", "video/mp4", "MP4"))
+        candidates.append((cv2.CAP_FFMPEG, "H264", ".mp4", "video/mp4", "MP4"))
+        candidates.append((cv2.CAP_FFMPEG, "VP80", ".webm", "video/webm", "WEBM"))
+        candidates.append((0, "mp4v", ".mp4", "video/mp4", "MP4"))
+    else:
+        # Linux/macOS
+        candidates.append((cv2.CAP_FFMPEG, "avc1", ".mp4", "video/mp4", "MP4"))
+        candidates.append((cv2.CAP_FFMPEG, "H264", ".mp4", "video/mp4", "MP4"))
+        candidates.append((cv2.CAP_FFMPEG, "VP80", ".webm", "video/webm", "WEBM"))
+        candidates.append((0, "mp4v", ".mp4", "video/mp4", "MP4"))
+
+    for backend, fourcc_str, ext, mime, container in candidates:
+        temp_dir = tempfile.gettempdir()
+        test_file = os.path.join(temp_dir, f"eg_probe_{fourcc_str}_{int(time.time())}{ext}")
+        try:
+            fourcc = cv2.VideoWriter_fourcc(*fourcc_str)
+            w, h = 320, 240
+            if backend != 0:
+                writer = cv2.VideoWriter(test_file, backend, fourcc, 15.0, (w, h))
+            else:
+                writer = cv2.VideoWriter(test_file, fourcc, 15.0, (w, h))
+
+            if not writer.isOpened():
+                continue
+
+            dummy = np.zeros((h, w, 3), dtype=np.uint8)
+            for _ in range(5):
+                writer.write(dummy)
+            writer.release()
+
+            if not os.path.exists(test_file) or os.path.getsize(test_file) < 256:
+                if os.path.exists(test_file):
+                    os.remove(test_file)
+                continue
+
+            cap = cv2.VideoCapture(test_file)
+            valid = False
+            if cap.isOpened():
+                cnt = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                if cnt > 0:
+                    valid = True
+                cap.release()
+
+            if os.path.exists(test_file):
+                os.remove(test_file)
+
+            if valid:
+                logger.info(f"Evidence video codec probed successfully: backend={backend}, fourcc={fourcc_str}, ext={ext}, mime={mime}")
+                _PROBED_CODEC = CodecCapability(
+                    backend_api=backend,
+                    fourcc_str=fourcc_str,
+                    extension=ext,
+                    mime_type=mime,
+                    container=container,
+                    is_valid=True,
+                )
+                return _PROBED_CODEC
+        except Exception as e:
+            if os.path.exists(test_file):
+                try:
+                    os.remove(test_file)
+                except Exception:
+                    pass
+            logger.debug(f"Codec probe failed for {fourcc_str}: {e}")
+
+    logger.warning("All candidate video encoders failed probe. Using fallback MP4V.")
+    _PROBED_CODEC = CodecCapability(
+        backend_api=0,
+        fourcc_str="mp4v",
+        extension=".mp4",
+        mime_type="video/mp4",
+        container="MP4",
+        is_valid=False,
+    )
+    return _PROBED_CODEC
+
+
 class RollingClipRecorder:
-    """Maintains a memory-bounded circular pre-event buffer and writes short MP4 evidence clips."""
+    """Maintains a memory-bounded circular pre-event buffer and writes verified video clips."""
 
     def __init__(
         self,
@@ -41,7 +148,7 @@ class RollingClipRecorder:
         max_fps: float = 15.0,
         jpeg_quality: int = 80,
         max_buffer_mb: float = 64.0,
-        on_clip_ready: Optional[Callable[[str, str, str, int], None]] = None,
+        on_clip_ready: Optional[Callable[..., None]] = None,
         on_clip_failed: Optional[Callable[[str, str, Exception], None]] = None,
     ):
         self.output_dir = output_dir
@@ -54,16 +161,17 @@ class RollingClipRecorder:
         self.on_clip_failed = on_clip_failed
 
         # Maximum frames in rolling buffer (e.g. 5s * 30fps = 150 frames + margin)
-        self.buffer_maxlen = int(pre_event_seconds * 30.0) + 20
+        self.buffer_maxlen = int(pre_event_seconds * 30.0) + 30
         self._rolling_buffer: Deque[BufferedFrame] = deque(maxlen=self.buffer_maxlen)
         self._current_buffer_bytes = 0
 
         # Active recording tasks awaiting post-event frames:
-        # event_id -> {"frames": List[BufferedFrame], "end_timestamp": float, "filepath": str, "fps": float}
         self._active_recordings: List[Dict[str, Any]] = []
 
         self._executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="clip_worker")
         os.makedirs(self.output_dir, exist_ok=True)
+        # Warmup codec probe
+        probe_video_codec()
 
     def push_frame(self, frame: np.ndarray, timestamp: float) -> None:
         """Compress frame to JPEG bytes, add to rolling buffer, and feed active clip jobs."""
@@ -117,10 +225,11 @@ class RollingClipRecorder:
         custom_filepath: Optional[str] = None,
     ) -> str:
         """Trigger evidence clip capture centered around current event."""
+        codec_info = probe_video_codec()
         if custom_filepath:
             filepath = custom_filepath
         else:
-            filename = f"{event_id}_evidence.mp4"
+            filename = f"{event_id}_evidence{codec_info.extension}"
             filepath = os.path.join(self.output_dir, filename)
 
         os.makedirs(os.path.dirname(os.path.abspath(filepath)), exist_ok=True)
@@ -165,25 +274,34 @@ class RollingClipRecorder:
         frames: List[BufferedFrame],
         fps: float,
     ) -> None:
-        """Encode frames into a verified MP4 file in a background worker."""
+        """Encode frames into a verified browser-compatible video file in a background worker."""
         if not frames:
             if self.on_clip_failed:
                 self.on_clip_failed(event_id, filepath, RuntimeError("No frames available for video clip"))
             return
 
         def _encode():
-            tmp_path = f"{filepath}.tmp.mp4"
+            codec_info = probe_video_codec()
+            tmp_path = f"{filepath}.tmp{codec_info.extension}"
             try:
                 w, h = frames[0].width, frames[0].height
-                fourcc = cv2.VideoWriter_fourcc(*"H264")
-                writer = cv2.VideoWriter(tmp_path, cv2.CAP_MSMF, fourcc, fps, (w, h))
-                if not writer.isOpened():
-                    writer = cv2.VideoWriter(tmp_path, cv2.VideoWriter_fourcc(*"avc1"), fps, (w, h))
-                if not writer.isOpened():
-                    writer = cv2.VideoWriter(tmp_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
+                writer = None
+                fourcc = cv2.VideoWriter_fourcc(*codec_info.fourcc_str)
 
-                if not writer.isOpened():
-                    raise RuntimeError(f"Cannot initialize cv2.VideoWriter for {tmp_path}")
+                if codec_info.backend_api != 0:
+                    writer = cv2.VideoWriter(tmp_path, codec_info.backend_api, fourcc, fps, (w, h))
+
+                if writer is None or not writer.isOpened():
+                    # Fallback chain
+                    if os.name == "nt":
+                        writer = cv2.VideoWriter(tmp_path, cv2.CAP_MSMF, cv2.VideoWriter_fourcc(*"H264"), fps, (w, h))
+                    if not writer or not writer.isOpened():
+                        writer = cv2.VideoWriter(tmp_path, cv2.CAP_FFMPEG, cv2.VideoWriter_fourcc(*"avc1"), fps, (w, h))
+                    if not writer or not writer.isOpened():
+                        writer = cv2.VideoWriter(tmp_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
+
+                if not writer or not writer.isOpened():
+                    raise RuntimeError(f"Cannot initialize VideoWriter for {tmp_path}")
 
                 written_count = 0
                 for bf in frames:
@@ -194,22 +312,29 @@ class RollingClipRecorder:
                         written_count += 1
                 writer.release()
 
-                # Strict post-encode validation (Section 29)
-                if not os.path.exists(tmp_path) or os.path.getsize(tmp_path) == 0:
-                    raise RuntimeError(f"Encoded clip {tmp_path} is missing or 0 bytes")
+                # Strict post-encode validation (Workstreams 17, 21)
+                if not os.path.exists(tmp_path) or os.path.getsize(tmp_path) < 512:
+                    raise RuntimeError(f"Encoded clip {tmp_path} is missing or under 512 bytes")
 
                 cap = cv2.VideoCapture(tmp_path)
-                is_valid = False
-                if cap.isOpened():
-                    n_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-                    if n_frames > 0 or written_count > 0:
-                        is_valid = True
-                    cap.release()
-                else:
+                if not cap.isOpened():
                     raise RuntimeError(f"Encoded clip {tmp_path} cannot be opened by VideoCapture")
 
-                if not is_valid:
-                    raise RuntimeError(f"Encoded clip {tmp_path} has 0 frames or invalid duration")
+                n_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+                cap_fps = cap.get(cv2.CAP_PROP_FPS) or fps
+                cap.release()
+
+                if n_frames <= 0 and written_count <= 0:
+                    raise RuntimeError(f"Encoded clip {tmp_path} has 0 frames")
+
+                # Measure actual duration from frames or timestamps
+                if len(frames) >= 2 and frames[-1].timestamp > frames[0].timestamp:
+                    duration_sec = round(frames[-1].timestamp - frames[0].timestamp, 2)
+                else:
+                    duration_sec = round(written_count / max(1.0, cap_fps), 2)
+
+                if duration_sec <= 0.0:
+                    duration_sec = 0.5
 
                 # Atomic rename
                 if os.path.exists(filepath):
@@ -227,9 +352,37 @@ class RollingClipRecorder:
                 clip_hash = hasher.hexdigest()
                 clip_size = os.path.getsize(filepath)
 
-                logger.info(f"Saved verified video evidence clip: {filepath} ({written_count} frames, {clip_size} bytes)")
+                logger.info(
+                    f"Saved verified video evidence clip: {filepath} ({written_count} frames, "
+                    f"{duration_sec}s, {clip_size} bytes, codec={codec_info.fourcc_str})"
+                )
                 if self.on_clip_ready:
-                    self.on_clip_ready(event_id, filepath, clip_hash, clip_size)
+                    sig = inspect.signature(self.on_clip_ready)
+                    if len(sig.parameters) >= 8:
+                        self.on_clip_ready(
+                            event_id,
+                            filepath,
+                            clip_hash,
+                            clip_size,
+                            duration_sec,
+                            written_count,
+                            codec_info.fourcc_str,
+                            codec_info.mime_type,
+                        )
+                    else:
+                        try:
+                            self.on_clip_ready(
+                                event_id,
+                                filepath,
+                                clip_hash,
+                                clip_size,
+                                duration_sec,
+                                written_count,
+                                codec_info.fourcc_str,
+                                codec_info.mime_type,
+                            )
+                        except TypeError:
+                            self.on_clip_ready(event_id, filepath, clip_hash, clip_size)
 
             except Exception as e:
                 logger.error(f"Error encoding video clip {filepath}: {e}")

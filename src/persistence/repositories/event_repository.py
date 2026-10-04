@@ -68,6 +68,27 @@ class EventRepository:
             cur.execute(sql, (new_status, now_iso, event_id))
             return cur.rowcount > 0
 
+    def update_evidence_summary(self, event_id: str, summary_dict: Dict[str, Any]) -> bool:
+        """Update or merge evidence_summary_json for an event."""
+        with self.db.transaction() as cur:
+            cur.execute("SELECT evidence_summary_json FROM events WHERE event_id = ?;", (event_id,))
+            row = cur.fetchone()
+            if not row:
+                return False
+            cur_summary = {}
+            if row["evidence_summary_json"]:
+                try:
+                    cur_summary = json.loads(row["evidence_summary_json"])
+                except Exception:
+                    pass
+            cur_summary.update(summary_dict)
+            now_iso = datetime.now().isoformat()
+            cur.execute(
+                "UPDATE events SET evidence_summary_json = ?, updated_at = ? WHERE event_id = ?;",
+                (json.dumps(cur_summary, ensure_ascii=False), now_iso, event_id),
+            )
+            return cur.rowcount > 0
+
     def get_event(self, event_id: str) -> Optional[PersistedEvent]:
         sql = "SELECT * FROM events WHERE event_id = ?;"
         with self.db.cursor() as cur:

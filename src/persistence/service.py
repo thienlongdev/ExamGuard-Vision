@@ -92,6 +92,139 @@ class PersistenceService:
         self.active_session: Optional[ExamSession] = None
         self._last_event_update_times: Dict[str, float] = {}
 
+    def get_current_monitoring_session(self) -> Optional[ExamSession]:
+        """Return currently active monitoring session, reconnecting to DB state if needed."""
+        if self.active_session and self.active_session.status == "ACTIVE":
+            return self.active_session
+        active = self.sessions.get_active_session()
+        if active and active.status == "ACTIVE":
+            self.active_session = active
+            return active
+        return None
+
+    def start_monitoring_session(
+        self,
+        name: Optional[str] = None,
+        room: str = "Phòng thi chính",
+        class_name: Optional[str] = None,
+        subject_code: Optional[str] = None,
+        invigilator_name: Optional[str] = None,
+        notes: Optional[str] = None,
+        camera_ids: Optional[List[str]] = None,
+        actor_id: Optional[str] = None,
+    ) -> ExamSession:
+        """
+        Explicitly begin a new monitoring session for an exam room.
+        If an active session already exists, it is closed gracefully first.
+        """
+        if self.active_session and self.active_session.status == "ACTIVE":
+            logger.info(f"Closing previous active session '{self.active_session.session_id}' before starting new session.")
+            self.end_monitoring_session(
+                session_id=self.active_session.session_id,
+                reason="SWITCHED_TO_NEW_SESSION",
+                actor_id=actor_id,
+            )
+
+        now = datetime.now()
+        session_id = f"sess_{int(time.time())}_{uuid.uuid4().hex[:6]}"
+        session_name = name or f"Phiên giám sát {now.strftime('%d/%m/%Y %H:%M')}"
+        now_iso = now.isoformat()
+
+        cam_count = len(camera_ids) if camera_ids else 1
+        session = ExamSession(
+            session_id=session_id,
+            name=session_name,
+            room=room,
+            class_name=class_name,
+            subject_code=subject_code,
+            invigilator_name=invigilator_name,
+            notes=notes,
+            started_at=now_iso,
+            ended_at=None,
+            status="ACTIVE",
+            camera_count=cam_count,
+            created_at=now_iso,
+            updated_at=now_iso,
+            last_heartbeat_at=now_iso,
+            close_reason=None,
+            evidence_failure_count=0,
+            summary_json=None,
+        )
+        self.sessions.create_session(session)
+        self.active_session = session
+
+        # Associate cameras if provided
+        if camera_ids:
+            for cid in camera_ids:
+                try:
+                    self.sessions.add_camera_to_session(session_id, cid)
+                except Exception as e:
+                    logger.debug(f"Could not bind camera {cid} to session {session_id}: {e}")
+
+        self.audit.log_action(
+            audit_id=f"aud_{uuid.uuid4().hex[:12]}",
+            action="SESSION_CREATED",
+            session_id=session_id,
+            actor_type="USER" if actor_id else "SYSTEM",
+            actor_id=actor_id,
+            details={
+                "name": session_name,
+                "room": room,
+                "class_name": class_name,
+                "subject_code": subject_code,
+                "invigilator": invigilator_name,
+            },
+        )
+        logger.info(f"Active monitoring session started: '{session_id}' ({session_name}, Room: {room}).")
+        return session
+
+    def end_monitoring_session(
+        self,
+        session_id: Optional[str] = None,
+        reason: str = "GRACEFUL_STOP",
+        summary: Optional[Dict[str, Any]] = None,
+        evidence_failure_count: int = 0,
+        actor_id: Optional[str] = None,
+    ) -> Optional[ExamSession]:
+        """
+        Explicitly close an active monitoring session, persisting end timestamp,
+        summary statistics, and failure counts.
+        """
+        sid = session_id or (self.active_session.session_id if self.active_session else None)
+        if not sid:
+            return None
+
+        # Transition through CLOSING state if updating active session
+        now_iso = datetime.now().isoformat()
+        summary_str = json.dumps(summary, ensure_ascii=False) if summary else None
+
+        self.sessions.close_session(
+            session_id=sid,
+            ended_at=now_iso,
+            reason=reason,
+            summary_json=summary_str,
+            evidence_failure_count=evidence_failure_count,
+        )
+
+        self.audit.log_action(
+            audit_id=f"aud_{uuid.uuid4().hex[:12]}",
+            action="SESSION_CLOSED",
+            session_id=sid,
+            actor_type="USER" if actor_id else "SYSTEM",
+            actor_id=actor_id,
+            details={
+                "reason": reason,
+                "ended_at": now_iso,
+                "evidence_failure_count": evidence_failure_count,
+            },
+        )
+
+        closed_session = self.sessions.get_session(sid)
+        if self.active_session and self.active_session.session_id == sid:
+            self.active_session = None
+        logger.info(f"Monitoring session '{sid}' closed (reason: {reason}, failures: {evidence_failure_count}).")
+        return closed_session
+
     def initialize_runtime_session(
         self,
         name: Optional[str] = None,
@@ -99,11 +232,10 @@ class PersistenceService:
         invigilator_name: Optional[str] = None,
     ) -> ExamSession:
         """
-        Startup sequence:
-        1. Recover any stale ACTIVE session left by previous abnormal exit -> mark INTERRUPTED.
-        2. Create a fresh ACTIVE session for this process run.
+        Backwards-compatible runtime session initializer (used in tests or explicit setup).
+        1. Stale session detection (>15m without heartbeat or unexpected shutdown).
+        2. Creates a fresh active session.
         """
-        # 1. Stale session detection
         existing_active = self.sessions.get_active_session()
         if existing_active:
             ended_ts = existing_active.last_heartbeat_at or datetime.now().isoformat()
@@ -122,44 +254,18 @@ class PersistenceService:
                 f"Previous stale session '{existing_active.session_id}' marked as INTERRUPTED (ended: {ended_ts})."
             )
 
-        # Stale backup temp artifacts cleanup
+        # Cleanup any stale backup temp artifacts
         try:
             from src.persistence.backup import cleanup_stale_backup_temp_artifacts
             cleanup_stale_backup_temp_artifacts(persistence_service=self)
         except Exception as e:
             logger.warning(f"Could not clean stale backup temp artifacts: {e}")
 
-        # 2. Create fresh active session with formatted timestamp
-        now = datetime.now()
-        session_id = f"sess_{int(time.time())}_{uuid.uuid4().hex[:6]}"
-        session_name = name or f"Phiên giám sát {now.strftime('%d/%m/%Y %H:%M')}"
-        now_iso = now.isoformat()
-
-        session = ExamSession(
-            session_id=session_id,
-            name=session_name,
+        return self.start_monitoring_session(
+            name=name,
             room=room,
             invigilator_name=invigilator_name,
-            started_at=now_iso,
-            ended_at=None,
-            status="ACTIVE",
-            camera_count=1,
-            created_at=now_iso,
-            updated_at=now_iso,
-            last_heartbeat_at=now_iso,
-            close_reason=None,
         )
-        self.sessions.create_session(session)
-        self.active_session = session
-
-        self.audit.log_action(
-            audit_id=f"aud_{uuid.uuid4().hex[:12]}",
-            action="SESSION_CREATED",
-            session_id=session_id,
-            details={"name": session_name, "room": room},
-        )
-        logger.info(f"Active monitoring session initialized: '{session_id}' ({session_name}).")
-        return session
 
     def heartbeat(self) -> None:
         """Periodic heartbeat for active session."""
@@ -168,22 +274,7 @@ class PersistenceService:
 
     def close_active_session(self, reason: str = "GRACEFUL_STOP") -> Optional[ExamSession]:
         """Gracefully close the currently active monitoring session."""
-        if not self.active_session:
-            return None
-
-        sid = self.active_session.session_id
-        now_iso = datetime.now().isoformat()
-        self.sessions.close_session(sid, ended_at=now_iso, reason=reason)
-        self.audit.log_action(
-            audit_id=f"aud_{uuid.uuid4().hex[:12]}",
-            action="SESSION_CLOSED",
-            session_id=sid,
-            details={"reason": reason, "ended_at": now_iso},
-        )
-        closed_session = self.sessions.get_session(sid)
-        self.active_session = None
-        logger.info(f"Session '{sid}' gracefully closed (reason: {reason}).")
-        return closed_session
+        return self.end_monitoring_session(reason=reason)
 
     def update_session_metadata(
         self,
@@ -300,10 +391,17 @@ class PersistenceService:
         clip_start: Optional[str] = None,
         clip_end: Optional[str] = None,
         encrypt: bool = True,
+        artifact_state: str = "READY",
+        codec: Optional[str] = None,
+        container: Optional[str] = None,
+        error_message: Optional[str] = None,
+        duration_sec: float = 0.0,
+        frame_count: int = 0,
     ) -> Optional[EventEvidence]:
         """
         Record evidence file metadata, encrypting with AES-256-GCM at rest by default.
         Calculates SHA-256 of the stored file (ciphertext if encrypted).
+        Updates evidence repository and event evidence summary.
         """
         if not os.path.exists(file_path):
             logger.warning(f"Cannot record evidence: file '{file_path}' does not exist.")
@@ -321,6 +419,7 @@ class PersistenceService:
                 ".jpeg": "image/jpeg",
                 ".png": "image/png",
                 ".mp4": "video/mp4",
+                ".webm": "video/webm",
                 ".json": "application/json",
             }
             mime_type = mime_map.get(ext, "application/octet-stream")
@@ -394,9 +493,39 @@ class PersistenceService:
             encryption_state=encryption_state,
             key_id=key_id,
             aad_json=aad_json,
+            artifact_state=artifact_state,
+            codec=codec,
+            container=container,
+            error_message=error_message,
+            duration_sec=duration_sec if duration_sec > 0 else None,
+            frame_count=frame_count if frame_count > 0 else None,
             created_at=now_iso,
         )
         self.evidence.add_evidence(record)
+
+        # Update event evidence summary in sqlite
+        summary_update: Dict[str, Any] = {}
+        ev_type_upper = evidence_type.upper()
+        if ev_type_upper == "SNAPSHOT":
+            summary_update["snapshot_path"] = rel_path
+            summary_update["snapshot_state"] = artifact_state
+            if error_message:
+                summary_update["snapshot_error"] = error_message
+        elif ev_type_upper in ("CLIP", "VIDEO", "VIDEO_CLIP"):
+            summary_update["clip_path"] = rel_path
+            summary_update["clip_state"] = artifact_state
+            if duration_sec > 0:
+                summary_update["duration_sec"] = duration_sec
+            if error_message:
+                summary_update["clip_error"] = error_message
+        elif ev_type_upper == "MANIFEST":
+            summary_update["manifest_path"] = rel_path
+
+        if summary_update:
+            try:
+                self.events.update_evidence_summary(event_id, summary_update)
+            except Exception as e:
+                logger.debug(f"Could not update event evidence summary: {e}")
 
         action_name = "EVIDENCE_SNAPSHOT_WRITTEN" if evidence_type == "SNAPSHOT" else "EVIDENCE_CLIP_WRITTEN"
         self.audit.log_action(
@@ -409,6 +538,7 @@ class PersistenceService:
                 "sha256": sha256,
                 "size": size_bytes,
                 "encryption": encryption_state,
+                "state": artifact_state,
             },
         )
         return record
@@ -416,6 +546,7 @@ class PersistenceService:
     def load_and_decrypt_evidence(self, identifier_or_path: str) -> Tuple[bytes, str]:
         """
         Load an evidence artifact by evidence_id or relative path, decrypting in-memory if encrypted.
+        Guarantees retrieval of exact AAD metadata so AES-GCM decryption never fails on valid artifacts.
         Returns (decrypted_bytes, mime_type).
         """
         # Defense in depth: block attempts to access credentials or security directory
@@ -427,6 +558,16 @@ class PersistenceService:
         ev = self.evidence.get_evidence_by_id(identifier_or_path)
         if not ev:
             ev = self.evidence.get_evidence_by_path(identifier_or_path)
+
+        # If not found yet and contains path structure, parse parts to match by event and type
+        if not ev:
+            norm_parts = [p for p in cleaned_lookup.split("/") if p]
+            if len(norm_parts) >= 2:
+                last_name = norm_parts[-1]
+                ev_type = "SNAPSHOT" if "snapshot" in last_name else ("VIDEO_CLIP" if ("clip" in last_name or "video" in last_name) else None)
+                possible_eid = norm_parts[-2]
+                if ev_type and possible_eid:
+                    ev = self.evidence.get_evidence_for_event_and_type(possible_eid, ev_type)
 
         if ev:
             rel_path = ev.relative_path
@@ -450,6 +591,7 @@ class PersistenceService:
                 ".jpeg": "image/jpeg",
                 ".png": "image/png",
                 ".mp4": "video/mp4",
+                ".webm": "video/webm",
                 ".json": "application/json",
             }
             mime = mime_map.get(real_ext, "application/octet-stream")
@@ -477,7 +619,7 @@ class PersistenceService:
         if not full_path or not full_path.is_file():
             fname = Path(rel_path).name
             matches = []
-            for base_dir in [repo_root / "evidence", repo_root / "storage" / "evidence"]:
+            for base_dir in [repo_root / "evidence", repo_root / "storage" / "evidence", repo_root / "storage" / "sessions"]:
                 if base_dir.is_dir():
                     for match in base_dir.rglob(fname):
                         if match.is_file():
@@ -498,17 +640,44 @@ class PersistenceService:
         if not full_path or not full_path.is_file():
             raise FileNotFoundError(f"Tệp bằng chứng không tồn tại: {rel_path}")
 
+        # Post-path-resolution second chance for DB row if ev was not initially found
+        if not ev and full_path:
+            try:
+                rel_cand = str(full_path.resolve().relative_to(repo_root)).replace("\\", "/")
+                ev = self.evidence.get_evidence_by_path(rel_cand)
+            except Exception:
+                pass
+            if not ev:
+                ev = self.evidence.get_evidence_by_path(str(full_path))
+            if ev:
+                mime = ev.mime_type or mime
+                if ev.aad_json:
+                    aad_dict = json.loads(ev.aad_json)
+
         file_bytes = full_path.read_bytes()
 
         # Check if file has EGE1 binary envelope
         if file_bytes.startswith(b"EGE1") or enc_state == "ENCRYPTED_V1":
             if not aad_dict:
-                # If AAD not pre-known, build minimal default AAD from filename/record
+                # If AAD not pre-known, infer from path components
+                path_parts = str(full_path).replace("\\", "/").split("/")
+                inferred_sid = ""
+                inferred_eid = ""
+                if "sessions" in path_parts:
+                    idx = path_parts.index("sessions")
+                    if len(path_parts) > idx + 1:
+                        inferred_sid = path_parts[idx + 1]
+                if "evidence" in path_parts:
+                    idx = path_parts.index("evidence")
+                    if len(path_parts) > idx + 1:
+                        inferred_eid = path_parts[idx + 1]
+
+                ev_type = "SNAPSHOT" if "snapshot" in str(full_path).lower() else "VIDEO_CLIP"
                 aad_dict = {
-                    "session_id": "",
-                    "event_id": "",
+                    "session_id": inferred_sid,
+                    "event_id": inferred_eid,
                     "evidence_id": "",
-                    "evidence_type": "SNAPSHOT" if "snapshot" in rel_path.lower() else "VIDEO_CLIP",
+                    "evidence_type": ev_type,
                 }
             kp = get_key_provider()
             decrypted = decrypt_evidence_bytes(file_bytes, aad_dict, key_provider=kp)
