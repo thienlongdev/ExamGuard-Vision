@@ -482,13 +482,13 @@ export class SystemViewComponent {
 
       <div class="system-card">
         <div class="system-card-top">
-          <span class="system-card-title">3. Bộ nhớ đồ họa NVIDIA RTX 3050</span>
-          <span class="system-tag-chip ${vramAlloc > 0 ? 'online' : 'idle'}">4.0 GB VRAM</span>
+          <span class="system-card-title">3. VRAM đang cấp phát (torch.cuda.allocated)</span>
+          <span class="system-tag-chip ${vramAlloc > 0 ? 'online' : 'idle'}">RTX 3050 · 4 GB</span>
         </div>
         <div class="system-metric-value">${vramAlloc.toFixed(0)} <span class="unit">MB</span></div>
         <div class="system-metrics-sub">
-          <div class="sub-item"><span>Tải VRAM</span><strong>${vramPct}% / 4096 MB</strong></div>
-          <div class="sub-item"><span>Chế độ inference</span><strong>Chung Registry (InferenceLock)</strong></div>
+          <div class="sub-item"><span>Chỉ số đo lường</span><strong>torch.cuda.memory_allocated</strong></div>
+          <div class="sub-item"><span>Tải trên VRAM</span><strong>${vramPct}% / 4096 MB</strong></div>
           <div class="sub-item"><span>Trạng thái CUDA</span><strong>SẴN SÀNG</strong></div>
         </div>
       </div>

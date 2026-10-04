@@ -65,8 +65,8 @@ export class HealthStripComponent {
 
         <div class="health-divider"></div>
 
-        <div class="health-item" title="Bộ nhớ đồ họa NVIDIA GPU đang phân bổ">
-          <span class="label">VRAM</span>
+        <div class="health-item" title="Bộ nhớ GPU PyTorch đang cấp phát (torch.cuda.memory_allocated)">
+          <span class="label">VRAM (Alloc)</span>
           <span class="val" id="strip-vram">— MB</span>
         </div>
       </div>

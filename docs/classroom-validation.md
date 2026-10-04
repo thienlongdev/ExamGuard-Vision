@@ -151,3 +151,34 @@ To advance ExamGuard Vision from single-camera room pilot to full enterprise pro
   - Front-diagonal elevated mount (2.2m to 2.8m above floor, 25° downward tilt).
   - Maximizes desk surface visibility for phone association while keeping faces within the HopeNet headpose yaw angle envelope.
 - **Single Room Setup**: For a standard 25–30 student classroom, deploy **3 to 4 cameras** rather than forcing a single camera to cover 30 seats.
+
+---
+
+## 11. Canonical Performance Baseline — PHYSICAL_SINGLE_CAMERA
+
+Validated on the physical ASUS TUF Gaming A17 laptop webcam for a continuous 60-second execution run:
+
+| Metric Name | Canonical Value | Measurement Definition / Telemetry Source |
+| :--- | :--- | :--- |
+| **Benchmark Label** | `PHYSICAL_SINGLE_CAMERA` | Authoritative single-camera physical runtime validation |
+| **Hardware** | ASUS TUF Gaming A17 | AMD Ryzen 7 6800H, NVIDIA GeForce RTX 3050 Laptop GPU (4 GB GDDR6) |
+| **Physical Camera** | USB HD Webcam (Index 0) | Native laptop sensor via DirectShow |
+| **Resolution** | 1280x720 (720p) | Actual driver capture buffer format |
+| **CAMERA_CONFIGURED_FPS** | 30.0 FPS | Requested target capture rate |
+| **CAMERA_OBSERVED_CAPTURE_FPS**| 7.52 FPS | Actual driver capture rate over 60.05s |
+| **AI_TARGET_FPS** | 10.0 Hz | Ingestion cadence scheduler target |
+| **AI_EFFECTIVE_PROCESSING_FPS**| 7.53 FPS | Measured as `total_processed_frames (452) / elapsed_wall_seconds (60.05)` |
+| **UI_STREAM_FPS** | 10.0 FPS | WebSocket preview target rate |
+| **Latency Sample Count** | 452 frames | Uninterrupted per-frame pipeline intervals |
+| **p50 Latency** | 59.21 ms | Frame selected for AI processing → final pipeline result ready |
+| **p95 Latency** | 87.63 ms | 95th percentile end-to-end processing interval |
+| **p99 Latency** | 97.45 ms | 99th percentile peak inference spike |
+| **CUDA Allocated VRAM** | 289.3 MB | `torch.cuda.memory_allocated()` active neural model weights and tensor buffers |
+| **CUDA Reserved VRAM** | 512.0 MB | `torch.cuda.memory_reserved()` PyTorch CUDA caching allocator memory block |
+| **Peak CUDA Allocated** | 431.8 MB | `torch.cuda.max_memory_allocated()` peak batching allocation |
+| **Peak CUDA Reserved** | 512.0 MB | `torch.cuda.max_memory_reserved()` |
+| **Host Process RAM RSS** | 1834.9 MB | `psutil.Process().memory_info().rss` |
+| **NVIDIA Driver Total VRAM** | 602 MB / 4096 MB | `nvidia-smi` total process GPU footprint (CUDA context + PyTorch pool) |
+| **Frame Drop Rate** | 0.00% | 0 dropped frames (no backpressure drop) |
+| **Mean Ingest Queue Depth** | 0.00 / 5 | Bounded queue remains clear throughout 60s soak |
+| **Validation Timestamp** | 2026-10-04 | 60.05s physical soak test |

@@ -107,8 +107,8 @@ export class HeaderComponent {
           <span id="live-status-text">TRỰC TIẾP · CAM 01</span>
         </div>
 
-        <div class="status-pill" id="vram-pill">
-          <span>GPU</span>
+        <div class="status-pill" id="vram-pill" title="Bộ nhớ GPU PyTorch đang cấp phát (torch.cuda.memory_allocated)">
+          <span>VRAM ALLOC</span>
           <strong id="vram-text">— MB</strong>
         </div>
 
