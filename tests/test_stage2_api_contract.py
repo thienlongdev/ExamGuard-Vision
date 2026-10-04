@@ -12,7 +12,7 @@ from src.behavior.event_manager import EventManager, SuspiciousEvent
 @pytest.fixture
 def client():
     ev_mgr = EventManager(camera_id="test_cam")
-    app = create_app(event_manager=ev_mgr)
+    app = create_app(event_manager=ev_mgr, enforce_auth=False)
     app.extra = {"event_manager": ev_mgr}
     return TestClient(app)
 
@@ -108,7 +108,7 @@ def test_websocket_lifecycle_order_verification():
             self.listeners.append(l)
 
     mock_pipeline = MockPipeline()
-    app = create_app(event_manager=ev_mgr, connection_manager=ws_mgr, stage2_pipeline=mock_pipeline)
+    app = create_app(event_manager=ev_mgr, connection_manager=ws_mgr, stage2_pipeline=mock_pipeline, enforce_auth=False)
     app.extra["event_manager"] = ev_mgr
 
     with TestClient(app) as client:

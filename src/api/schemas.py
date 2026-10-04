@@ -165,3 +165,91 @@ class BackupResponse(BaseModel):
     evidence_count: int
     message: str
 
+
+# --- PRODUCTION FOUNDATION SCHEMAS: AUTH, RBAC, USERS, CAMERAS, SECURITY ---
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class SetupRequest(BaseModel):
+    username: str
+    password: str
+    display_name: str
+
+
+class UserResponse(BaseModel):
+    user_id: str
+    username: str
+    display_name: str
+    role: str
+    role_display: str
+    is_active: bool
+    last_login_at: Optional[str] = None
+    created_at: str
+
+
+class AuthMeResponse(BaseModel):
+    user: UserResponse
+    csrf_token: str
+    role_display: str
+
+
+class UserCreateRequest(BaseModel):
+    username: str
+    password: str
+    display_name: str
+    role: str = "INVIGILATOR"
+
+
+class UserUpdateRequest(BaseModel):
+    role: Optional[str] = None
+    is_active: Optional[bool] = None
+    display_name: Optional[str] = None
+
+
+class UserResetPasswordRequest(BaseModel):
+    new_password: str
+
+
+class CameraConfigItem(BaseModel):
+    camera_id: str
+    name: str
+    source_type: str
+    device_index: Optional[int] = None
+    enabled: bool = True
+    resolution_width: int = 1280
+    resolution_height: int = 720
+    target_capture_fps: float = 30.0
+    room: Optional[str] = None
+
+
+class CameraConfigUpdate(BaseModel):
+    name: Optional[str] = None
+    enabled: Optional[bool] = None
+    device_index: Optional[int] = None
+    resolution_width: Optional[int] = None
+    resolution_height: Optional[int] = None
+    target_capture_fps: Optional[float] = None
+    room: Optional[str] = None
+
+
+class BackupCreateRequest(BaseModel):
+    recovery_passphrase: Optional[str] = None
+
+
+class BackupVerifyRequest(BaseModel):
+    backup_id_or_path: str
+    recovery_passphrase: Optional[str] = None
+
+
+class SecurityStatusResponse(BaseModel):
+    auth_status: str
+    evidence_encryption: str
+    key_storage: str
+    audit_chain_valid: bool
+    total_users: int
+    active_sessions: int
+
+

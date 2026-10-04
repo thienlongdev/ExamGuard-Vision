@@ -48,6 +48,11 @@ htmlcov/
 *.pem
 *.key
 *.token
+*.dpapi
+*.secret
+*.enc
+*.ege
+storage/security/
 
 # ------------------------------------------------------------------------------
 # Datasets, Raw Imagery, and Scratch Directories

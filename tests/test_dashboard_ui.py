@@ -25,7 +25,7 @@ def dummy_evidence():
 
 
 def test_dashboard_routes():
-    app = create_app()
+    app = create_app(enforce_auth=False)
     client = TestClient(app)
 
     # 1. Root route
@@ -45,7 +45,7 @@ def test_dashboard_routes():
 
 
 def test_static_assets_serving():
-    app = create_app()
+    app = create_app(enforce_auth=False)
     client = TestClient(app)
 
     # Tokens CSS
@@ -70,7 +70,7 @@ def test_static_assets_serving():
 
 
 def test_safe_evidence_serving(dummy_evidence):
-    app = create_app()
+    app = create_app(enforce_auth=False)
     client = TestClient(app)
 
     # 1. Valid snapshot retrieval
@@ -107,7 +107,7 @@ def test_camera_stream_and_tracks():
             self.source = type("MockSource", (), {"is_opened": lambda self: True})()
 
     mock_pipe = MockPipeline()
-    app = create_app(stage2_pipeline=mock_pipe)
+    app = create_app(stage2_pipeline=mock_pipe, enforce_auth=False)
     client = TestClient(app)
 
     # Tracks endpoint
@@ -143,7 +143,7 @@ def test_event_snapshot_url_normalization():
     )
     em._events[raw_ev.event_id] = raw_ev
 
-    app = create_app(event_manager=em)
+    app = create_app(event_manager=em, enforce_auth=False)
     client = TestClient(app)
 
     res = client.get("/api/events/ev_norm_01")
@@ -155,7 +155,7 @@ def test_event_snapshot_url_normalization():
 
 def test_history_tab_and_view_rendered():
     """Verify History tab, view section, and components are integrated."""
-    app = create_app()
+    app = create_app(enforce_auth=False)
     client = TestClient(app)
 
     res = client.get("/")
@@ -184,7 +184,7 @@ def test_history_tab_and_view_rendered():
 
 def test_review_queue_scroll_and_card_stability_css():
     """Verify Review Queue CSS rules guarantee independent scrolling, non-shrinking cards, and stable thumbnails."""
-    app = create_app()
+    app = create_app(enforce_auth=False)
     client = TestClient(app)
 
     res = client.get("/static/css/dashboard.css")

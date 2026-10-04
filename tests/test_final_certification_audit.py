@@ -197,7 +197,7 @@ def test_origin_api_serialization():
     em._events[ev1.event_id] = ev1
     em._events[ev2.event_id] = ev2
 
-    app = create_app(event_manager=em)
+    app = create_app(event_manager=em, enforce_auth=False)
     client = TestClient(app)
 
     r1 = client.get("/api/events/ev_phys_001")
@@ -258,7 +258,7 @@ def evidence_test_dirs(tmp_path):
 
 def test_evidence_canonical_direct_resolution(evidence_test_dirs):
     """Verify canonical root-relative paths resolve directly without ambiguity."""
-    app = create_app()
+    app = create_app(enforce_auth=False)
     client = TestClient(app)
 
     # Direct canonical lookup for session A unique file
@@ -278,7 +278,7 @@ def test_evidence_canonical_direct_resolution(evidence_test_dirs):
 
 def test_evidence_ambiguity_returns_409_conflict(evidence_test_dirs):
     """Verify fallback lookup with duplicate filename across sessions returns 409 Conflict."""
-    app = create_app()
+    app = create_app(enforce_auth=False)
     client = TestClient(app)
 
     # Legacy filename-only lookup for duplicate filename present in both session A and B
@@ -291,7 +291,7 @@ def test_evidence_ambiguity_returns_409_conflict(evidence_test_dirs):
 
 def test_evidence_unique_fallback_returns_200(evidence_test_dirs):
     """Verify fallback lookup for unique filename returns 200."""
-    app = create_app()
+    app = create_app(enforce_auth=False)
     client = TestClient(app)
 
     res = client.get("/api/evidence/unique_audit_snap_001.jpg")
@@ -301,7 +301,7 @@ def test_evidence_unique_fallback_returns_200(evidence_test_dirs):
 
 def test_evidence_missing_returns_404():
     """Verify missing evidence file returns 404 Not Found."""
-    app = create_app()
+    app = create_app(enforce_auth=False)
     client = TestClient(app)
 
     res = client.get("/api/evidence/completely_non_existent_file_98765.jpg")
@@ -310,7 +310,7 @@ def test_evidence_missing_returns_404():
 
 def test_evidence_security_traversal_rejections():
     """Verify path traversal, drive-letter, UNC, and double-encoding attacks return 403 Forbidden."""
-    app = create_app()
+    app = create_app(enforce_auth=False)
     client = TestClient(app)
 
     attacks = [
@@ -371,7 +371,7 @@ def test_physical_event_to_jpeg_content_correctness():
         )
         em._events[event_id] = event
 
-        app = create_app(event_manager=em)
+        app = create_app(event_manager=em, enforce_auth=False)
         client = TestClient(app)
 
         # 1. Fetch event from API

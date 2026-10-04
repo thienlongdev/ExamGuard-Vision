@@ -26,7 +26,7 @@ def client_with_event():
     ass = scorer.score_matches(3, [rm])
     ev = em.process_assessment(ass, timestamp=100.0)
 
-    app = create_app(event_manager=em, camera_id="cam-test-101", camera_type="webcam")
+    app = create_app(event_manager=em, camera_id="cam-test-101", camera_type="webcam", enforce_auth=False)
     return TestClient(app), ev.event_id
 
 
@@ -41,7 +41,7 @@ def test_health_endpoint():
 
 
 def test_dashboard_endpoint():
-    app = create_app()
+    app = create_app(enforce_auth=False)
     client = TestClient(app)
     res = client.get("/")
     assert res.status_code == 200
@@ -49,7 +49,7 @@ def test_dashboard_endpoint():
 
 
 def test_cameras_endpoint():
-    app = create_app(camera_id="cam-room-1", camera_type="rtsp")
+    app = create_app(camera_id="cam-room-1", camera_type="rtsp", enforce_auth=False)
     client = TestClient(app)
     res = client.get("/api/cameras")
     assert res.status_code == 200

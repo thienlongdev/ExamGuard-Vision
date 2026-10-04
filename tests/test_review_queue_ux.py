@@ -36,7 +36,7 @@ def test_review_queue_event_scaling(event_count: int):
     - Cards and thumbnails have valid non-empty URLs
     """
     events = [create_synthetic_event(i) for i in range(event_count)]
-    app = create_app()
+    app = create_app(enforce_auth=False)
 
     # Validate schema serialization for each
     validated = [EventResponse(**e) for e in events]
@@ -56,7 +56,7 @@ def test_review_queue_layout_contract():
     - Cards have flex-shrink: 0 and min-height >= 105px
     - Thumbnails have flex-shrink: 0 and aspect-ratio
     """
-    app = create_app()
+    app = create_app(enforce_auth=False)
     client = TestClient(app)
 
     res_html = client.get("/")

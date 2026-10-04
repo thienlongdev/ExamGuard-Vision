@@ -34,7 +34,7 @@ def session_evidence():
 
 def test_evidence_subpath_and_path_traversal(session_evidence):
     """Verify evidence serving handles session subfolders and blocks path traversal."""
-    app = create_app()
+    app = create_app(enforce_auth=False)
     client = TestClient(app)
 
     # 1. Direct subpath retrieval
@@ -118,7 +118,7 @@ def test_event_time_observation_snapshot():
     )
     em._events[event.event_id] = event
 
-    app = create_app(event_manager=em)
+    app = create_app(event_manager=em, enforce_auth=False)
     client = TestClient(app)
 
     # Fetch event via REST API
@@ -168,7 +168,7 @@ def test_lifecycle_vs_human_review_status_separation():
     # Notice: review_status must remain 'awaiting'
     assert event.review_status == "awaiting"
 
-    app = create_app(event_manager=em)
+    app = create_app(event_manager=em, enforce_auth=False)
     client = TestClient(app)
 
     res = client.get(f"/api/events/{event.event_id}")
@@ -199,7 +199,7 @@ def test_human_review_actions_and_notes_persistence():
     )
     em._events[event.event_id] = event
 
-    app = create_app(event_manager=em)
+    app = create_app(event_manager=em, enforce_auth=False)
     client = TestClient(app)
 
     # 1. Confirm the event with invigilator notes
@@ -257,7 +257,7 @@ def test_clean_product_camera_stream_frame():
             self.source = type("MockSource", (), {"is_opened": lambda self: True})()
 
     mock_pipe = MockStage2Pipeline()
-    app = create_app(stage2_pipeline=mock_pipe)
+    app = create_app(stage2_pipeline=mock_pipe, enforce_auth=False)
     client = TestClient(app)
 
     res = client.get("/api/cameras/frame")
@@ -269,7 +269,7 @@ def test_clean_product_camera_stream_frame():
 def test_websocket_events_endpoint_and_broadcast():
     """Verify WebSocket /ws/events connects cleanly and broadcasts live events."""
     em = EventManager(camera_id="cam-ws-test")
-    app = create_app(event_manager=em)
+    app = create_app(event_manager=em, enforce_auth=False)
     client = TestClient(app)
 
     with client.websocket_connect("/ws/events") as websocket:
@@ -473,7 +473,7 @@ def test_kpi_counting_semantics_and_consistency():
     for ev in events:
         em._events[ev.event_id] = ev
 
-    app = create_app(event_manager=em)
+    app = create_app(event_manager=em, enforce_auth=False)
     client = TestClient(app)
 
     res = client.get("/api/events")

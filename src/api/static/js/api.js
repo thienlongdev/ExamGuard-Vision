@@ -1,9 +1,49 @@
 /**
  * ExamGuard Vision — API Client
- * Clean HTTP client for REST endpoints with error handling.
+ * Clean HTTP client for REST endpoints with CSRF, error handling, and auth session support.
  */
 
 export class ApiClient {
+  static csrfToken = "";
+  static currentUser = null;
+
+  static async initAuth() {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.status === 401) {
+        window.location.href = "/login";
+        return null;
+      }
+      if (res.ok) {
+        const data = await res.json();
+        ApiClient.csrfToken = data.csrf_token || "";
+        ApiClient.currentUser = data.user || null;
+        return data;
+      }
+    } catch (e) {
+      console.warn("Could not initialize auth context:", e);
+    }
+    return null;
+  }
+
+  static async logout() {
+    try {
+      await fetch("/api/auth/logout", {
+        method: "POST",
+        headers: ApiClient._headers({}),
+      });
+    } catch {}
+    window.location.href = "/login";
+  }
+
+  static _headers(customHeaders = {}) {
+    const headers = { ...customHeaders };
+    if (ApiClient.csrfToken) {
+      headers["X-CSRF-Token"] = ApiClient.csrfToken;
+    }
+    return headers;
+  }
+
   static async getEvents(riskLevel = null, status = null, limit = 100) {
     const params = new URLSearchParams();
     if (riskLevel) params.append("risk_level", riskLevel);
@@ -11,12 +51,20 @@ export class ApiClient {
     if (limit) params.append("limit", limit);
 
     const res = await fetch(`/api/events?${params.toString()}`);
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return [];
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch events`);
     return await res.json();
   }
 
   static async getEvent(eventId) {
     const res = await fetch(`/api/events/${encodeURIComponent(eventId)}`);
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return null;
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch event ${eventId}`);
     return await res.json();
   }
@@ -29,10 +77,14 @@ export class ApiClient {
 
     const res = await fetch(`/api/events/${encodeURIComponent(eventId)}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: ApiClient._headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
     });
 
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return null;
+    }
     if (!res.ok) {
       const err = await res.text();
       throw new Error(`Failed to update event: ${err || res.status}`);
@@ -42,13 +94,28 @@ export class ApiClient {
 
   static async getCameras() {
     const res = await fetch("/api/cameras");
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return [];
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch cameras`);
     return await res.json();
   }
 
-  static async getCameraTracks() {
+  static async setHeroCamera(cameraId) {
+    const res = await fetch("/api/cameras/hero", {
+      method: "POST",
+      headers: ApiClient._headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ camera_id: cameraId }),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to set hero camera`);
+    return await res.json();
+  }
+
+  static async getCameraTracks(camId = null) {
     try {
-      const res = await fetch("/api/cameras/tracks");
+      const url = camId ? `/api/cameras/${encodeURIComponent(camId)}/tracks` : "/api/cameras/tracks";
+      const res = await fetch(url);
       if (!res.ok) return [];
       return await res.json();
     } catch {
@@ -58,13 +125,88 @@ export class ApiClient {
 
   static async getSystemStatus() {
     const res = await fetch("/api/system/status");
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return null;
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch system status`);
+    return await res.json();
+  }
+
+  static async getSystemSecurityStatus() {
+    const res = await fetch("/api/system/security");
+    if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch security status`);
     return await res.json();
   }
 
   static async getSystemModels() {
     const res = await fetch("/api/system/models");
     if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch system models`);
+    return await res.json();
+  }
+
+  // --- User Management APIs (ADMIN only) ---
+
+  static async getUsers() {
+    const res = await fetch("/api/users");
+    if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch users`);
+    return await res.json();
+  }
+
+  static async createUser(data) {
+    const res = await fetch("/api/users", {
+      method: "POST",
+      headers: ApiClient._headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Không thể tạo người dùng");
+    }
+    return await res.json();
+  }
+
+  static async updateUser(userId, data) {
+    const res = await fetch(`/api/users/${encodeURIComponent(userId)}`, {
+      method: "PATCH",
+      headers: ApiClient._headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Không thể cập nhật người dùng");
+    }
+    return await res.json();
+  }
+
+  static async resetUserPassword(userId, newPassword) {
+    const res = await fetch(`/api/users/${encodeURIComponent(userId)}/reset-password`, {
+      method: "POST",
+      headers: ApiClient._headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify({ new_password: newPassword }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Không thể đặt lại mật khẩu");
+    }
+    return await res.json();
+  }
+
+  // --- Camera Config APIs (ADMIN only) ---
+
+  static async getCamerasConfig() {
+    const res = await fetch("/api/cameras/config");
+    if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch camera configs`);
+    return await res.json();
+  }
+
+  static async updateCameraConfig(camId, data) {
+    const res = await fetch(`/api/cameras/config/${encodeURIComponent(camId)}`, {
+      method: "PATCH",
+      headers: ApiClient._headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to update camera config`);
     return await res.json();
   }
 
@@ -78,12 +220,20 @@ export class ApiClient {
     params.append("offset", offset);
 
     const res = await fetch(`/api/sessions?${params.toString()}`);
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return [];
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch sessions`);
     return await res.json();
   }
 
   static async getCurrentSession() {
     const res = await fetch("/api/sessions/current");
+    if (res.status === 401) {
+      window.location.href = "/login";
+      return null;
+    }
     if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to fetch current session`);
     return await res.json();
   }
@@ -97,7 +247,7 @@ export class ApiClient {
   static async updateSession(sessionId, data) {
     const res = await fetch(`/api/sessions/${encodeURIComponent(sessionId)}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      headers: ApiClient._headers({ "Content-Type": "application/json" }),
       body: JSON.stringify(data),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to update session ${sessionId}`);
@@ -127,9 +277,26 @@ export class ApiClient {
     return await res.json();
   }
 
-  static async triggerBackup() {
-    const res = await fetch("/api/backup", { method: "POST" });
+  static async triggerBackup(recoveryPassphrase = null) {
+    const body = recoveryPassphrase ? JSON.stringify({ recovery_passphrase: recoveryPassphrase }) : undefined;
+    const res = await fetch("/api/backup", {
+      method: "POST",
+      headers: ApiClient._headers(body ? { "Content-Type": "application/json" } : {}),
+      body: body,
+    });
     if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to trigger backup`);
+    return await res.json();
+  }
+
+  static async verifyBackup(backupIdOrPath, recoveryPassphrase = null) {
+    const payload = { backup_id_or_path: backupIdOrPath };
+    if (recoveryPassphrase) payload.recovery_passphrase = recoveryPassphrase;
+    const res = await fetch("/api/backup/verify", {
+      method: "POST",
+      headers: ApiClient._headers({ "Content-Type": "application/json" }),
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}: Failed to verify backup`);
     return await res.json();
   }
 
