@@ -18,7 +18,7 @@ import numpy as np
 import pytest
 
 from src.persistence.database import DatabaseManager
-from src.persistence.migrations import run_migrations, get_current_version
+from src.persistence.migrations import run_migrations, get_current_version, CURRENT_SCHEMA_VERSION
 from src.persistence.models import (
     ExamSession,
     PersistedEvent,
@@ -46,14 +46,14 @@ def temp_db_service(tmp_path):
 
 
 def test_schema_migration(tmp_path):
-    """Verify that schema migrations initialize all tables and schema_meta version 1."""
+    """Verify that schema migrations initialize all tables and schema_meta version 2."""
     db_file = tmp_path / "test_mig.sqlite3"
     db = DatabaseManager(db_path=str(db_file))
     
     assert get_current_version(db) == 0
     ver = run_migrations(db)
-    assert ver == 1
-    assert get_current_version(db) == 1
+    assert ver == CURRENT_SCHEMA_VERSION
+    assert get_current_version(db) == CURRENT_SCHEMA_VERSION
 
     # Verify tables exist
     with db.cursor() as cur:
@@ -64,6 +64,10 @@ def test_schema_migration(tmp_path):
         assert "event_evidence" in tables
         assert "reviews" in tables
         assert "audit_logs" in tables
+        assert "users" in tables
+        assert "auth_sessions" in tables
+        assert "cameras" in tables
+        assert "session_cameras" in tables
         assert "schema_meta" in tables
     db.close()
 
@@ -301,8 +305,8 @@ def test_synthetic_evidence_recording_and_sha256(temp_db_service, tmp_path):
         file_path=str(fake_img),
     )
     assert ev_rec is not None
-    assert ev_rec.sha256 == compute_file_sha256(str(fake_img))
-    assert ev_rec.size_bytes == len(synthetic_bytes)
+    assert os.path.exists(ev_rec.file_path)
+    assert ev_rec.sha256 == compute_file_sha256(ev_rec.file_path)
 
     # Verify integrity check returns VALID
     res = svc.verify_evidence_integrity(ev_rec.evidence_id)
@@ -310,7 +314,7 @@ def test_synthetic_evidence_recording_and_sha256(temp_db_service, tmp_path):
     assert res["valid"] is True
 
     # Tamper with file
-    fake_img.write_bytes(b"\xff\xd8" + b"\x99" * 300)
+    Path(ev_rec.file_path).write_bytes(b"\xff\xd8" + b"\x99" * 300)
     res_tampered = svc.verify_evidence_integrity(ev_rec.evidence_id)
     assert res_tampered["status"] == "HASH_MISMATCH"
     assert res_tampered["valid"] is False
@@ -521,8 +525,8 @@ def test_integrated_evidence_lifecycle_with_manifest(temp_db_service, tmp_path):
     manifest_p = fev.evidence_summary["manifest_path"]
     assert os.path.exists(manifest_p)
 
-    with open(manifest_p, "r", encoding="utf-8") as f:
-        mdata = json.load(f)
+    raw_manifest, _ = svc.load_and_decrypt_evidence(manifest_p)
+    mdata = json.loads(raw_manifest.decode("utf-8"))
     assert mdata["event_id"] == "fev_test_99"
     assert mdata["severity"] == "HIGH"
     assert mdata["session_id"] == sess.session_id

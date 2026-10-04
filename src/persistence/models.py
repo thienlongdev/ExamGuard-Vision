@@ -63,7 +63,14 @@ class EventEvidence:
     captured_at: Optional[str] = None
     clip_start_at: Optional[str] = None
     clip_end_at: Optional[str] = None
+    encryption_state: str = "LEGACY_PLAINTEXT"  # LEGACY_PLAINTEXT, ENCRYPTED_V1
+    key_id: Optional[str] = None
+    aad_json: Optional[str] = None
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    @property
+    def file_path(self) -> str:
+        return self.relative_path
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
@@ -90,12 +97,44 @@ class AuditLogEntry:
     action: str
     session_id: Optional[str] = None
     event_id: Optional[str] = None
-    actor_type: str = "SYSTEM"  # SYSTEM, INVIGILATOR, OPERATOR
+    actor_type: str = "SYSTEM"  # SYSTEM, USER
     actor_id: Optional[str] = None
+    actor_display_name: Optional[str] = None
     details_json: Optional[str] = None
     previous_entry_hash: Optional[str] = None
     entry_hash: str = ""
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class CameraConfig:
+    camera_id: str
+    name: str
+    source_type: str = "webcam"  # webcam, rtsp, video_file
+    device_index: Optional[int] = 0
+    source_uri_ref: Optional[str] = None
+    enabled: int = 1
+    resolution_width: Optional[int] = 1280
+    resolution_height: Optional[int] = 720
+    target_capture_fps: Optional[float] = 30.0
+    room: Optional[str] = "Phòng thi chính"
+    created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    updated_at: str = field(default_factory=lambda: datetime.now().isoformat())
+
+    def to_dict(self) -> Dict[str, Any]:
+        return asdict(self)
+
+
+@dataclass
+class SessionCamera:
+    session_id: str
+    camera_id: str
+    started_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    ended_at: Optional[str] = None
+    status: str = "ACTIVE"  # ACTIVE, ENDED, INTERRUPTED
 
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)

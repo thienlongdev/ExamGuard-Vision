@@ -1,14 +1,16 @@
 """
 High-level Persistence Service for ExamGuard.
-Glues DatabaseManager, migrations, repositories, session lifecycles, and audit logging.
+Glues DatabaseManager, migrations, repositories, session lifecycles, user authentication,
+evidence encryption at rest, and audit logging.
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import hashlib
 import json
 import logging
 import os
 from pathlib import Path
+import secrets
 import time
 from typing import Optional, List, Dict, Any, Tuple
 import uuid
@@ -21,6 +23,8 @@ from src.persistence.models import (
     EventEvidence,
     ReviewRecord,
     AuditLogEntry,
+    CameraConfig,
+    SessionCamera,
 )
 from src.persistence.repositories import (
     SessionRepository,
@@ -28,9 +32,28 @@ from src.persistence.repositories import (
     EvidenceRepository,
     ReviewRepository,
     AuditRepository,
+    UserRepository,
+    CameraRepository,
+)
+from src.security.models import User, AuthSession, Role, Permission
+from src.security.password import (
+    hash_password,
+    verify_password,
+    validate_password_policy,
+)
+from src.security.key_provider import get_key_provider
+from src.security.crypto import (
+    encrypt_evidence_bytes,
+    decrypt_evidence_bytes,
+    canonicalize_aad,
 )
 
 logger = logging.getLogger(__name__)
+
+
+class AmbiguousEvidenceError(Exception):
+    """Raised when an un-scoped filename matches multiple evidence artifacts."""
+    pass
 
 
 def compute_file_sha256(filepath: str) -> str:
@@ -55,7 +78,7 @@ class PersistenceService:
 
     def __init__(self, db_path: Optional[str] = None):
         self.db = DatabaseManager(db_path=db_path)
-        # Run migrations on initialization
+        # Run migrations on initialization to ensure schema v2 is applied
         run_migrations(self.db)
 
         self.sessions = SessionRepository(self.db)
@@ -63,6 +86,8 @@ class PersistenceService:
         self.evidence = EvidenceRepository(self.db)
         self.reviews = ReviewRepository(self.db)
         self.audit = AuditRepository(self.db)
+        self.users = UserRepository(self.db)
+        self.cameras = CameraRepository(self.db)
 
         self.active_session: Optional[ExamSession] = None
         self._last_event_update_times: Dict[str, float] = {}
@@ -159,8 +184,9 @@ class PersistenceService:
         name: Optional[str] = None,
         room: Optional[str] = None,
         invigilator_name: Optional[str] = None,
+        actor_id: Optional[str] = None,
     ) -> bool:
-        """Edit session information."""
+        """Edit session information with optional actor attribution."""
         success = self.sessions.update_metadata(
             session_id=session_id,
             name=name,
@@ -180,6 +206,8 @@ class PersistenceService:
                 audit_id=f"aud_{uuid.uuid4().hex[:12]}",
                 action="SESSION_METADATA_UPDATED",
                 session_id=session_id,
+                actor_type="USER" if actor_id else "SYSTEM",
+                actor_id=actor_id,
                 details={"name": name, "room": room, "invigilator": invigilator_name},
             )
         return success
@@ -264,21 +292,20 @@ class PersistenceService:
         captured_at: Optional[str] = None,
         clip_start: Optional[str] = None,
         clip_end: Optional[str] = None,
+        encrypt: bool = True,
     ) -> Optional[EventEvidence]:
-        """Record evidence file metadata and calculate SHA-256."""
+        """
+        Record evidence file metadata, encrypting with AES-256-GCM at rest by default.
+        Calculates SHA-256 of the stored file (ciphertext if encrypted).
+        """
         if not os.path.exists(file_path):
             logger.warning(f"Cannot record evidence: file '{file_path}' does not exist.")
             return None
 
-        # Convert to relative path from repo root
         repo_root = Path(__file__).resolve().parent.parent.parent
-        try:
-            rel_path = str(Path(file_path).resolve().relative_to(repo_root)).replace("\\", "/")
-        except ValueError:
-            rel_path = str(file_path).replace("\\", "/")
-
-        size_bytes = os.path.getsize(file_path)
-        sha256 = compute_file_sha256(file_path)
+        sid = self.active_session.session_id if self.active_session else "sess_default"
+        evidence_id = f"evd_{uuid.uuid4().hex[:12]}"
+        now_iso = datetime.now().isoformat()
 
         if not mime_type:
             ext = Path(file_path).suffix.lower()
@@ -291,8 +318,60 @@ class PersistenceService:
             }
             mime_type = mime_map.get(ext, "application/octet-stream")
 
-        evidence_id = f"evd_{uuid.uuid4().hex[:12]}"
-        now_iso = datetime.now().isoformat()
+        stored_file_path = file_path
+        encryption_state = "LEGACY_PLAINTEXT"
+        key_id = None
+        aad_json = None
+
+        if encrypt:
+            try:
+                # Read plaintext bytes
+                with open(file_path, "rb") as f:
+                    raw_data = f.read()
+
+                aad_dict = {
+                    "session_id": sid,
+                    "event_id": event_id,
+                    "evidence_id": evidence_id,
+                    "evidence_type": evidence_type.upper(),
+                }
+                aad_json = json.dumps(aad_dict, ensure_ascii=False)
+
+                kp = get_key_provider()
+                kid, key = kp.get_current_key()
+                envelope, ct_sha256 = encrypt_evidence_bytes(raw_data, aad_dict, key, kid)
+
+                enc_path = file_path + ".enc"
+                with open(enc_path, "wb") as f:
+                    f.write(envelope)
+
+                # Safely delete plaintext file
+                try:
+                    os.remove(file_path)
+                except Exception as e:
+                    logger.warning(f"Could not remove plaintext file {file_path} after encryption: {e}")
+
+                stored_file_path = enc_path
+                encryption_state = "ENCRYPTED_V1"
+                key_id = kid
+                sha256 = ct_sha256
+                size_bytes = len(envelope)
+
+            except Exception as e:
+                logger.error(f"Evidence encryption failed for {file_path}: {e}. Falling back to plaintext.")
+                encryption_state = "LEGACY_PLAINTEXT"
+                stored_file_path = file_path
+                sha256 = compute_file_sha256(file_path)
+                size_bytes = os.path.getsize(file_path)
+        else:
+            sha256 = compute_file_sha256(file_path)
+            size_bytes = os.path.getsize(file_path)
+
+        # Convert stored path to relative from repo root
+        try:
+            rel_path = str(Path(stored_file_path).resolve().relative_to(repo_root)).replace("\\", "/")
+        except ValueError:
+            rel_path = str(stored_file_path).replace("\\", "/")
 
         record = EventEvidence(
             evidence_id=evidence_id,
@@ -305,20 +384,125 @@ class PersistenceService:
             captured_at=captured_at or now_iso,
             clip_start_at=clip_start,
             clip_end_at=clip_end,
+            encryption_state=encryption_state,
+            key_id=key_id,
+            aad_json=aad_json,
             created_at=now_iso,
         )
         self.evidence.add_evidence(record)
 
-        sid = self.active_session.session_id if self.active_session else None
         action_name = "EVIDENCE_SNAPSHOT_WRITTEN" if evidence_type == "SNAPSHOT" else "EVIDENCE_CLIP_WRITTEN"
         self.audit.log_action(
             audit_id=f"aud_{uuid.uuid4().hex[:12]}",
             action=action_name,
             session_id=sid,
             event_id=event_id,
-            details={"path": rel_path, "sha256": sha256, "size": size_bytes},
+            details={
+                "path": rel_path,
+                "sha256": sha256,
+                "size": size_bytes,
+                "encryption": encryption_state,
+            },
         )
         return record
+
+    def load_and_decrypt_evidence(self, identifier_or_path: str) -> Tuple[bytes, str]:
+        """
+        Load an evidence artifact by evidence_id or relative path, decrypting in-memory if encrypted.
+        Returns (decrypted_bytes, mime_type).
+        """
+        repo_root = Path(__file__).resolve().parent.parent.parent
+        ev = self.evidence.get_evidence_by_id(identifier_or_path)
+        if not ev:
+            ev = self.evidence.get_evidence_by_path(identifier_or_path)
+
+        if ev:
+            rel_path = ev.relative_path
+            mime = ev.mime_type
+            enc_state = ev.encryption_state
+            aad_dict = json.loads(ev.aad_json) if ev.aad_json else {
+                "session_id": "",
+                "event_id": ev.event_id,
+                "evidence_id": ev.evidence_id,
+                "evidence_type": ev.evidence_type,
+            }
+        else:
+            rel_path = identifier_or_path
+            ext = Path(rel_path).suffix.lower()
+            if ext == ".enc":
+                real_ext = Path(rel_path[:-4]).suffix.lower()
+            else:
+                real_ext = ext
+            mime_map = {
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+                ".png": "image/png",
+                ".mp4": "video/mp4",
+                ".json": "application/json",
+            }
+            mime = mime_map.get(real_ext, "application/octet-stream")
+            enc_state = "ENCRYPTED_V1" if rel_path.endswith(".enc") else "LEGACY_PLAINTEXT"
+            aad_dict = None
+
+        candidate_paths = [
+            Path(rel_path) if os.path.isabs(rel_path) else (repo_root / rel_path),
+            repo_root / "evidence" / rel_path,
+            repo_root / "storage" / "evidence" / rel_path,
+            repo_root / "storage" / rel_path,
+        ]
+        full_path = None
+        for cand in candidate_paths:
+            if cand.is_file():
+                full_path = cand
+                break
+            enc_cand = cand.parent / (cand.name + ".enc")
+            if enc_cand.is_file():
+                full_path = enc_cand
+                enc_state = "ENCRYPTED_V1"
+                break
+
+        # Fallback search by filename across evidence folders (with strict ambiguity detection)
+        if not full_path or not full_path.is_file():
+            fname = Path(rel_path).name
+            matches = []
+            for base_dir in [repo_root / "evidence", repo_root / "storage" / "evidence"]:
+                if base_dir.is_dir():
+                    for match in base_dir.rglob(fname):
+                        if match.is_file():
+                            matches.append(match.resolve())
+                    for match in base_dir.rglob(fname + ".enc"):
+                        if match.is_file():
+                            matches.append(match.resolve())
+            unique_matches = list(dict.fromkeys(matches))
+            if len(unique_matches) > 1:
+                raise AmbiguousEvidenceError(
+                    f"Ambiguous evidence reference '{fname}'. Multiple conflicting evidence records exist."
+                )
+            elif len(unique_matches) == 1:
+                full_path = unique_matches[0]
+                if full_path.name.endswith(".enc"):
+                    enc_state = "ENCRYPTED_V1"
+
+        if not full_path or not full_path.is_file():
+            raise FileNotFoundError(f"Tệp bằng chứng không tồn tại: {rel_path}")
+
+        file_bytes = full_path.read_bytes()
+
+        # Check if file has EGE1 binary envelope
+        if file_bytes.startswith(b"EGE1") or enc_state == "ENCRYPTED_V1":
+            if not aad_dict:
+                # If AAD not pre-known, build minimal default AAD from filename/record
+                aad_dict = {
+                    "session_id": "",
+                    "event_id": "",
+                    "evidence_id": "",
+                    "evidence_type": "SNAPSHOT" if "snapshot" in rel_path.lower() else "VIDEO_CLIP",
+                }
+            kp = get_key_provider()
+            decrypted = decrypt_evidence_bytes(file_bytes, aad_dict, key_provider=kp)
+            return decrypted, mime
+        else:
+            return file_bytes, mime
 
     def record_review_decision(
         self,
@@ -364,7 +548,7 @@ class PersistenceService:
             action=action,
             session_id=sid,
             event_id=event_id,
-            actor_type="INVIGILATOR",
+            actor_type="USER" if reviewer_id else "SYSTEM",
             actor_id=reviewer_id,
             details={"decision": norm_decision, "note": note, "reviewer": reviewer_name},
         )
@@ -403,4 +587,301 @@ class PersistenceService:
             "message": "Bằng chứng đã xác minh — Toàn vẹn hợp lệ.",
             "sha256": ev.sha256,
             "relative_path": ev.relative_path,
+            "encryption_state": ev.encryption_state,
         }
+
+    # =========================================================================
+    # User Authentication & Session Management
+    # =========================================================================
+
+    def has_users(self) -> bool:
+        """Return True if at least one user exists in system."""
+        return self.users.count_users() > 0
+
+    def create_initial_admin(
+        self,
+        username: str,
+        password: str,
+        display_name: str,
+    ) -> User:
+        """First-run setup for initial ADMIN account. Fails if any user already exists."""
+        if self.has_users():
+            raise ValueError("Tài khoản quản trị đã tồn tại. Không thể tạo thêm qua thiết lập ban đầu.")
+
+        is_valid, err = validate_password_policy(password)
+        if not is_valid:
+            raise ValueError(err)
+
+        pwd_hash = hash_password(password)
+        now_iso = datetime.now().isoformat()
+        user_id = f"usr_{uuid.uuid4().hex[:12]}"
+
+        user = User(
+            user_id=user_id,
+            username=username.strip(),
+            password_hash=pwd_hash,
+            display_name=display_name.strip(),
+            role=Role.ADMIN.value,
+            is_active=1,
+            must_change_password=0,
+            failed_login_count=0,
+            created_at=now_iso,
+            updated_at=now_iso,
+            created_by="FIRST_RUN_SETUP",
+        )
+        self.users.create_user(user)
+
+        self.audit.log_action(
+            audit_id=f"aud_{uuid.uuid4().hex[:12]}",
+            action="USER_CREATED",
+            actor_type="SYSTEM",
+            actor_id=user.user_id,
+            details={"username": user.username, "role": user.role, "mode": "FIRST_RUN_ADMIN"},
+        )
+        logger.info(f"Initial Administrator account created: {user.username} ({user.user_id})")
+        return user
+
+    def create_user(
+        self,
+        username: str,
+        password: str,
+        display_name: str,
+        role: Any = Role.INVIGILATOR,
+        created_by: Optional[str] = None,
+    ) -> User:
+        """Create regular or admin user."""
+        is_valid, err = validate_password_policy(password)
+        if not is_valid:
+            raise ValueError(err)
+
+        if self.users.get_user_by_username(username.strip()):
+            raise ValueError(f"Tên đăng nhập '{username}' đã tồn tại.")
+
+        pwd_hash = hash_password(password)
+        now_iso = datetime.now().isoformat()
+        user_id = f"usr_{uuid.uuid4().hex[:12]}"
+
+        user = User(
+            user_id=user_id,
+            username=username.strip(),
+            password_hash=pwd_hash,
+            display_name=display_name.strip(),
+            role=role if isinstance(role, Role) else Role(role),
+            is_active=True,
+            must_change_password=False,
+            failed_login_count=0,
+            created_at=now_iso,
+            updated_at=now_iso,
+            created_by=created_by,
+        )
+        self.users.create_user(user)
+        self.audit.log_action(
+            audit_id=f"aud_{uuid.uuid4().hex[:12]}",
+            action="USER_CREATED",
+            actor_type="USER" if created_by else "SYSTEM",
+            actor_id=created_by or user_id,
+            details={"username": user.username, "role": user.role.value},
+        )
+        return user
+
+    def update_user(
+        self,
+        user_id: str,
+        role: Optional[Any] = None,
+        is_active: Optional[bool] = None,
+        display_name: Optional[str] = None,
+        admin_user_id: Optional[str] = None,
+    ) -> Optional[User]:
+        """Update mutable user fields and audit action."""
+        user = self.users.get_user_by_id(user_id)
+        if not user:
+            return None
+
+        if role is not None:
+            user.role = role if isinstance(role, Role) else Role(role)
+            self.audit.log_action(
+                audit_id=f"aud_{uuid.uuid4().hex[:12]}",
+                action="USER_ROLE_CHANGED",
+                actor_type="USER",
+                actor_id=admin_user_id,
+                details={"target_user": user.username, "new_role": user.role.value},
+            )
+        if is_active is not None:
+            user.is_active = is_active
+            action = "USER_ENABLED" if is_active else "USER_DISABLED"
+            self.audit.log_action(
+                audit_id=f"aud_{uuid.uuid4().hex[:12]}",
+                action=action,
+                actor_type="USER",
+                actor_id=admin_user_id,
+                details={"target_user": user.username},
+            )
+        if display_name is not None:
+            user.display_name = display_name.strip()
+
+        user.updated_at = datetime.now().isoformat()
+        self.users.update_user(user)
+        return user
+
+    def reset_password(
+        self,
+        user_id: str,
+        new_password: str,
+        admin_user_id: Optional[str] = None,
+    ) -> bool:
+        """Reset a user's password with validation and audit."""
+        is_valid, err = validate_password_policy(new_password)
+        if not is_valid:
+            raise ValueError(err)
+
+        user = self.users.get_user_by_id(user_id)
+        if not user:
+            return False
+
+        user.password_hash = hash_password(new_password)
+        user.failed_login_count = 0
+        user.locked_until = None
+        user.updated_at = datetime.now().isoformat()
+        self.users.update_user(user)
+
+        self.audit.log_action(
+            audit_id=f"aud_{uuid.uuid4().hex[:12]}",
+            action="PASSWORD_CHANGED",
+            actor_type="USER",
+            actor_id=admin_user_id or user_id,
+            details={"target_user": user.username},
+        )
+        return True
+
+    def authenticate_user(
+        self,
+        username: str,
+        password: str,
+    ) -> Tuple[Optional[User], Optional[str]]:
+        """
+        Authenticate credentials.
+        Returns (user, None) on success or (None, localized_error) on failure.
+        """
+        user = self.users.get_user_by_username(username)
+        if not user:
+            # Constant-time dummy verify to thwart timing side-channels
+            _ = verify_password("$argon2id$v=19$m=65536,t=2,p=2$c29tZXNhbHQ$P1d98r8m22lQ", "dummy")
+            self.audit.log_action(
+                audit_id=f"aud_{uuid.uuid4().hex[:12]}",
+                action="LOGIN_FAILED",
+                actor_type="USER",
+                details={"username": username, "reason": "USER_NOT_FOUND"},
+            )
+            return None, "Tên đăng nhập hoặc mật khẩu không đúng."
+
+        # Check account lockout
+        if user.locked_until:
+            try:
+                locked_dt = datetime.fromisoformat(user.locked_until)
+                if datetime.now() < locked_dt:
+                    return None, "USER_LOCKED"
+            except Exception:
+                pass
+
+        if not user.is_active:
+            return None, "USER_DISABLED"
+
+        matched = verify_password(user.password_hash, password)
+        if not matched:
+            count, locked_until = self.users.record_login_failure(user.username, max_attempts=5, lockout_minutes=15)
+            action = "LOGIN_LOCKED" if locked_until else "LOGIN_FAILED"
+            self.audit.log_action(
+                audit_id=f"aud_{uuid.uuid4().hex[:12]}",
+                action=action,
+                actor_type="USER",
+                actor_id=user.user_id,
+                details={"username": user.username, "failed_count": count},
+            )
+            if locked_until:
+                return None, "USER_LOCKED"
+            return None, "INVALID_CREDENTIALS"
+
+        # Success
+        self.users.record_login_success(user.user_id)
+        self.audit.log_action(
+            audit_id=f"aud_{uuid.uuid4().hex[:12]}",
+            action="LOGIN_SUCCESS",
+            actor_type="USER",
+            actor_id=user.user_id,
+            details={"username": user.username, "role": user.role},
+        )
+        return user, None
+
+    def create_session_for_user(
+        self,
+        user: User,
+        user_agent: Optional[str] = None,
+        duration_hours: int = 8,
+    ) -> Tuple[AuthSession, str]:
+        """Create server-side authenticated session and return (session_record, raw_token)."""
+        raw_token = secrets.token_urlsafe(32)
+        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+
+        now_dt = datetime.now()
+        now_iso = now_dt.isoformat()
+        exp_iso = (now_dt + timedelta(hours=duration_hours)).isoformat()
+        ua_hash = hashlib.sha256(user_agent.encode("utf-8")).hexdigest()[:16] if user_agent else None
+
+        sess = AuthSession(
+            auth_session_id=f"as_{uuid.uuid4().hex[:12]}",
+            user_id=user.user_id,
+            token_hash=token_hash,
+            created_at=now_iso,
+            expires_at=exp_iso,
+            last_seen_at=now_iso,
+            user_agent_hash=ua_hash,
+        )
+        self.users.create_auth_session(sess)
+        return sess, raw_token
+
+    def create_user_session(
+        self,
+        user_or_id: Any,
+        user_agent: Optional[str] = None,
+        duration_hours: int = 8,
+    ) -> Tuple[AuthSession, str]:
+        """Create session for user instance or user_id."""
+        if isinstance(user_or_id, str):
+            user = self.users.get_user_by_id(user_or_id)
+            if not user:
+                raise ValueError(f"User '{user_or_id}' not found.")
+        else:
+            user = user_or_id
+        return self.create_session_for_user(user, user_agent=user_agent, duration_hours=duration_hours)
+
+    def validate_session_token(self, raw_token: Optional[str]) -> Tuple[Optional[User], Optional[AuthSession]]:
+        """Validate token from cookie, returning (user, session) or (None, None)."""
+        if not raw_token:
+            return None, None
+        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+        sess = self.users.get_auth_session_by_token_hash(token_hash)
+        if not sess or not sess.is_valid:
+            return None, None
+
+        user = self.users.get_user_by_id(sess.user_id)
+        if not user or not user.is_active:
+            return None, None
+
+        self.users.touch_auth_session(sess.auth_session_id)
+        return user, sess
+
+    def revoke_session_token(self, raw_token: Optional[str]) -> None:
+        """Revoke active session on user logout."""
+        if not raw_token:
+            return
+        token_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+        sess = self.users.get_auth_session_by_token_hash(token_hash)
+        if sess:
+            self.users.revoke_auth_session(sess.auth_session_id)
+            self.audit.log_action(
+                audit_id=f"aud_{uuid.uuid4().hex[:12]}",
+                action="LOGOUT",
+                actor_type="USER",
+                actor_id=sess.user_id,
+                details={"session_id": sess.auth_session_id},
+            )

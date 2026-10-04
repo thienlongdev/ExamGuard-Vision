@@ -1,16 +1,17 @@
 """
 Database migration management and schema definitions for ExamGuard.
+Maintains versioned, atomic, non-destructive schema migrations.
 """
 
 from datetime import datetime
 import logging
 import sqlite3
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from src.persistence.database import DatabaseManager
 
 logger = logging.getLogger(__name__)
 
-CURRENT_SCHEMA_VERSION = 1
+CURRENT_SCHEMA_VERSION = 2
 
 MIGRATION_V1_SQL = """
 -- Version 1: Core persistence schema for ExamGuard Vision
@@ -107,6 +108,69 @@ CREATE INDEX IF NOT EXISTS idx_audit_session_created ON audit_logs(session_id, c
 CREATE INDEX IF NOT EXISTS idx_evidence_event ON event_evidence(event_id);
 """
 
+MIGRATION_V2_SQL = """
+-- Version 2: Authentication, RBAC, Multi-Camera Orchestration, Evidence Encryption
+
+CREATE TABLE IF NOT EXISTS users (
+    user_id TEXT PRIMARY KEY,
+    username TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    display_name TEXT NOT NULL,
+    role TEXT NOT NULL,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    must_change_password INTEGER NOT NULL DEFAULT 0,
+    failed_login_count INTEGER NOT NULL DEFAULT 0,
+    locked_until TEXT,
+    last_login_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    created_by TEXT
+);
+
+CREATE TABLE IF NOT EXISTS auth_sessions (
+    auth_session_id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    token_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL,
+    revoked_at TEXT,
+    user_agent_hash TEXT,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS cameras (
+    camera_id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    source_type TEXT NOT NULL,
+    device_index INTEGER,
+    source_uri_ref TEXT,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    resolution_width INTEGER DEFAULT 1280,
+    resolution_height INTEGER DEFAULT 720,
+    target_capture_fps REAL DEFAULT 30.0,
+    room TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS session_cameras (
+    session_id TEXT NOT NULL,
+    camera_id TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    ended_at TEXT,
+    status TEXT NOT NULL DEFAULT 'ACTIVE',
+    PRIMARY KEY (session_id, camera_id),
+    FOREIGN KEY (session_id) REFERENCES exam_sessions(session_id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_token ON auth_sessions(token_hash);
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_user ON auth_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_cameras_enabled ON cameras(enabled);
+CREATE INDEX IF NOT EXISTS idx_session_cameras_session ON session_cameras(session_id);
+"""
+
 
 def get_current_version(db: DatabaseManager) -> int:
     """Return latest schema version recorded in schema_meta, or 0 if uninitialized."""
@@ -123,21 +187,60 @@ def get_current_version(db: DatabaseManager) -> int:
         return 0
 
 
-def run_migrations(db: DatabaseManager) -> int:
-    """Execute all pending database migrations in an atomic transaction."""
+def _apply_v2_column_migrations(cur: sqlite3.Cursor) -> None:
+    """Safely apply column additions to existing tables for schema version 2."""
+    # Check event_evidence columns
+    cur.execute("PRAGMA table_info(event_evidence);")
+    ev_cols = {row["name"] for row in cur.fetchall()}
+    if "encryption_state" not in ev_cols:
+        cur.execute("ALTER TABLE event_evidence ADD COLUMN encryption_state TEXT NOT NULL DEFAULT 'LEGACY_PLAINTEXT';")
+    if "key_id" not in ev_cols:
+        cur.execute("ALTER TABLE event_evidence ADD COLUMN key_id TEXT;")
+    if "aad_json" not in ev_cols:
+        cur.execute("ALTER TABLE event_evidence ADD COLUMN aad_json TEXT;")
+
+    # Check audit_logs columns
+    cur.execute("PRAGMA table_info(audit_logs);")
+    audit_cols = {row["name"] for row in cur.fetchall()}
+    if "actor_display_name" not in audit_cols:
+        cur.execute("ALTER TABLE audit_logs ADD COLUMN actor_display_name TEXT;")
+
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_evidence_encryption ON event_evidence(encryption_state);")
+
+
+def run_migrations(db: DatabaseManager, target_version: Optional[int] = None) -> int:
+    """Execute pending migrations in order up to target_version (default CURRENT_SCHEMA_VERSION)."""
+    target = target_version if target_version is not None else CURRENT_SCHEMA_VERSION
     current_ver = get_current_version(db)
-    if current_ver >= CURRENT_SCHEMA_VERSION:
+    if current_ver >= target:
         logger.debug(f"Database schema is up to date (version {current_ver}).")
         return current_ver
 
-    logger.info(f"Migrating database schema from version {current_ver} to {CURRENT_SCHEMA_VERSION}...")
-    with db.transaction() as cur:
-        # Executes script statements
-        cur.executescript(MIGRATION_V1_SQL)
-        now_iso = datetime.now().isoformat()
-        cur.execute(
-            "INSERT OR REPLACE INTO schema_meta (version, applied_at) VALUES (?, ?);",
-            (CURRENT_SCHEMA_VERSION, now_iso),
-        )
-    logger.info(f"Database schema migration to version {CURRENT_SCHEMA_VERSION} complete.")
-    return CURRENT_SCHEMA_VERSION
+    logger.info(f"Migrating database schema from version {current_ver} to {target}...")
+
+    # Step 1: Migration V1 if database is brand new (version 0)
+    if current_ver < 1 and target >= 1:
+        with db.transaction() as cur:
+            cur.executescript(MIGRATION_V1_SQL)
+            now_iso = datetime.now().isoformat()
+            cur.execute(
+                "INSERT OR REPLACE INTO schema_meta (version, applied_at) VALUES (?, ?);",
+                (1, now_iso),
+            )
+        current_ver = 1
+        logger.info("Database schema migration to version 1 complete.")
+
+    # Step 2: Migration V2
+    if current_ver < 2 and target >= 2:
+        with db.transaction() as cur:
+            cur.executescript(MIGRATION_V2_SQL)
+            _apply_v2_column_migrations(cur)
+            now_iso = datetime.now().isoformat()
+            cur.execute(
+                "INSERT OR REPLACE INTO schema_meta (version, applied_at) VALUES (?, ?);",
+                (2, now_iso),
+            )
+        current_ver = 2
+        logger.info("Database schema migration to version 2 complete.")
+
+    return current_ver

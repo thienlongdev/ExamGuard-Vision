@@ -16,7 +16,7 @@ def api_test_setup(tmp_path):
     """Isolated PersistenceService and FastAPI test client."""
     db_file = tmp_path / "test_api_examguard.sqlite3"
     ps = PersistenceService(db_path=str(db_file))
-    app = create_app(persistence_service=ps)
+    app = create_app(persistence_service=ps, enforce_auth=False)
     client = TestClient(app)
     yield client, ps, tmp_path
     ps.db.close()

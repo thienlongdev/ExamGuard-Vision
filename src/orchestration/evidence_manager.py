@@ -98,11 +98,13 @@ class IntegratedEvidenceManager:
 
         if self.persistence_service:
             try:
-                self.persistence_service.record_evidence_file(
+                rec = self.persistence_service.record_evidence_file(
                     event_id=event_id,
                     evidence_type="SNAPSHOT",
                     file_path=filepath,
                 )
+                if rec and rec.file_path:
+                    self._event_hashes[event_id]["snapshot_path"] = rec.file_path
             except Exception as e:
                 logger.debug(f"Could not record snapshot evidence in DB: {e}")
 
@@ -115,11 +117,13 @@ class IntegratedEvidenceManager:
 
         if self.persistence_service:
             try:
-                self.persistence_service.record_evidence_file(
+                rec = self.persistence_service.record_evidence_file(
                     event_id=event_id,
                     evidence_type="VIDEO_CLIP",
                     file_path=filepath,
                 )
+                if rec and rec.file_path:
+                    self._event_hashes[event_id]["clip_path"] = rec.file_path
             except Exception as e:
                 logger.debug(f"Could not record video clip evidence in DB: {e}")
 
@@ -256,11 +260,14 @@ class IntegratedEvidenceManager:
                 event.evidence_summary["metadata_path"] = manifest_path
 
                 if self.persistence_service:
-                    self.persistence_service.record_evidence_file(
+                    rec = self.persistence_service.record_evidence_file(
                         event_id=ev_id,
                         evidence_type="MANIFEST",
                         file_path=manifest_path,
                     )
+                    if rec and rec.file_path:
+                        event.evidence_summary["manifest_path"] = rec.file_path
+                        event.evidence_summary["metadata_path"] = rec.file_path
             except Exception as e:
                 logger.warning(f"Failed to write event evidence manifest for {ev_id}: {e}")
 
