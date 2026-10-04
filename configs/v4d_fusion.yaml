@@ -134,3 +134,10 @@ risk_policy:
     medium_to_high: 75.0            # Score >= 75 -> HIGH risk
   max_single_frame_score: 25.0      # Hard safety: single frame CANNOT trigger MEDIUM or HIGH
   decay_rate_per_sec: 5.0           # Score decay when evidence absent
+  phone_high_min_duration_sec: 2.5  # Authoritative threshold for clear phone association to reach HIGH
+  event_min_severity_active:
+    SUSTAINED_HEAD_REST: "MEDIUM"
+    SUSTAINED_LATERAL_HEAD_ORIENTATION: "MEDIUM"
+    STANDING: "MEDIUM"
+    DISCUSSION_CANDIDATE: "MEDIUM"
+    MULTI_CUE_ATTENTION_SHIFT: "MEDIUM"

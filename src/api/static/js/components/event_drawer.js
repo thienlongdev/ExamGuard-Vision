@@ -13,6 +13,7 @@ import {
   REVIEW_STATUS_VI,
   SOURCE_ORIGIN_VI,
   PHONE_ASSOCIATION_VI,
+  MACRO_BEHAVIOR_VI,
   ALERT_SEMANTICS_TOOLTIP,
   formatDurationVi
 } from "../localization.js";
@@ -108,10 +109,10 @@ export class EventDrawerComponent {
 
     // Macro cue
     const rawMacro = obs.macro?.cue || evObj.macro_behavior || "NOT_EVALUATED";
-    const macroVi = POSTURE_NAMES_VI[rawMacro] || (rawMacro === "NOT_EVALUATED" ? "Chưa đánh giá" : rawMacro);
+    const macroVi = MACRO_BEHAVIOR_VI[rawMacro] || POSTURE_NAMES_VI[rawMacro] || (rawMacro === "AVAILABLE" ? "Có dữ liệu" : (rawMacro === "NOT_EVALUATED" ? "Chưa đánh giá" : rawMacro));
 
     // Status separation:
-    const lifecycleLabel = (ev.lifecycle === "closed") ? "Sự kiện đã kết thúc" : "Đang diễn ra (Theo dõi)";
+    const lifecycleLabel = (ev.lifecycle === "closed") ? "Đã kết thúc" : "Đang diễn ra";
     const lifecycleClass = (ev.lifecycle === "closed") ? "lifecycle-closed" : "lifecycle-active";
 
     const rStatus = ev.reviewStatus || "awaiting";
@@ -221,7 +222,7 @@ export class EventDrawerComponent {
           <span class="drawer-section-title">Trạng thái & xử lý</span>
           <div class="drawer-status-split">
             <div class="status-block">
-              <span class="status-block-label">Vòng đời sự kiện</span>
+              <span class="status-block-label">Trạng thái sự kiện</span>
               <span class="status-block-value ${lifecycleClass}">${lifecycleLabel}</span>
             </div>
             <div class="status-block">

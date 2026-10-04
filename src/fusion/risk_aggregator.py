@@ -18,13 +18,32 @@ from src.fusion.types import FusedEvent, RiskLevel, EventFamily
 class RiskAggregator:
     """Aggregates observable multi-cue evidence into configured risk scores (0-100) and provisional risk levels."""
 
+    EVENT_MIN_SEVERITY_ACTIVE = {
+        EventFamily.SUSTAINED_HEAD_REST.value: RiskLevel.MEDIUM.value,
+        EventFamily.SUSTAINED_LATERAL_HEAD_ORIENTATION.value: RiskLevel.MEDIUM.value,
+        EventFamily.STANDING.value: RiskLevel.MEDIUM.value,
+        EventFamily.DISCUSSION_CANDIDATE.value: RiskLevel.MEDIUM.value,
+        EventFamily.MULTI_CUE_ATTENTION_SHIFT.value: RiskLevel.MEDIUM.value,
+    }
+
     def __init__(self, config: Optional[Dict[str, Any]] = None):
+        if config is None:
+            from pathlib import Path
+            import yaml
+            p = Path("configs/v4d_fusion.yaml")
+            if p.exists():
+                with open(p, "r", encoding="utf-8") as f:
+                    config = yaml.safe_load(f)
         self.config = config or {}
         risk_cfg = self.config.get("risk_policy", {})
         thresh = risk_cfg.get("thresholds", {})
         self.low_to_medium = float(thresh.get("low_to_medium", 40.0))
         self.medium_to_high = float(thresh.get("medium_to_high", 75.0))
         self.max_single_frame_score = float(risk_cfg.get("max_single_frame_score", 25.0))
+        self.phone_high_min_duration_sec = float(risk_cfg.get("phone_high_min_duration_sec", 2.5))
+        self.event_min_severity_active = dict(self.EVENT_MIN_SEVERITY_ACTIVE)
+        if "event_min_severity_active" in risk_cfg:
+            self.event_min_severity_active.update(risk_cfg["event_min_severity_active"])
 
         # Track event recurrence: track_id -> count of historical events
         self._recurrence_counter: Dict[int, int] = {}
@@ -44,19 +63,23 @@ class RiskAggregator:
         # Base score by event family (Deterministic evidence priority policy)
         # Note: 0-100 score reflects auditable evidence strength, NOT probability of cheating.
         base_scores = {
-            EventFamily.SUSTAINED_HEAD_REST.value: 25.0,
-            EventFamily.SUSTAINED_LATERAL_HEAD_ORIENTATION.value: 25.0,
-            EventFamily.PHONE_ASSOCIATED.value: 65.0,  # Elevated so sustained clear phone resolves to HIGH (>= 75)
-            EventFamily.DISCUSSION_CANDIDATE.value: 30.0,
-            EventFamily.STANDING.value: 25.0,
-            EventFamily.MULTI_CUE_ATTENTION_SHIFT.value: 35.0,
+            EventFamily.SUSTAINED_HEAD_REST.value: 35.0,
+            EventFamily.SUSTAINED_LATERAL_HEAD_ORIENTATION.value: 35.0,
+            EventFamily.PHONE_ASSOCIATED.value: 50.0,
+            EventFamily.DISCUSSION_CANDIDATE.value: 35.0,
+            EventFamily.STANDING.value: 35.0,
+            EventFamily.MULTI_CUE_ATTENTION_SHIFT.value: 40.0,
         }
-        base = base_scores.get(ev_type, 25.0)
+        base = base_scores.get(ev_type, 35.0)
 
         # 1. Single-cue / short-duration safety
+        # Before temporal confirmation (e.g. candidate or transient spike < 0.5s), remains LOW
         if duration < 0.5:
             event.risk_score = min(base, self.max_single_frame_score)
             event.risk_level = RiskLevel.LOW.value
+            if "risk" in getattr(event, "observation_snapshot", {}):
+                event.observation_snapshot["risk"]["score"] = round(event.risk_score, 1)
+                event.observation_snapshot["risk"]["level"] = event.risk_level
             return event
 
         # 2. Duration factor (logarithmic saturation)
@@ -76,7 +99,37 @@ class RiskAggregator:
         raw_score = (base + duration_factor + concurrence_bonus + recurrence_bonus) * mean_reliability
         final_score = max(0.0, min(100.0, raw_score))
 
-        # Assign Risk Level
+        # 6. Authoritative Phone High Policy:
+        # A phone detection requires sustained clear association (>= phone_high_min_duration_sec)
+        # to escalate to HIGH solely from phone evidence.
+        # Before this temporal threshold, phone alone cannot exceed MEDIUM (< 75.0).
+        is_phone = (ev_type == EventFamily.PHONE_ASSOCIATED.value)
+        escalation_reason = "NORMAL_EVALUATION"
+        if is_phone:
+            if independent_cues_count >= 2 and final_score >= self.medium_to_high:
+                escalation_reason = "MULTI_CUE_CONCURRENCE"
+            elif duration >= self.phone_high_min_duration_sec and mean_reliability >= 0.70:
+                # Sustained clear phone evidence confirmed: escalate to HIGH
+                sustained_boost = max(0.0, self.medium_to_high - final_score + 5.0)
+                final_score = min(100.0, final_score + sustained_boost)
+                escalation_reason = "SUSTAINED_PHONE_TEMPORAL_CONFIRMED"
+            else:
+                # Under threshold: phone alone capped strictly below HIGH band (< 75.0)
+                if final_score >= self.medium_to_high:
+                    final_score = self.medium_to_high - 1.0
+                escalation_reason = "PHONE_SINGLE_CUE_UNDER_THRESHOLD"
+
+        # 7. Event-Type Minimum Severity Floor once ACTIVE:
+        # Sustained behaviors that passed temporal candidate confirmation must not display as LOW.
+        min_sev = self.event_min_severity_active.get(ev_type)
+        if min_sev == RiskLevel.MEDIUM.value:
+            if final_score < self.low_to_medium:
+                final_score = self.low_to_medium
+        elif min_sev == RiskLevel.HIGH.value:
+            if final_score < self.medium_to_high:
+                final_score = self.medium_to_high
+
+        # 8. Deterministic Single-Source-of-Truth Risk Level Assignment
         if final_score >= self.medium_to_high:
             level = RiskLevel.HIGH.value
         elif final_score >= self.low_to_medium:
@@ -94,7 +147,12 @@ class RiskAggregator:
             "mean_reliability": round(mean_reliability, 3),
             "final_score": event.risk_score,
             "risk_level": event.risk_level,
+            "escalation_reason": escalation_reason,
         }
+
+        if "risk" in getattr(event, "observation_snapshot", {}):
+            event.observation_snapshot["risk"]["score"] = round(event.risk_score, 1)
+            event.observation_snapshot["risk"]["level"] = event.risk_level
 
         # If event is closed, increment recurrence counter
         if event.status == "closed":

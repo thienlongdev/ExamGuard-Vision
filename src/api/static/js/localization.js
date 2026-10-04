@@ -14,6 +14,9 @@ export const POSTURE_NAMES_VI = {
   STANDING: "Đứng dậy",
   UNKNOWN: "Chưa xác định",
   "N/A": "Chưa xác định",
+  AVAILABLE: "Có dữ liệu",
+  UNAVAILABLE: "Không khả dụng",
+  NOT_EVALUATED: "Chưa đánh giá",
 };
 
 export const EVENT_NAMES_VI = {
@@ -93,15 +96,17 @@ export const PHONE_ASSOCIATION_VI = {
   DESK_PROXIMITY: "Gần vị trí ngồi",
   NOT_EVALUATED: "Chưa đánh giá",
   ASSOCIATED: "Liên kết rõ",
+  UNASSOCIATED: "Không liên kết",
 };
 
 export const MACRO_BEHAVIOR_VI = {
   stand: "Đứng dậy",
   discuss: "Trao đổi",
   normal: "Bình thường",
-  AVAILABLE: "Đã thu nhận",
+  AVAILABLE: "Có dữ liệu",
   NOT_EVALUATED: "Chưa đánh giá",
   UNAVAILABLE: "Không khả dụng",
+  NONE: "Không ghi nhận",
   "None Observed": "Không ghi nhận",
   STANDING: "Đứng dậy",
   DISCUSSION_CANDIDATE: "Có dấu hiệu trao đổi",

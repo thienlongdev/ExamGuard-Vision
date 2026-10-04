@@ -98,7 +98,7 @@ export function normalizeEvent(raw) {
   const score = Math.max(0, Math.min(100, Math.round(Number(rawScore))));
   let riskLevel = String(raw.risk_level || raw.riskLevel || "LOW").toUpperCase();
   if (!["HIGH", "MEDIUM", "LOW"].includes(riskLevel)) {
-    riskLevel = score >= 70 ? "HIGH" : (score >= 40 ? "MEDIUM" : "LOW");
+    riskLevel = score >= 75 ? "HIGH" : (score >= 40 ? "MEDIUM" : "LOW");
   }
 
   // Canonical type & Display label
