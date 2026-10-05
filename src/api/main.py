@@ -105,6 +105,8 @@ def create_app(
     persistence_service: Optional[PersistenceService] = None,
     camera_manager: Optional[CameraManager] = None,
     enforce_auth: bool = True,
+    capture_controller: Optional[Any] = None,
+    fresh_boot: bool = False,
 ) -> FastAPI:
     ps = persistence_service or PersistenceService.get_instance()
     # Reconnect to active session in database if one exists, otherwise leave idle awaiting explicit start (Workstream 3)
@@ -166,10 +168,25 @@ def create_app(
 
     ev_manager.add_listener(_on_new_event)
 
+    def _event_admissible(event: Any) -> bool:
+        """Hard gate: only events from the camera owned by the ACTIVE monitoring session are accepted."""
+        try:
+            if not ps.is_event_admissible(getattr(event, "camera_id", None)):
+                return False
+            if capture_controller is not None:
+                active = ps.active_session
+                return bool(active) and capture_controller.is_bound_to(active.session_id)
+            return True
+        except Exception as e:
+            logger.debug(f"Event admission check failed: {e}")
+            return False
+
     # Wire Stage 2 FusedEvent lifecycle (OPEN, UPDATE, CLOSE) to WebSocket and ev_manager
     if stage2_pipeline is not None:
         def _on_stage2_lifecycle(event: Any, action: str):
             nonlocal loop
+            if not _event_admissible(event):
+                return
             # 1. Sync event to ev_manager for HTTP API endpoints
             try:
                 if hasattr(event, "event_id"):
@@ -282,6 +299,8 @@ def create_app(
     if camera_manager is not None:
         def _on_multi_camera_event(event: Any, action: str):
             nonlocal loop
+            if not _event_admissible(event):
+                return
             try:
                 if hasattr(event, "event_id"):
                     eid = event.event_id
@@ -348,6 +367,10 @@ def create_app(
     async def lifespan(app: FastAPI):
         nonlocal loop
         loop = asyncio.get_running_loop()
+        if fresh_boot:
+            # A real server start invalidates every previous web login and interrupts any monitoring
+            # session the previous process left ACTIVE: a restart always requires a fresh login.
+            ps.on_application_boot()
         logger.info("FastAPI backend started.")
 
         async def _heartbeat_loop():
@@ -365,10 +388,16 @@ def create_app(
             yield
         finally:
             hb_task.cancel()
+            if capture_controller is not None:
+                try:
+                    capture_controller.stop()
+                except Exception as e:
+                    logger.debug(f"Error stopping session capture on shutdown: {e}")
             try:
-                ps.close_active_session(reason="GRACEFUL_STOP")
+                # Only an explicit End Session closes a session; an application stop interrupts it
+                ps.interrupt_active_session(reason="APPLICATION_STOPPED")
             except Exception as e:
-                logger.debug(f"Error closing session on shutdown: {e}")
+                logger.debug(f"Error interrupting session on shutdown: {e}")
             if camera_manager is not None:
                 try:
                     camera_manager.stop_all()
@@ -474,7 +503,11 @@ def create_app(
             user, _ = _get_auth_context(request)
             if not user or not user.is_active:
                 return RedirectResponse(url="/login", status_code=302)
-        return load_dashboard_html()
+        # Never cached: Back after logout or a restart must hit the server and its auth check again
+        return HTMLResponse(
+            content=load_dashboard_html(),
+            headers={"Cache-Control": "no-store, no-cache, must-revalidate", "Pragma": "no-cache"},
+        )
 
     @app.get("/login", response_class=HTMLResponse)
     async def get_login_page(request: Request):
@@ -870,6 +903,54 @@ def create_app(
             },
         )
 
+    # --- CANONICAL CAMERA REGISTRY (one source for gate dropdown, header and System > Camera) ---
+
+    def _runtime_camera_descriptor() -> dict:
+        """The camera this runtime captures from: its persisted config if present, else auto-discovered."""
+        try:
+            persisted = ps.cameras.get_camera(camera_id)
+        except Exception:
+            persisted = None
+        if persisted is not None:
+            return {
+                "camera_id": persisted.camera_id,
+                "name": persisted.name,
+                "source_type": persisted.source_type,
+                "device_index": persisted.device_index,
+                "enabled": bool(persisted.enabled),
+                "resolution_width": persisted.resolution_width,
+                "resolution_height": persisted.resolution_height,
+                "target_capture_fps": persisted.target_capture_fps,
+                "room": persisted.room,
+                "auto_discovered": False,
+            }
+        tail = camera_id.rsplit("_", 1)[-1]
+        idx = int(tail) if tail.isdigit() else None
+        return {
+            "camera_id": camera_id,
+            "name": f"CAM {(idx or 0) + 1:02d}",
+            "source_type": camera_type,
+            "device_index": idx,
+            "enabled": True,
+            "resolution_width": 1280,
+            "resolution_height": 720,
+            "target_capture_fps": 30.0,
+            "room": None,
+            "auto_discovered": True,
+        }
+
+    def _runtime_capture_state() -> Tuple[str, bool]:
+        """(capture_state, streaming). Without a session controller the legacy always-on semantics apply."""
+        if capture_controller is not None:
+            return ("ACTIVE", True) if capture_controller.is_active() else ("IDLE", False)
+        is_stream = camera_streaming
+        if stage2_pipeline is not None and hasattr(stage2_pipeline, "source"):
+            if hasattr(stage2_pipeline.source, "is_opened") and stage2_pipeline.source.is_opened():
+                is_stream = True
+        if is_stream:
+            return "ACTIVE", True
+        return ("IDLE" if (camera_connected or device_present) else "OFFLINE"), False
+
     # --- HEALTH & CAMERA STATUS ENDPOINTS ---
 
     @app.get("/health", response_model=HealthResponse)
@@ -914,13 +995,18 @@ def create_app(
             return res
 
         # Single camera fallback
-        is_stream = camera_streaming
-        if stage2_pipeline is not None and hasattr(stage2_pipeline, "source"):
-            if hasattr(stage2_pipeline.source, "is_opened") and stage2_pipeline.source.is_opened():
-                is_stream = True
-        is_conn = camera_connected or is_stream
-        dev_pres = device_present or is_conn
-        status_str = "STREAMING" if is_stream else ("CONNECTED" if is_conn else "NO_PHYSICAL_CAMERA")
+        desc = _runtime_camera_descriptor()
+        capture_state, is_stream = _runtime_capture_state()
+        dev_pres = device_present or camera_connected or is_stream
+        # With session-bound capture, "connected" means the device handle is open; an idle camera is only present
+        is_conn = is_stream if capture_controller is not None else (camera_connected or is_stream)
+        if is_stream:
+            status_str = "STREAMING"
+        elif capture_controller is not None and dev_pres:
+            status_str = "READY"
+        else:
+            status_str = "CONNECTED" if is_conn else "NO_PHYSICAL_CAMERA"
+        active_sess = ps.active_session if is_stream else None
 
         obs_cap_fps = getattr(stage2_pipeline, "observed_capture_fps", None) if is_stream else None
         obs_res = None
@@ -928,23 +1014,28 @@ def create_app(
             if hasattr(stage2_pipeline.source, "width") and hasattr(stage2_pipeline.source, "height"):
                 obs_res = f"{stage2_pipeline.source.width}x{stage2_pipeline.source.height}"
 
+        cfg_res = f"{desc['resolution_width']}x{desc['resolution_height']}"
         return [
             CameraInfo(
-                camera_id=camera_id,
-                name=f"Exam Room Camera ({camera_type.upper()})",
-                source_type=camera_type,
+                camera_id=desc["camera_id"],
+                name=desc["name"],
+                source_type=desc["source_type"],
                 configured=True,
                 device_present=dev_pres,
                 connected=is_conn,
                 streaming=is_stream,
                 status=status_str,
-                configured_capture_fps=30.0,
-                configured_resolution="1280x720",
+                configured_capture_fps=float(desc["target_capture_fps"]),
+                configured_resolution=cfg_res,
                 observed_capture_fps=obs_cap_fps,
                 observed_resolution=obs_res,
                 is_active=is_stream,
                 fps=obs_cap_fps,
-                resolution="1280x720",
+                resolution=cfg_res,
+                capture_state=capture_state,
+                device_index=desc["device_index"],
+                auto_discovered=desc["auto_discovered"],
+                monitoring_session_id=active_sess.session_id if active_sess else None,
             )
         ]
 
@@ -1088,7 +1179,7 @@ def create_app(
         """List camera configuration records (ADMIN only)."""
         _require_permission(request, Permission.CAMERA_CONFIGURE)
         configs = ps.cameras.list_cameras()
-        return [
+        items = [
             CameraConfigItem(
                 camera_id=c.camera_id,
                 name=c.name,
@@ -1102,6 +1193,16 @@ def create_app(
             )
             for c in configs
         ]
+        if camera_manager is None:
+            # The runtime camera is always represented, whether persisted or auto-discovered
+            desc = _runtime_camera_descriptor()
+            capture_state, _ = _runtime_capture_state()
+            existing = next((it for it in items if it.camera_id == desc["camera_id"]), None)
+            if existing is not None:
+                existing.capture_state = capture_state
+            else:
+                items.insert(0, CameraConfigItem(**desc, capture_state=capture_state))
+        return items
 
     @app.patch("/api/cameras/config/{cam_id}")
     async def update_camera_config_endpoint(cam_id: str, req: CameraConfigUpdate, request: Request):
@@ -1128,7 +1229,7 @@ def create_app(
         if req.room is not None:
             existing.room = req.room
 
-        ps.cameras.upsert_camera(existing)
+        ps.cameras.add_or_update_camera(existing)
 
         # Audit camera change
         ps.audit.log_action(
@@ -1506,6 +1607,9 @@ def create_app(
             if not req.invigilator_name:
                 req.invigilator_name = user.display_name
 
+        if capture_controller is not None:
+            return await _start_session_with_capture(req, actor_id)
+
         # Flush any active recordings from previous session
         if stage2_pipeline and hasattr(stage2_pipeline, "evidence_manager") and stage2_pipeline.evidence_manager:
             try:
@@ -1553,6 +1657,47 @@ def create_app(
 
         return _build_session_response(new_sess)
 
+    async def _start_session_with_capture(req: SessionStartRequest, actor_id: Optional[str]) -> SessionResponse:
+        """
+        Session-bound start transaction: persist ACTIVE session bound to the canonical camera,
+        then open the camera and start capture + AI. If the camera cannot open, the session is
+        recorded as START_FAILED (never left as a hidden ACTIVE zombie) and the request fails.
+        """
+        # A running session is stopped in order (events closed while it is still ACTIVE) before switching
+        previous = ps.get_current_monitoring_session()
+        if previous is not None and capture_controller.is_bound_to(previous.session_id):
+            await asyncio.to_thread(capture_controller.stop)
+
+        cam_id = capture_controller.camera_id
+        requested = [c for c in (req.camera_ids or []) if c]
+        if requested and any(c != cam_id for c in requested):
+            raise HTTPException(status_code=400, detail=f"Camera không hợp lệ. Camera khả dụng: {cam_id}.")
+
+        new_sess = ps.start_monitoring_session(
+            name=req.get_name(),
+            room=req.get_room(),
+            class_name=req.class_name,
+            subject_code=req.subject_code,
+            invigilator_name=req.invigilator_name,
+            notes=req.notes,
+            camera_ids=[cam_id],
+            actor_id=actor_id,
+        )
+        ev_manager.clear()
+
+        opened = await asyncio.to_thread(capture_controller.start, new_sess.session_id)
+        if not opened:
+            ps.mark_session_start_failed(new_sess.session_id, reason="CAMERA_OPEN_FAILED", actor_id=actor_id)
+            raise HTTPException(
+                status_code=503,
+                detail="Không thể mở camera. Vui lòng kiểm tra kết nối camera và thử lại.",
+            )
+
+        payload = {"type": "MONITORING_SESSION_STARTED", "session": new_sess.to_dict()}
+        if loop and loop.is_running():
+            asyncio.run_coroutine_threadsafe(ws_manager.broadcast(payload), loop)
+        return _build_session_response(new_sess)
+
     @app.post("/api/sessions/{session_id}/end", response_model=SessionResponse)
     async def end_session(session_id: str, req: SessionEndRequest, request: Request):
         """
@@ -1567,6 +1712,10 @@ def create_app(
         existing = ps.sessions.get_session(session_id)
         if not existing:
             raise HTTPException(status_code=404, detail=f"Session '{session_id}' not found.")
+
+        if capture_controller is not None and capture_controller.is_bound_to(session_id):
+            # Stop new frames, close live events while still ACTIVE, flush evidence, release camera, clear live state
+            await asyncio.to_thread(capture_controller.stop)
 
         # Finalize any pending clips across workers
         if stage2_pipeline and hasattr(stage2_pipeline, "evidence_manager") and stage2_pipeline.evidence_manager:
@@ -1760,7 +1909,16 @@ def create_app(
                 q_depth = stage2_pipeline.ingestion_queue.qsize
                 active_st = len(stage2_pipeline._track_metadata)
 
-            is_conn = camera_connected or is_stream
+            if capture_controller is not None:
+                # Camera ready != camera active: only an ACTIVE session's capture counts as streaming
+                is_stream = capture_controller.is_active()
+                is_conn = is_stream
+                if not is_stream:
+                    drop_pct = None
+                    q_depth = 0
+                    active_st = 0
+            else:
+                is_conn = camera_connected or is_stream
             camera_counts = CameraCounts(
                 registered=1,
                 configured=1,
@@ -1772,10 +1930,13 @@ def create_app(
             obs_inf_fps = getattr(stage2_pipeline, "observed_inference_fps", None) if is_stream else None
 
         dev_pres = device_present or is_conn
+        active_sess = ps.active_session
         runtime_stream = RuntimeStreamStatus(
             active=is_stream,
             source_type=camera_type.upper(),
             device_present=dev_pres,
+            capture_state=("ACTIVE" if is_stream else ("IDLE" if dev_pres else "OFFLINE")),
+            monitoring_active=bool(active_sess and active_sess.status == "ACTIVE" and is_stream),
         )
 
         configured_rates = ConfiguredRates(
@@ -1875,5 +2036,5 @@ def create_app(
     return app
 
 
-# Default module-level application instance for uvicorn run
-app = create_app()
+# Default module-level application instance for uvicorn run (boot invalidation runs only when served)
+app = create_app(fresh_boot=True)

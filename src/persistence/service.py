@@ -91,6 +91,7 @@ class PersistenceService:
 
         self.active_session: Optional[ExamSession] = None
         self._last_event_update_times: Dict[str, float] = {}
+        self._session_camera_cache: Dict[str, frozenset] = {}
 
     def get_current_monitoring_session(self) -> Optional[ExamSession]:
         """Return currently active monitoring session, reconnecting to DB state if needed."""
@@ -157,7 +158,7 @@ class PersistenceService:
         if camera_ids:
             for cid in camera_ids:
                 try:
-                    self.sessions.add_camera_to_session(session_id, cid)
+                    self.cameras.attach_camera_to_session(session_id, cid)
                 except Exception as e:
                     logger.debug(f"Could not bind camera {cid} to session {session_id}: {e}")
 
@@ -267,6 +268,89 @@ class PersistenceService:
             invigilator_name=invigilator_name,
         )
 
+    def on_application_boot(self) -> Dict[str, int]:
+        """
+        Fresh application start: every web login from a previous run is revoked server-side,
+        and a monitoring session left ACTIVE by the previous process is marked INTERRUPTED
+        (monitoring never silently continues across an application stop).
+        """
+        revoked = self.users.revoke_all_sessions()
+        interrupted = 0
+        stale = self.sessions.get_active_session()
+        while stale is not None:
+            ended_ts = stale.last_heartbeat_at or datetime.now().isoformat()
+            if not self.sessions.mark_interrupted(stale.session_id, ended_at=ended_ts):
+                break
+            interrupted += 1
+            self.audit.log_action(
+                audit_id=f"aud_{uuid.uuid4().hex[:12]}",
+                action="SESSION_INTERRUPTED",
+                session_id=stale.session_id,
+                details={
+                    "reason": "UNEXPECTED_TERMINATION",
+                    "recovered_at": datetime.now().isoformat(),
+                    "last_heartbeat": stale.last_heartbeat_at,
+                },
+            )
+            stale = self.sessions.get_active_session()
+        self.active_session = None
+        self.audit.log_action(
+            audit_id=f"aud_{uuid.uuid4().hex[:12]}",
+            action="APPLICATION_BOOT",
+            details={"auth_sessions_revoked": revoked, "monitoring_sessions_interrupted": interrupted},
+        )
+        logger.info(f"Application boot: revoked {revoked} web session(s), interrupted {interrupted} stale monitoring session(s).")
+        return {"auth_sessions_revoked": revoked, "monitoring_sessions_interrupted": interrupted}
+
+    def interrupt_active_session(self, reason: str = "APPLICATION_STOPPED") -> Optional[ExamSession]:
+        """Application stopping without an explicit End Session: INTERRUPTED, never CLOSED."""
+        active = self.active_session or self.sessions.get_active_session()
+        if not active:
+            return None
+        self.sessions.mark_interrupted(active.session_id, reason=reason)
+        self.audit.log_action(
+            audit_id=f"aud_{uuid.uuid4().hex[:12]}",
+            action="SESSION_INTERRUPTED",
+            session_id=active.session_id,
+            details={"reason": reason, "ended_at": datetime.now().isoformat()},
+        )
+        self.active_session = None
+        return self.sessions.get_session(active.session_id)
+
+    def mark_session_start_failed(self, session_id: str, reason: str, actor_id: Optional[str] = None) -> Optional[ExamSession]:
+        """Camera could not be opened for a just-created session: record START_FAILED instead of a zombie ACTIVE row."""
+        self.sessions.mark_start_failed(session_id, reason)
+        self.audit.log_action(
+            audit_id=f"aud_{uuid.uuid4().hex[:12]}",
+            action="SESSION_START_FAILED",
+            session_id=session_id,
+            actor_type="USER" if actor_id else "SYSTEM",
+            actor_id=actor_id,
+            details={"reason": reason},
+        )
+        if self.active_session and self.active_session.session_id == session_id:
+            self.active_session = None
+        return self.sessions.get_session(session_id)
+
+    def is_event_admissible(self, camera_id: Optional[str]) -> bool:
+        """
+        Hard backend gate: a monitoring event may only be persisted while a session is ACTIVE
+        and, when the session has bound cameras, only for a camera that belongs to it.
+        """
+        active = self.get_current_monitoring_session()
+        if active is None or active.status != "ACTIVE":
+            return False
+        bound = self._session_camera_cache.get(active.session_id)
+        if bound is None:
+            try:
+                bound = frozenset(c.camera_id for c in self.cameras.list_cameras_for_session(active.session_id))
+            except Exception:
+                bound = frozenset()
+            self._session_camera_cache[active.session_id] = bound
+        if bound and camera_id is not None and camera_id not in bound:
+            return False
+        return True
+
     def heartbeat(self) -> None:
         """Periodic heartbeat for active session."""
         if self.active_session:
@@ -316,8 +400,12 @@ class PersistenceService:
         """Synchronize Stage 2 FusedEvent lifecycle transition with SQLite."""
         if not hasattr(event, "event_id"):
             return
+        # No ACTIVE monitoring session = no persisted monitoring event
+        if not self.is_event_admissible(getattr(event, "camera_id", None)):
+            logger.debug(f"Dropped event '{event.event_id}' ({action}): no active monitoring session for its camera.")
+            return
 
-        sid = self.active_session.session_id if self.active_session else "sess_default"
+        sid = self.active_session.session_id
         eid = event.event_id
 
         # Throttle UPDATE events to avoid SQLite thrashing (max once every 1.5s per event)

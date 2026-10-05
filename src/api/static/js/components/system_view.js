@@ -52,7 +52,7 @@ export class SystemViewComponent {
         </div>
 
         <!-- Sub-navigation Tabs -->
-        <div class="system-subnav-tabs" style="display: flex; gap: 8px; margin-bottom: 20px; border-bottom: 1px solid var(--color-border, #1e293b); padding-bottom: 10px;">
+        <div class="system-subnav-tabs" role="tablist" aria-label="Hệ thống">
           <button class="sys-subtab-btn ${this.activeSubtab === 'overview' ? 'active' : ''}" data-subtab="overview">TỔNG QUAN HỆ THỐNG</button>
           <button class="sys-subtab-btn ${this.activeSubtab === 'users' ? 'active' : ''}" data-subtab="users" id="subtab-users">NGƯỜI DÙNG & PHÂN QUYỀN</button>
           <button class="sys-subtab-btn ${this.activeSubtab === 'cameras' ? 'active' : ''}" data-subtab="cameras" id="subtab-cameras">CẤU HÌNH CAMERA</button>
@@ -161,8 +161,8 @@ export class SystemViewComponent {
         <div id="sys-panel-cameras" style="display: ${this.activeSubtab === 'cameras' ? 'block' : 'none'};">
           <div class="system-lower-card" style="padding: 24px;">
             <div style="margin-bottom: 16px;">
-              <h3 style="margin: 0 0 4px 0;">Cấu hình Camera đơn nốt (Multi-Camera Orchestration)</h3>
-              <p style="margin: 0; font-size: 0.82rem; color: #94a3b8;">Quản lý các nguồn camera USB/RTSP trên cùng một trạm máy chủ. Không tự động liên kết nhận diện sinh trắc học giữa các camera.</p>
+              <h3 style="margin: 0 0 4px 0;">Cấu hình Camera</h3>
+              <p style="margin: 0; font-size: 0.82rem; color: #94a3b8;">Danh sách camera mà hệ thống thực sự sử dụng. Camera chỉ được mở khi có phiên giám sát đang hoạt động.</p>
             </div>
             <div style="overflow-x: auto;">
               <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem;">
@@ -437,18 +437,29 @@ export class SystemViewComponent {
       }
       tbody.innerHTML = this.cameras
         .map((c) => {
-          const stLabel = c.enabled
-            ? `<span style="color: #10b981; font-weight: 600;">ĐANG BẬT</span>`
-            : `<span style="color: #f87171;">ĐÃ TẮT</span>`;
+          let stLabel;
+          if (!c.enabled) {
+            stLabel = `<span class="cam-state-chip off">ĐÃ TẮT</span>`;
+          } else if (c.capture_state === "ACTIVE") {
+            stLabel = `<span class="cam-state-chip live">ĐANG SỬ DỤNG</span>`;
+          } else if (c.capture_state === "OFFLINE") {
+            stLabel = `<span class="cam-state-chip off">NGOẠI TUYẾN</span>`;
+          } else {
+            stLabel = `<span class="cam-state-chip ready">SẴN SÀNG</span>`;
+          }
+          const srcType = String(c.source_type || "").toLowerCase() === "webcam" ? "Webcam cục bộ" : String(c.source_type || "—").toUpperCase();
+          const autoBadge = c.auto_discovered ? ` <span class="cam-auto-badge">Tự động phát hiện</span>` : "";
+          const device = c.device_index !== null && c.device_index !== undefined ? `Index ${c.device_index}` : "—";
+          const room = c.room ? escapeHtml(c.room) : `<span style="color: #94a3b8;">Theo phiên / Chưa gán cố định</span>`;
           return `
             <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
               <td style="padding: 10px;"><code>${escapeHtml(c.camera_id)}</code></td>
-              <td style="padding: 10px; font-weight: 600;">${escapeHtml(c.name)}</td>
-              <td style="padding: 10px; text-transform: uppercase;">${escapeHtml(c.source_type)}</td>
-              <td style="padding: 10px;">${c.device_index !== null ? c.device_index : '—'}</td>
+              <td style="padding: 10px; font-weight: 600;">${escapeHtml(c.name)}${autoBadge}</td>
+              <td style="padding: 10px;">${escapeHtml(srcType)}</td>
+              <td style="padding: 10px;">${device}</td>
               <td style="padding: 10px;">${c.resolution_width}x${c.resolution_height}</td>
               <td style="padding: 10px;">${c.target_capture_fps} FPS</td>
-              <td style="padding: 10px;">${escapeHtml(c.room || 'Phòng thi chung')}</td>
+              <td style="padding: 10px;">${room}</td>
               <td style="padding: 10px; text-align: center;">${stLabel}</td>
             </tr>
           `;
@@ -490,9 +501,16 @@ export class SystemViewComponent {
     const vramAlloc = sys.gpu_vram_allocated_mb || 289.3;
     const vramPct = Math.min(100, Math.round((vramAlloc / 4096.0) * 100));
     const activeStreams = sys.active_cameras !== undefined ? sys.active_cameras : (cam.streaming ? 1 : 0);
-    const procFps = obs.processed_fps || sys.effective_fps || 12.0;
-    const capFps = cam.observed_capture_fps || obs.capture_fps || (cam.streaming ? 27.6 : 30.0);
-    const infFps = obs.inference_fps || sys.inference_fps || 12.0;
+    // Rates exist only while a session is capturing; otherwise show "—" rather than a nominal number
+    const camActive = !!cam.streaming;
+    const procFps = camActive ? (obs.processed_fps || sys.effective_fps || 0) : null;
+    const capFps = camActive ? (cam.observed_capture_fps || obs.capture_fps || 0) : null;
+    const fmtFps = (v) => (v === null || v === undefined ? "—" : v.toFixed(1));
+    const camChip = camActive
+      ? { cls: "online", text: "TRỰC TIẾP" }
+      : (cam.capture_state === "IDLE" || cam.status === "READY" || cam.device_present)
+        ? { cls: "idle", text: "SẴN SÀNG" }
+        : { cls: "offline", text: "NGOẠI TUYẾN" };
     const queueDepth = cam.queue_depth !== undefined ? cam.queue_depth : (sys.queue_depth || 1);
     const dropPct = cam.drop_percentage || sys.drop_percentage || 0.0;
     const frameAge = cam.ai_frame_age_ms || sys.ai_frame_age_ms || 45.3;
@@ -503,11 +521,11 @@ export class SystemViewComponent {
       <div class="system-card">
         <div class="system-card-top">
           <span class="system-card-title">1. Tốc độ thu hình thực tế</span>
-          <span class="system-tag-chip ${cam.streaming ? 'online' : 'offline'}">
-            ${cam.streaming ? 'TRỰC TIẾP' : 'NGOẠI TUYẾN'}
+          <span class="system-tag-chip ${camChip.cls}">
+            ${camChip.text}
           </span>
         </div>
-        <div class="system-metric-value">${capFps.toFixed(1)} <span class="unit">FPS</span></div>
+        <div class="system-metric-value">${fmtFps(capFps)} <span class="unit">FPS</span></div>
         <div class="system-metrics-sub">
           <div class="sub-item"><span>Backend phần cứng</span><strong>${backendName} (Async Ingest)</strong></div>
           <div class="sub-item"><span>Độ phân giải & Cấu hình</span><strong>${cam.observed_resolution || cam.configured_resolution || '1280x720'} @ 30 FPS</strong></div>
@@ -518,11 +536,11 @@ export class SystemViewComponent {
       <div class="system-card">
         <div class="system-card-top">
           <span class="system-card-title">2. Tần suất & Độ tươi AI</span>
-          <span class="system-tag-chip ${infFps > 0 ? 'online' : 'idle'}">
-            ${infFps > 0 ? 'LATEST-FRAME' : 'CHỜ TÍN HIỆU'}
+          <span class="system-tag-chip ${camActive ? 'online' : 'idle'}">
+            ${camActive ? 'LATEST-FRAME' : 'MÔ HÌNH SẴN SÀNG'}
           </span>
         </div>
-        <div class="system-metric-value">${procFps.toFixed(1)} <span class="unit">FPS</span></div>
+        <div class="system-metric-value">${fmtFps(procFps)} <span class="unit">FPS</span></div>
         <div class="system-metrics-sub">
           <div class="sub-item"><span>Mục tiêu xử lý AI</span><strong>${(conf.inference_fps || 12.0).toFixed(0)} Hz</strong></div>
           <div class="sub-item"><span>Độ tươi khung (Age p50)</span><strong>${frameAge.toFixed(0)} ms (p95: 70.8 ms)</strong></div>
@@ -562,7 +580,7 @@ export class SystemViewComponent {
         <div class="telemetry-sparkline-row">
           <div class="sparkline-label">
             <span>Tần số nạp khung hình</span>
-            <strong>${capFps.toFixed(1)} FPS</strong>
+            <strong>${fmtFps(capFps)} FPS</strong>
           </div>
           <div class="sparkline-canvas-box">
             ${createSvgSparkline(h.captureFps, 0, 35, "var(--color-live)")}
@@ -572,7 +590,7 @@ export class SystemViewComponent {
         <div class="telemetry-sparkline-row">
           <div class="sparkline-label">
             <span>Tần số xử lý suy luận AI</span>
-            <strong>${procFps.toFixed(1)} FPS</strong>
+            <strong>${fmtFps(procFps)} FPS</strong>
           </div>
           <div class="sparkline-canvas-box">
             ${createSvgSparkline(h.processedFps, 0, 20, "var(--color-amber)")}

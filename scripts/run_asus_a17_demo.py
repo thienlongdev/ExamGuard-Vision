@@ -75,6 +75,7 @@ def main():
         headless=args.headless,
         config_path=DEMO_CONFIG_PATH,
         burn_in_web_hud=args.burn_in_web_hud,
+        session_bound_capture=True,
     )
 
     # Background watcher for graceful shutdown signal from Windows launcher
@@ -100,8 +101,9 @@ def main():
     stop_watcher = threading.Thread(target=_watch_stop_signal, daemon=True)
     stop_watcher.start()
 
+    # Models load now (warm); the webcam opens only when an invigilator starts a monitoring session
     if not orch.setup_pipeline():
-        logger.error("ERROR: Could not open physical webcam. Please verify webcam connection.")
+        logger.error("ERROR: Could not initialize perception pipeline.")
         sys.exit(1)
 
     if not orch.start_backend():

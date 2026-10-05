@@ -27,6 +27,11 @@ class CameraInfo(BaseModel):
     is_active: bool = False
     fps: Optional[float] = None
     resolution: str = "1280x720"
+    # Session-bound lifecycle: IDLE (ready, no capture) | ACTIVE (monitoring) | OFFLINE
+    capture_state: Optional[str] = None
+    device_index: Optional[int] = None
+    auto_discovered: bool = False
+    monitoring_session_id: Optional[str] = None
 
 
 class CameraCounts(BaseModel):
@@ -40,6 +45,8 @@ class RuntimeStreamStatus(BaseModel):
     active: bool = False
     source_type: str = "WEBCAM"
     device_present: bool = False
+    capture_state: Optional[str] = None
+    monitoring_active: bool = False
 
 
 class ConfiguredRates(BaseModel):
@@ -269,6 +276,8 @@ class CameraConfigItem(BaseModel):
     resolution_height: int = 720
     target_capture_fps: float = 30.0
     room: Optional[str] = None
+    auto_discovered: bool = False
+    capture_state: Optional[str] = None
 
 
 class CameraConfigUpdate(BaseModel):

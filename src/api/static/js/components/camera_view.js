@@ -10,7 +10,9 @@ export class CameraViewComponent {
     this.placeholderEl = null;
     this.isStreaming = false;
     this.isFullscreen = false;
-    this.streamState = "CONNECTING"; // CONNECTING | LIVE | RECONNECTING | ERROR
+    this.streamState = "IDLE"; // IDLE | CONNECTING | LIVE | RECONNECTING | ERROR
+    // The MJPEG stream and track polling run only while an ACTIVE session is being monitored
+    this.monitoringActive = false;
     this.canonicalCameraId = "webcam_0";
     this.cameraLabel = "CAM 01";
     this.reconnectTimer = null;
@@ -37,23 +39,51 @@ export class CameraViewComponent {
         this.highlightTrack(payload);
       } else if (type === "CURRENT_SESSION_UPDATED") {
         this.updateSessionState(payload);
+      } else if (type === "MONITORING_ACTIVE_CHANGED") {
+        this.setMonitoringActive(payload);
       }
     });
 
     this.updateSessionState(appState.currentSession);
-    if (appState.activeTracks && appState.activeTracks.length > 0) {
-      this.renderTracks(appState.activeTracks);
+    this.setMonitoringActive(appState.monitoringActive, true);
+  }
+
+  setMonitoringActive(active, force = false) {
+    if (!force && active === this.monitoringActive) return;
+    this.monitoringActive = !!active;
+    const card = document.getElementById("camera-card");
+    if (card) card.classList.toggle("camera-idle", !this.monitoringActive);
+
+    if (this.monitoringActive) {
+      this.reconnectAttempts = 0;
+      this.setStreamState("CONNECTING");
+      if (this.streamImg) this.streamImg.src = `/api/cameras/stream?t=${Date.now()}`;
+      return;
     }
+
+    // Stop immediately: drop the MJPEG connection, clear boxes, show the idle empty state
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    if (this.streamImg) {
+      this.streamImg.removeAttribute("src");
+    }
+    if (this.overlaysLayer) this.overlaysLayer.innerHTML = "";
+    const tracksEl = document.getElementById("cam-tracks-chip");
+    if (tracksEl) tracksEl.innerText = "0 THÍ SINH";
+    this.setStreamState("IDLE");
   }
 
   startTrackPolling() {
     if (this.trackPollTimer) clearInterval(this.trackPollTimer);
     this.trackPollTimer = setInterval(async () => {
       if (document.hidden) return;
+      if (!this.monitoringActive) return;
       if (this.streamState === "ERROR") return;
       try {
         const tracks = await ApiClient.getCameraTracks(this.canonicalCameraId);
-        if (tracks) {
+        if (tracks && this.monitoringActive) {
           appState.setActiveTracks(tracks);
         }
       } catch {
@@ -95,7 +125,16 @@ export class CameraViewComponent {
     const descEl = document.getElementById("camera-placeholder-desc");
     const idChip = document.getElementById("cam-id-chip");
 
-    if (state === "LIVE") {
+    if (state === "IDLE") {
+      this.isStreaming = false;
+      if (this.placeholderEl) this.placeholderEl.style.display = "flex";
+      if (titleEl) titleEl.innerText = "Chưa có phiên giám sát đang hoạt động";
+      if (descEl) descEl.innerText = "Bắt đầu phiên để kích hoạt camera và AI.";
+      if (idChip) {
+        idChip.className = "cam-chip";
+        idChip.innerHTML = `<span style="color: var(--text-dim, #64748b)">○</span><span>CAMERA · CHƯA HOẠT ĐỘNG</span>`;
+      }
+    } else if (state === "LIVE") {
       this.isStreaming = true;
       this.reconnectAttempts = 0;
       if (this.placeholderEl) this.placeholderEl.style.display = "none";
@@ -135,7 +174,7 @@ export class CameraViewComponent {
   }
 
   reconnectStream(reason = "auto") {
-    if (!this.streamImg) return;
+    if (!this.streamImg || !this.monitoringActive) return;
     this.reconnectAttempts++;
     this.setStreamState("RECONNECTING", `Đang tự động kết nối lại luồng video (lần ${this.reconnectAttempts})…`);
     const ts = Date.now();
@@ -145,6 +184,7 @@ export class CameraViewComponent {
   startHealthMonitor() {
     if (this.healthMonitorTimer) clearInterval(this.healthMonitorTimer);
     this.healthMonitorTimer = setInterval(() => {
+      if (!this.monitoringActive) return;
       // 1. If stream image has decoded pixels in DOM, transition to LIVE
       if (this.streamImg && this.streamImg.naturalWidth > 0) {
         if (this.streamState !== "LIVE") {
@@ -168,12 +208,12 @@ export class CameraViewComponent {
 
   render() {
     this.container.innerHTML = `
-      <div class="camera-viewport-card" id="camera-card">
+      <div class="camera-viewport-card camera-idle" id="camera-card">
         <div class="camera-top-bar">
           <div class="camera-meta-chips">
-            <div class="cam-chip highlight" id="cam-id-chip" title="Camera ID gốc: ${this.canonicalCameraId}">
-              <span style="color: var(--color-live)">●</span>
-              <span>CAM 01 (TRỰC TIẾP)</span>
+            <div class="cam-chip" id="cam-id-chip" title="Camera ID gốc: ${this.canonicalCameraId}">
+              <span style="color: var(--text-dim, #64748b)">○</span>
+              <span>CAMERA · CHƯA HOẠT ĐỘNG</span>
             </div>
             <div class="cam-chip" id="cam-res-chip">1280x720</div>
             <div class="cam-chip" id="cam-fps-chip">30.0 FPS</div>
@@ -196,7 +236,7 @@ export class CameraViewComponent {
         </div>
 
         <div class="camera-feed-container" id="feed-container">
-          <img class="camera-stream-img" id="camera-stream-img" src="/api/cameras/stream" alt="Luồng camera phòng thi" />
+          <img class="camera-stream-img" id="camera-stream-img" alt="Luồng camera phòng thi" />
           <div class="camera-overlays-layer" id="camera-overlays-layer"></div>
 
           <div class="camera-placeholder-state" id="camera-placeholder">
@@ -206,8 +246,8 @@ export class CameraViewComponent {
               </svg>
             </div>
             <div class="camera-placeholder-text">
-              <h3 id="camera-placeholder-title">Đang kết nối camera trực tiếp…</h3>
-              <p id="camera-placeholder-desc">Đang kết nối webcam vật lý trên ASUS TUF Gaming A17</p>
+              <h3 id="camera-placeholder-title">Chưa có phiên giám sát đang hoạt động</h3>
+              <p id="camera-placeholder-desc">Bắt đầu phiên để kích hoạt camera và AI.</p>
             </div>
           </div>
 
@@ -227,6 +267,7 @@ export class CameraViewComponent {
     };
 
     this.streamImg.onerror = () => {
+      if (!this.monitoringActive) return;
       const cam = appState.cameraInfo;
       const isBackendActive = cam && (cam.streaming || cam.connected);
       if (isBackendActive) {
@@ -290,6 +331,9 @@ export class CameraViewComponent {
     if (cam.camera_id) {
       this.canonicalCameraId = cam.camera_id;
     }
+    if (cam.name) {
+      this.cameraLabel = cam.name;
+    }
     const resEl = document.getElementById("cam-res-chip");
     const fpsEl = document.getElementById("cam-fps-chip");
     const tracksEl = document.getElementById("cam-tracks-chip");
@@ -309,6 +353,7 @@ export class CameraViewComponent {
       idChip.title = `Camera ID gốc: ${this.canonicalCameraId}`;
     }
 
+    if (!this.monitoringActive) return;
     if (cam.streaming === false && cam.connected === false && this.streamState !== "ERROR") {
       this.setStreamState("ERROR", "Webcam vật lý ngoại tuyến");
     } else if (cam.streaming && this.streamImg && this.streamImg.naturalWidth > 0 && this.streamState !== "LIVE") {
@@ -325,6 +370,7 @@ export class CameraViewComponent {
     }
     if (!this.overlaysLayer || !this.streamImg) return;
     this.overlaysLayer.innerHTML = "";
+    if (!this.monitoringActive) return;
 
     // Deduplicate tracks by track_id to avoid duplicate boxes
     const seenIds = new Set();

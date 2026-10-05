@@ -96,8 +96,15 @@ export class SessionGateComponent {
   }
 
   updateVisibility() {
+    const gateNeeded = this.isGateNeeded();
+    // The gate is a page state, not a modal over a live camera: monitor content is hidden while gated
+    const monitorView = document.getElementById("view-monitor");
+    if (monitorView) monitorView.classList.toggle("monitor-gated", gateNeeded);
+    const sess = appState.currentSession;
+    appState.setMonitoringActive(!gateNeeded && !!sess && sess.status === "ACTIVE");
+
     if (!this.gate) return;
-    const show = appState.currentView === "monitor" && this.isGateNeeded();
+    const show = appState.currentView === "monitor" && gateNeeded;
     this.gate.classList.toggle("open", show);
     this.gate.setAttribute("aria-hidden", show ? "false" : "true");
   }
@@ -150,8 +157,9 @@ export class SessionGateComponent {
     const invigilator = ApiClient.currentUser?.display_name || "";
     this.gate.innerHTML = `
       <div class="session-gate-card" role="dialog" aria-labelledby="gate-title">
+        <div class="session-gate-brand">ExamGuard Vision</div>
         <h2 id="gate-title">Khởi tạo phiên giám sát</h2>
-        <p class="session-gate-muted">Chưa có phiên nào đang hoạt động. Nhập thông tin phòng thi để bắt đầu giám sát.</p>
+        <p class="session-gate-muted">Chưa có phiên giám sát đang hoạt động. Camera và AI chỉ được kích hoạt sau khi bắt đầu phiên.</p>
         <form id="gate-start-form" class="session-gate-form" autocomplete="off">
           <label>Tên phiên
             <input type="text" id="gate-session-name" required maxlength="120" placeholder="${escapeHtml(defaultName)}" />
@@ -189,14 +197,15 @@ export class SessionGateComponent {
       this.cameras = [];
     }
     if (!document.body.contains(sel)) return;
+    // Same canonical registry the backend captures from (internal ID kept apart from the friendly label)
     if (!this.cameras || this.cameras.length === 0) {
-      sel.innerHTML = `<option value="">Camera mặc định</option>`;
+      sel.innerHTML = `<option value="">Không tìm thấy camera</option>`;
       return;
     }
     sel.innerHTML = this.cameras
       .map((c) => {
         const id = c.camera_id || c.id || "";
-        const label = c.name || id;
+        const label = c.name && c.name !== id ? `${c.name} (${id})` : id;
         return `<option value="${escapeHtml(id)}">${escapeHtml(label)}</option>`;
       })
       .join("");
@@ -214,9 +223,10 @@ export class SessionGateComponent {
       if (errEl) errEl.innerText = "Vui lòng nhập tên phiên và phòng thi.";
       return;
     }
+    if (errEl) errEl.innerText = "";
     if (btn) {
       btn.disabled = true;
-      btn.innerText = "Đang khởi tạo…";
+      btn.innerText = "Đang mở camera…";
     }
     try {
       const newSess = await ApiClient.startSession({
@@ -232,7 +242,7 @@ export class SessionGateComponent {
       appState.setView("monitor");
       this.updateVisibility();
     } catch (err) {
-      if (errEl) errEl.innerText = `Không thể bắt đầu phiên: ${err.message}`;
+      if (errEl) errEl.innerText = err.message || "Không thể bắt đầu phiên giám sát.";
       if (btn) {
         btn.disabled = false;
         btn.innerText = "Bắt đầu phiên giám sát";
@@ -292,9 +302,10 @@ export class SessionGateComponent {
           <dt>Tên phiên</dt><dd>${escapeHtml(s.name || "—")}</dd>
           <dt>Phòng thi</dt><dd>${escapeHtml(s.room || "—")}</dd>
           <dt>Thời lượng</dt><dd>${formatElapsed(elapsedSec(s.started_at, s.ended_at))}</dd>
-          <dt>Sự kiện</dt><dd>${summary.total_events || 0} (chờ duyệt: ${summary.awaiting_count || 0})</dd>
+          <dt>Tổng sự kiện</dt><dd>${summary.total_events || 0}</dd>
+          <dt>Chờ duyệt</dt><dd>${summary.awaiting_count || 0}</dd>
         </dl>
-        <p class="session-gate-muted">Các sự kiện và bằng chứng của phiên đã được lưu trong Lịch sử.</p>
+        <p class="session-gate-muted">Camera đã được giải phóng. Các sự kiện và bằng chứng của phiên đã được lưu trong Lịch sử.</p>
         <div class="session-gate-actions">
           <button type="button" class="gate-btn gate-btn-ghost" id="gate-ended-history">Xem lịch sử phiên</button>
           <button type="button" class="gate-btn gate-btn-primary" id="gate-ended-new">Bắt đầu phiên mới</button>
@@ -328,10 +339,10 @@ export class SessionGateComponent {
     this.bar.innerHTML = `
       <div class="monitor-session-facts">
         <span class="monitor-session-live" aria-hidden="true">●</span>
-        <span><span class="msb-label">Phiên:</span> <strong id="msb-name">${escapeHtml(s.name || "—")}</strong></span>
-        <span><span class="msb-label">Phòng:</span> <strong>${escapeHtml(s.room || "—")}</strong></span>
-        <span><span class="msb-label">Bắt đầu:</span> <strong>${formatClock(s.started_at)}</strong></span>
-        <span><span class="msb-label">Đã chạy:</span> <strong id="msb-elapsed">${formatElapsed(elapsedSec(s.started_at))}</strong></span>
+        <span class="msb-chip"><span class="msb-label">Phiên</span><strong id="msb-name">${escapeHtml(s.name || "—")}</strong></span>
+        <span class="msb-chip"><span class="msb-label">Phòng</span><strong>${escapeHtml(s.room || "—")}</strong></span>
+        <span class="msb-chip"><span class="msb-label">Bắt đầu</span><strong>${formatClock(s.started_at)}</strong></span>
+        <span class="msb-chip"><span class="msb-label">Đã chạy</span><strong id="msb-elapsed">${formatElapsed(elapsedSec(s.started_at))}</strong></span>
       </div>
       <button type="button" class="gate-btn gate-btn-danger msb-end-btn" id="btn-end-session">Kết thúc phiên</button>`;
     document.getElementById("btn-end-session")?.addEventListener("click", () => this.showEndConfirm());
@@ -390,6 +401,8 @@ export class SessionGateComponent {
         btn.disabled = true;
         btn.innerText = "Đang lưu…";
       }
+      // Overlay and live preview go away first; the backend then finalizes and releases the camera
+      appState.setMonitoringActive(false);
       try {
         const closed = await ApiClient.endSession(s.session_id, { reason: "COMPLETED" });
         close();
@@ -397,6 +410,7 @@ export class SessionGateComponent {
       } catch (err) {
         const errEl = document.getElementById("end-session-error");
         if (errEl) errEl.innerText = `Lỗi khi kết thúc phiên: ${err.message}`;
+        this.updateVisibility();
         if (btn) {
           btn.disabled = false;
           btn.innerText = "Kết thúc phiên";

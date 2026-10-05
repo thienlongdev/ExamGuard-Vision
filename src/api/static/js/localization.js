@@ -11,6 +11,7 @@ export const SESSION_STATUS_VI = {
   ACTIVE: { label: "Đang diễn ra", class: "status-active", color: "var(--color-live)" },
   CLOSED: { label: "Đã kết thúc", class: "status-closed", color: "var(--text-secondary)" },
   INTERRUPTED: { label: "Bị gián đoạn", class: "status-interrupted", color: "var(--color-medium)" },
+  START_FAILED: { label: "Không mở được camera", class: "status-interrupted", color: "var(--color-high)" },
 };
 
 export const POSTURE_NAMES_VI = {

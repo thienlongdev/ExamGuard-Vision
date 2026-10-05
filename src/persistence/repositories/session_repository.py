@@ -188,15 +188,29 @@ class SessionRepository:
             cur.execute(sql, (now_iso, reason, summary_json, fc, now_iso, session_id))
             return cur.rowcount > 0
 
-    def mark_interrupted(self, session_id: str, ended_at: Optional[str] = None) -> bool:
+    def mark_interrupted(
+        self, session_id: str, ended_at: Optional[str] = None, reason: str = "UNEXPECTED_TERMINATION"
+    ) -> bool:
         now_iso = ended_at or datetime.now().isoformat()
         sql = """
         UPDATE exam_sessions
-        SET status = 'INTERRUPTED', ended_at = ?, close_reason = 'UNEXPECTED_TERMINATION', updated_at = ?
+        SET status = 'INTERRUPTED', ended_at = ?, close_reason = ?, updated_at = ?
         WHERE session_id = ? AND status = 'ACTIVE';
         """
         with self.db.transaction() as cur:
-            cur.execute(sql, (now_iso, now_iso, session_id))
+            cur.execute(sql, (now_iso, reason, now_iso, session_id))
+            return cur.rowcount > 0
+
+    def mark_start_failed(self, session_id: str, reason: str) -> bool:
+        """A session whose camera never opened: explicit terminal state, never a hidden ACTIVE zombie."""
+        now_iso = datetime.now().isoformat()
+        sql = """
+        UPDATE exam_sessions
+        SET status = 'START_FAILED', ended_at = ?, close_reason = ?, updated_at = ?
+        WHERE session_id = ? AND status = 'ACTIVE';
+        """
+        with self.db.transaction() as cur:
+            cur.execute(sql, (now_iso, reason, now_iso, session_id))
             return cur.rowcount > 0
 
     def list_sessions(

@@ -96,8 +96,13 @@ def test_api_patch_event_endpoint(client):
     assert "probability_of_cheating" not in data, "Must NEVER expose probability_of_cheating!"
 
 
-def test_websocket_lifecycle_order_verification():
+def test_websocket_lifecycle_order_verification(tmp_path):
     """Verify exact EVENT_OPEN -> EVENT_UPDATE -> EVENT_CLOSE sequence without duplicate spam."""
+    from src.persistence.service import PersistenceService
+
+    ps = PersistenceService(db_path=str(tmp_path / "ws_order.db"))
+    # Events are only admitted while a monitoring session is ACTIVE
+    ps.start_monitoring_session(name="WS lifecycle", room="R1", camera_ids=["test_cam"])
     ev_mgr = EventManager(camera_id="test_cam")
     ws_mgr = ConnectionManager()
 
@@ -108,7 +113,13 @@ def test_websocket_lifecycle_order_verification():
             self.listeners.append(l)
 
     mock_pipeline = MockPipeline()
-    app = create_app(event_manager=ev_mgr, connection_manager=ws_mgr, stage2_pipeline=mock_pipeline, enforce_auth=False)
+    app = create_app(
+        event_manager=ev_mgr,
+        connection_manager=ws_mgr,
+        stage2_pipeline=mock_pipeline,
+        enforce_auth=False,
+        persistence_service=ps,
+    )
     app.extra["event_manager"] = ev_mgr
 
     with TestClient(app) as client:

@@ -102,9 +102,9 @@ export class HeaderComponent {
           </div>
         </div>
 
-        <div id="live-indicator" class="live-badge">
+        <div id="live-indicator" class="live-badge idle">
           <span class="live-pulse-dot"></span>
-          <span id="live-status-text">TRỰC TIẾP · CAM 01</span>
+          <span id="live-status-text">CAMERA · CHƯA HOẠT ĐỘNG</span>
         </div>
 
         <div class="status-pill" id="vram-pill" title="Bộ nhớ GPU PyTorch đang cấp phát (torch.cuda.memory_allocated)">
@@ -223,15 +223,22 @@ export class HeaderComponent {
     const liveText = document.getElementById("live-status-text");
     const vramText = document.getElementById("vram-text");
 
+    // Camera READY (present, no session) is distinct from camera ACTIVE (session monitoring)
+    const camLabel = (cam && cam.name) || "CAM 01";
     if (cam && cam.streaming) {
       if (liveInd) {
         liveInd.className = "live-badge";
-        liveText.innerText = "TRỰC TIẾP · CAM 01";
+        liveText.innerText = `TRỰC TIẾP · ${camLabel}`;
+      }
+    } else if (cam && (cam.capture_state === "IDLE" || cam.status === "READY" || cam.device_present)) {
+      if (liveInd) {
+        liveInd.className = "live-badge idle";
+        liveText.innerText = "CAMERA · CHƯA HOẠT ĐỘNG";
       }
     } else if (cam && cam.connected) {
       if (liveInd) {
         liveInd.className = "live-badge connecting";
-        liveText.innerText = "CHỜ · CAM 01";
+        liveText.innerText = `CHỜ · ${camLabel}`;
       }
     } else {
       if (liveInd) {

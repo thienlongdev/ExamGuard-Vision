@@ -112,7 +112,7 @@ class DashboardApp {
         appState.setCurrentSession(currentSessionRaw.value);
       }
 
-      if (tracksRaw.status === "fulfilled" && Array.isArray(tracksRaw.value)) {
+      if (appState.monitoringActive && tracksRaw.status === "fulfilled" && Array.isArray(tracksRaw.value)) {
         appState.setActiveTracks(tracksRaw.value);
       }
     } catch (err) {
@@ -178,14 +178,15 @@ class DashboardApp {
 
   async pollTelemetry() {
     try {
+      // Track polling only while monitoring: no session, no overlay
       const [status, tracks, cameras] = await Promise.all([
         ApiClient.getSystemStatus().catch(() => null),
-        ApiClient.getCameraTracks().catch(() => []),
+        appState.monitoringActive ? ApiClient.getCameraTracks().catch(() => []) : Promise.resolve(null),
         ApiClient.getCameras().catch(() => []),
       ]);
 
       if (status) appState.setSystemStatus(status);
-      if (tracks) appState.setActiveTracks(tracks);
+      if (tracks && appState.monitoringActive) appState.setActiveTracks(tracks);
       if (cameras && cameras.length > 0) appState.setCameraInfo(cameras[0]);
     } catch (e) {
       console.debug("Telemetry poll error:", e);

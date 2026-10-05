@@ -72,6 +72,7 @@ from src.pilot.preflight import CERTIFIED_HASHES
 from src.video.base import VideoFrame
 from src.video.webcam import WebcamSource
 from src.orchestration.stage2_pipeline import Stage2Pipeline, Stage2FrameResult, Stage2FrameMetrics
+from src.orchestration.session_capture import SessionCaptureController
 from src.api.main import create_app
 from src.behavior.event_manager import EventManager, SuspiciousEvent
 from src.fusion.types import FusedEvent, RiskLevel, ObservationStatus
@@ -490,8 +491,14 @@ class LiveValidationOrchestrator:
         headless: bool = False,
         config_path: str = CONFIG_PATH,
         burn_in_web_hud: bool = False,
+        session_bound_capture: bool = False,
     ):
         self.camera_index = camera_index
+        # Product mode: the webcam is owned only by an ACTIVE monitoring session (opened on
+        # session start, released on session end); models stay loaded in between.
+        self.session_bound_capture = session_bound_capture
+        self.capture_controller: Optional[SessionCaptureController] = None
+        self._gui_window_open = False
         self.port = port
         self.headless = headless
         self.config_path = config_path
@@ -528,9 +535,11 @@ class LiveValidationOrchestrator:
             camera_id=f"webcam_{self.camera_index}",
             camera_type="webcam",
             stage2_pipeline=self.pipeline,
-            camera_connected=True,
-            camera_streaming=True,
+            camera_connected=not self.session_bound_capture,
+            camera_streaming=not self.session_bound_capture,
             device_present=True,
+            capture_controller=self.capture_controller,
+            fresh_boot=self.session_bound_capture,
         )
 
         server_config = uvicorn.Config(
@@ -568,14 +577,17 @@ class LiveValidationOrchestrator:
             height=720,
             fps=30.0,
         )
-        if not self.webcam_source.open():
-            logger.error(f"Could not open physical webcam index {self.camera_index}")
-            return False
+        if self.session_bound_capture:
+            logger.info("Session-bound capture: webcam stays closed until a monitoring session starts.")
+        else:
+            if not self.webcam_source.open():
+                logger.error(f"Could not open physical webcam index {self.camera_index}")
+                return False
 
-        logger.info(
-            f"Physical camera initialized: {self.webcam_source.width}x{self.webcam_source.height} @ "
-            f"{self.webcam_source.fps:.1f} FPS via {getattr(self.webcam_source, '_backend_name', 'DSHOW')}"
-        )
+            logger.info(
+                f"Physical camera initialized: {self.webcam_source.width}x{self.webcam_source.height} @ "
+                f"{self.webcam_source.fps:.1f} FPS via {getattr(self.webcam_source, '_backend_name', 'DSHOW')}"
+            )
 
         logger.info("Initializing Stage 2 full perception pipeline on RTX 3050 (cuda:0)...")
         self.pipeline = Stage2Pipeline(
@@ -600,7 +612,29 @@ class LiveValidationOrchestrator:
             })
 
         self.pipeline.add_event_listener(_on_live_event)
+        if self.session_bound_capture:
+            self.capture_controller = SessionCaptureController(
+                source=self.webcam_source,
+                pipeline=self.pipeline,
+                camera_id=f"webcam_{self.camera_index}",
+            )
         return True
+
+    def _set_gui_window(self, window_name: str, want_open: bool) -> None:
+        """The debug window exists only while frames are captured (no stale frame when idle)."""
+        if self.headless or want_open == self._gui_window_open:
+            return
+        try:
+            if want_open:
+                cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+                cv2.resizeWindow(window_name, 1280, 720)
+            else:
+                cv2.destroyWindow(window_name)
+                cv2.waitKey(1)
+            self._gui_window_open = want_open
+        except Exception as e:
+            logger.warning(f"Could not open OpenCV GUI window ({e}). Running in headless/console mode.")
+            self.headless = True
 
     def render_hud_overlay(self, frame: np.ndarray, res: Stage2FrameResult) -> np.ndarray:
         """Draw comprehensive live HUD header on top of the annotated frame."""
@@ -662,122 +696,134 @@ class LiveValidationOrchestrator:
         self.start_wall_time = time.time()
         window_name = "ExamGuard-Vision Live Validation [ASUS A17 - FA707RC]"
 
-        if not self.headless:
-            try:
-                cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-                cv2.resizeWindow(window_name, 1280, 720)
-            except Exception as e:
-                logger.warning(f"Could not open OpenCV GUI window ({e}). Running in headless/console mode.")
-                self.headless = True
+        ctrl = self.capture_controller
+        if ctrl is None:
+            self._set_gui_window(window_name, True)
 
         logger.info("Starting live camera capture & Stage 2 inference loop...")
         last_soak_sample_t = time.time()
 
         try:
             while not self.stop_event.is_set():
-                t0_read = time.perf_counter()
-                vframe = self.webcam_source.read()
-                t1_read = time.perf_counter()
-                read_duration_ms = (t1_read - t0_read) * 1000.0
-
-                if vframe is None:
-                    logger.warning("Empty frame received from webcam. Re-trying...")
-                    time.sleep(0.01)
+                if ctrl is not None and not ctrl.is_active():
+                    # No ACTIVE monitoring session: camera released, no capture, no inference
+                    self._set_gui_window(window_name, False)
+                    ctrl.wait_until_active(timeout=0.25)
                     continue
 
-                self.total_frames_captured += 1
-                vframe.extra_metadata = {
-                    "source_read_ms": read_duration_ms,
-                    "t0_read": t0_read,
-                }
-
-                # Push to bounded queue
-                self.pipeline.ingestion_queue.push(vframe)
-
-                # Pop from bounded queue and process
-                item = self.pipeline.ingestion_queue.pop(timeout=0.1)
-                if item is None:
+                slot = ctrl.frame_slot() if ctrl is not None else None
+                if slot is not None and not slot.__enter__():
+                    slot.__exit__(None, None, None)
                     continue
+                if ctrl is not None:
+                    self._set_gui_window(window_name, True)
+                try:
+                    t0_read = time.perf_counter()
+                    vframe = self.webcam_source.read()
+                    t1_read = time.perf_counter()
+                    read_duration_ms = (t1_read - t0_read) * 1000.0
 
-                res = self.pipeline.process_frame(
-                    item,
-                    source_read_ms=read_duration_ms,
-                    t_loop_start=t0_read,
-                )
-                self.total_frames_processed += 1
+                    if vframe is None:
+                        logger.warning("Empty frame received from webcam. Re-trying...")
+                        time.sleep(0.01)
+                        continue
 
-                # Record metrics
-                m = res.metrics
-                lat = m.whole_loop_end_to_end_ms or m.post_decode_pipeline_ms
-                self.frame_latencies_ms.append(lat)
-                self.component_timings["detector"].append(m.general_detector_ms)
-                self.component_timings["tracker"].append(m.tracker_ms)
-                self.component_timings["posture"].append(m.posture_inference_ms)
-                self.component_timings["headpose"].append(m.headpose_inference_ms)
-                self.component_timings["macro"].append(m.macro_behavior_ms)
-                self.component_timings["phone"].append(m.phone_association_ms)
-                self.component_timings["fusion"].append(m.fusion_ms)
-                self.component_timings["event"].append(m.event_engine_ms)
-                self.component_timings["evidence"].append(m.evidence_manager_ms)
+                    self.total_frames_captured += 1
+                    vframe.extra_metadata = {
+                        "source_read_ms": read_duration_ms,
+                        "t0_read": t0_read,
+                    }
 
-                if torch.cuda.is_available() and (self.total_frames_processed % 30 == 0):
-                    self.gpu_memory_samples.append({
-                        "frame_idx": self.total_frames_processed,
-                        "vram_allocated_mb": round(torch.cuda.memory_allocated(0) / (1024**2), 1),
-                        "vram_reserved_mb": round(torch.cuda.memory_reserved(0) / (1024**2), 1),
-                        "vram_max_mb": round(torch.cuda.max_memory_allocated(0) / (1024**2), 1),
-                    })
+                    # Push to bounded queue
+                    self.pipeline.ingestion_queue.push(vframe)
 
-                now = time.time()
-                # Periodic soak logging (every 10 seconds)
-                if now - last_soak_sample_t >= 10.0:
-                    last_soak_sample_t = now
-                    rss_mb = round(psutil.Process().memory_info().rss / (1024**2), 1)
-                    vram_cur = round(torch.cuda.memory_allocated(0) / (1024**2), 1) if torch.cuda.is_available() else 0.0
-                    cap_fps_val = self.pipeline.observed_capture_fps or 0.0
-                    proc_fps_val = self.pipeline.observed_processed_fps or 0.0
-                    p50_val = float(np.percentile(self.frame_latencies_ms[-100:], 50)) if self.frame_latencies_ms else 0.0
+                    # Pop from bounded queue and process
+                    item = self.pipeline.ingestion_queue.pop(timeout=0.1)
+                    if item is None:
+                        continue
 
-                    self.periodic_soak_samples.append({
-                        "elapsed_seconds": round(now - self.start_wall_time, 1),
-                        "frames_processed": self.total_frames_processed,
-                        "capture_fps": cap_fps_val,
-                        "processed_fps": proc_fps_val,
-                        "p50_latency_ms": round(p50_val, 1),
-                        "rss_ram_mb": rss_mb,
-                        "vram_allocated_mb": vram_cur,
-                        "queue_depth": self.pipeline.ingestion_queue.qsize,
-                        "dropped_frames": self.pipeline.dropped_frames_count,
-                        "active_tracks": len(res.tracks),
-                        "active_events": len(res.active_events),
-                    })
-                    logger.info(
-                        f"[SOAK @ {now - self.start_wall_time:.0f}s] Proc FPS: {proc_fps_val:.1f} | "
-                        f"p50: {p50_val:.1f}ms | RSS: {rss_mb} MB | VRAM: {vram_cur} MB | "
-                        f"Drops: {self.pipeline.dropped_frames_count}"
+                    res = self.pipeline.process_frame(
+                        item,
+                        source_read_ms=read_duration_ms,
+                        t_loop_start=t0_read,
                     )
+                    self.total_frames_processed += 1
 
-                if on_frame_fn is not None:
-                    on_frame_fn(res)
+                    # Record metrics
+                    m = res.metrics
+                    lat = m.whole_loop_end_to_end_ms or m.post_decode_pipeline_ms
+                    self.frame_latencies_ms.append(lat)
+                    self.component_timings["detector"].append(m.general_detector_ms)
+                    self.component_timings["tracker"].append(m.tracker_ms)
+                    self.component_timings["posture"].append(m.posture_inference_ms)
+                    self.component_timings["headpose"].append(m.headpose_inference_ms)
+                    self.component_timings["macro"].append(m.macro_behavior_ms)
+                    self.component_timings["phone"].append(m.phone_association_ms)
+                    self.component_timings["fusion"].append(m.fusion_ms)
+                    self.component_timings["event"].append(m.event_engine_ms)
+                    self.component_timings["evidence"].append(m.evidence_manager_ms)
 
-                # Render HUD and show window
-                display_frame = res.annotated_frame if res.annotated_frame is not None else vframe.frame.copy()
-                display_frame = self.render_hud_overlay(display_frame, res)
-                if self.burn_in_web_hud and hasattr(self.pipeline, "set_external_display_frame"):
-                    self.pipeline.set_external_display_frame(display_frame)
+                    if torch.cuda.is_available() and (self.total_frames_processed % 30 == 0):
+                        self.gpu_memory_samples.append({
+                            "frame_idx": self.total_frames_processed,
+                            "vram_allocated_mb": round(torch.cuda.memory_allocated(0) / (1024**2), 1),
+                            "vram_reserved_mb": round(torch.cuda.memory_reserved(0) / (1024**2), 1),
+                            "vram_max_mb": round(torch.cuda.max_memory_allocated(0) / (1024**2), 1),
+                        })
 
-                if not self.headless:
-                    cv2.imshow(window_name, display_frame)
-                    key = cv2.waitKey(1) & 0xFF
-                    if key == ord("q") or key == 27:  # 'q' or ESC
-                        logger.info("Exit key pressed by user.")
+                    now = time.time()
+                    # Periodic soak logging (every 10 seconds)
+                    if now - last_soak_sample_t >= 10.0:
+                        last_soak_sample_t = now
+                        rss_mb = round(psutil.Process().memory_info().rss / (1024**2), 1)
+                        vram_cur = round(torch.cuda.memory_allocated(0) / (1024**2), 1) if torch.cuda.is_available() else 0.0
+                        cap_fps_val = self.pipeline.observed_capture_fps or 0.0
+                        proc_fps_val = self.pipeline.observed_processed_fps or 0.0
+                        p50_val = float(np.percentile(self.frame_latencies_ms[-100:], 50)) if self.frame_latencies_ms else 0.0
+
+                        self.periodic_soak_samples.append({
+                            "elapsed_seconds": round(now - self.start_wall_time, 1),
+                            "frames_processed": self.total_frames_processed,
+                            "capture_fps": cap_fps_val,
+                            "processed_fps": proc_fps_val,
+                            "p50_latency_ms": round(p50_val, 1),
+                            "rss_ram_mb": rss_mb,
+                            "vram_allocated_mb": vram_cur,
+                            "queue_depth": self.pipeline.ingestion_queue.qsize,
+                            "dropped_frames": self.pipeline.dropped_frames_count,
+                            "active_tracks": len(res.tracks),
+                            "active_events": len(res.active_events),
+                        })
+                        logger.info(
+                            f"[SOAK @ {now - self.start_wall_time:.0f}s] Proc FPS: {proc_fps_val:.1f} | "
+                            f"p50: {p50_val:.1f}ms | RSS: {rss_mb} MB | VRAM: {vram_cur} MB | "
+                            f"Drops: {self.pipeline.dropped_frames_count}"
+                        )
+
+                    if on_frame_fn is not None:
+                        on_frame_fn(res)
+
+                    # Render HUD and show window
+                    display_frame = res.annotated_frame if res.annotated_frame is not None else vframe.frame.copy()
+                    display_frame = self.render_hud_overlay(display_frame, res)
+                    if self.burn_in_web_hud and hasattr(self.pipeline, "set_external_display_frame"):
+                        self.pipeline.set_external_display_frame(display_frame)
+
+                    if not self.headless:
+                        cv2.imshow(window_name, display_frame)
+                        key = cv2.waitKey(1) & 0xFF
+                        if key == ord("q") or key == 27:  # 'q' or ESC
+                            logger.info("Exit key pressed by user.")
+                            break
+
+                    # Boundary conditions
+                    if duration_sec is not None and (time.time() - self.start_wall_time) >= duration_sec:
                         break
-
-                # Boundary conditions
-                if duration_sec is not None and (time.time() - self.start_wall_time) >= duration_sec:
-                    break
-                if max_frames is not None and self.total_frames_processed >= max_frames:
-                    break
+                    if max_frames is not None and self.total_frames_processed >= max_frames:
+                        break
+                finally:
+                    if slot is not None:
+                        slot.__exit__(None, None, None)
 
         except KeyboardInterrupt:
             logger.info("KeyboardInterrupt received. Stopping live loop...")
@@ -787,6 +833,7 @@ class LiveValidationOrchestrator:
                     cv2.destroyAllWindows()
                 except Exception:
                     pass
+                self._gui_window_open = False
 
         elapsed_total = time.time() - self.start_wall_time
         logger.info(
@@ -853,6 +900,11 @@ class LiveValidationOrchestrator:
         """Cleanly release hardware, stop background servers, and reset state."""
         logger.info("Shutting down live orchestrator...")
         self.stop_event.set()
+        if self.capture_controller is not None:
+            try:
+                self.capture_controller.stop()
+            except Exception as e:
+                logger.debug(f"Could not stop session capture: {e}")
         if self.webcam_source is not None:
             self.webcam_source.release()
 
@@ -871,9 +923,10 @@ class LiveValidationOrchestrator:
             from src.persistence.service import PersistenceService
             ps = PersistenceService.get_instance()
             if ps.active_session:
-                ps.close_active_session(reason="GRACEFUL_STOP")
+                # Only an explicit End Session closes a session; an application stop interrupts it
+                ps.interrupt_active_session(reason="APPLICATION_STOPPED")
         except Exception as e:
-            logger.debug(f"Could not close persistence session on shutdown: {e}")
+            logger.debug(f"Could not interrupt persistence session on shutdown: {e}")
 
         gc.collect()
         if torch.cuda.is_available():

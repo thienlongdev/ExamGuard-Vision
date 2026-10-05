@@ -37,6 +37,8 @@ class DashboardState {
     this.systemModels = null;
     this.sessionStartTime = Date.now();
     this.currentSession = null;
+    // True only while an ACTIVE monitoring session owns the camera and this tab entered monitoring
+    this.monitoringActive = false;
     this.listeners = new Set();
     this.wsStatus = "disconnected";
 
@@ -211,7 +213,7 @@ class DashboardState {
     if (status) {
       const now = Date.now();
       const obs = status.observed_rates || {};
-      const capFps = obs.capture_fps || 30.0;
+      const capFps = obs.capture_fps || 0;
       const procFps = obs.processed_fps || status.effective_fps || 0.0;
       const p50 = obs.p50_latency_ms || 28.0;
       const q = status.queue_depth || 0;
@@ -242,6 +244,18 @@ class DashboardState {
   setSystemModels(models) {
     this.systemModels = models;
     this.notify("SYSTEM_MODELS_UPDATED", models);
+  }
+
+  setMonitoringActive(active) {
+    const next = !!active;
+    if (next === this.monitoringActive) return;
+    this.monitoringActive = next;
+    if (!next) {
+      // Overlay and track summary vanish immediately; no stale bbox while the backend closes
+      this.activeTracks = [];
+      this.notify("TRACKS_UPDATED", this.activeTracks);
+    }
+    this.notify("MONITORING_ACTIVE_CHANGED", next);
   }
 
   setCurrentSession(session) {

@@ -265,6 +265,14 @@ class UserRepository:
         with self.db.transaction() as cur:
             cur.execute(sql, (now_iso, user_id))
 
+    def revoke_all_sessions(self) -> int:
+        """Revoke every outstanding web session (application restart invalidates all logins)."""
+        now_iso = datetime.now().isoformat()
+        sql = "UPDATE auth_sessions SET revoked_at = ? WHERE revoked_at IS NULL;"
+        with self.db.transaction() as cur:
+            cur.execute(sql, (now_iso,))
+            return cur.rowcount
+
     def count_active_sessions(self) -> int:
         """Count valid, unexpired, non-revoked sessions."""
         now_iso = datetime.now().isoformat()

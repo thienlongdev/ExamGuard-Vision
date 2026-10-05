@@ -3070,3 +3070,258 @@ html, body {
   color: var(--color-medium);
   vertical-align: middle;
 }
+
+/* ---------------------------------------------------------------------
+   SESSION-BOUND MONITORING STATES
+   No active session: the monitor shows only the gate (no camera, no boxes,
+   no timeline, no counters). Session closed: same clean page state.
+   --------------------------------------------------------------------- */
+#view-monitor.monitor-gated > * {
+  visibility: hidden;
+}
+
+.view-section.active {
+  animation: eg-fade-in 160ms ease-out;
+}
+
+@keyframes eg-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.session-gate.open {
+  animation: eg-fade-in 180ms ease-out;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(6, 182, 212, 0.07), transparent 55%),
+    var(--bg-primary);
+}
+
+.session-gate-card {
+  max-width: 480px;
+  padding: 28px 28px 24px;
+  background: var(--surface-card);
+  border-color: var(--border-light);
+}
+
+.session-gate-brand {
+  margin-bottom: 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-cyan);
+}
+
+.session-gate-card h2 {
+  font-size: 1.25rem;
+}
+
+.session-gate-form {
+  gap: 14px;
+}
+
+.session-gate-form label {
+  gap: 6px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.session-gate-form input,
+.session-gate-form select {
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 38px;
+  color-scheme: dark;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.session-gate-form input:hover,
+.session-gate-form select:hover {
+  border-color: var(--border-glow-cyan);
+}
+
+.session-gate-form input:focus,
+.session-gate-form select:focus {
+  outline: none;
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 3px var(--accent-cyan-dim);
+}
+
+.session-gate-form select option {
+  background: var(--surface-1);
+  color: var(--text-primary);
+}
+
+.session-gate-form .gate-btn-primary {
+  width: 100%;
+  min-height: 40px;
+}
+
+.session-gate-form .session-gate-actions {
+  margin-top: 2px;
+}
+
+.gate-btn {
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), opacity var(--transition-fast);
+}
+
+/* Camera viewport while no session is being monitored */
+.camera-viewport-card.camera-idle .camera-stream-img,
+.camera-viewport-card.camera-idle .camera-overlays-layer {
+  visibility: hidden;
+}
+
+.live-badge.idle {
+  background: var(--color-dismissed-dim);
+  color: var(--text-muted);
+  border-color: rgba(100, 116, 139, 0.3);
+}
+
+.live-badge.idle .live-pulse-dot {
+  background-color: var(--text-dim);
+  box-shadow: none;
+  animation: none;
+}
+
+/* Active session header: compact chips + visible destructive end action */
+.monitor-session-bar {
+  padding: 6px 8px 6px 12px;
+}
+
+.monitor-session-facts {
+  gap: 6px;
+}
+
+.msb-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  max-width: 280px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.msb-chip .msb-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.msb-chip strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.msb-end-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.msb-end-btn::before {
+  content: "";
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: currentColor;
+}
+
+/* System view sub-navigation tabs (design-system styled, never default browser buttons) */
+.system-subnav-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: 20px;
+  padding: 4px;
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.sys-subtab-btn {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.sys-subtab-btn:hover {
+  background: var(--surface-card-hover);
+  color: var(--text-primary);
+}
+
+.sys-subtab-btn.active {
+  background: var(--accent-cyan-dim);
+  border-color: var(--border-glow-cyan);
+  color: var(--accent-cyan-bright);
+}
+
+.sys-subtab-btn:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+.system-view-wrapper select {
+  color-scheme: dark;
+}
+
+/* Camera configuration table */
+.cam-state-chip {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.cam-state-chip.live {
+  background: var(--color-live-dim);
+  color: var(--color-live);
+}
+
+.cam-state-chip.ready {
+  background: var(--accent-cyan-dim);
+  color: var(--accent-cyan);
+}
+
+.cam-state-chip.off {
+  background: var(--color-dismissed-dim);
+  color: var(--text-muted);
+}
+
+.cam-auto-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-glow-cyan);
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  vertical-align: middle;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-section.active,
+  .session-gate.open {
+    animation: none;
+  }
+}
