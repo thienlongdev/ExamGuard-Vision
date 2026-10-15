@@ -82,13 +82,13 @@ class DashboardApp {
 
   async loadInitialData() {
     try {
-      const [eventsRaw, camsRaw, statusRaw, modelsRaw, currentSessionRaw, tracksRaw] = await Promise.allSettled([
+      const [eventsRaw, camsRaw, statusRaw, modelsRaw, currentSessionRaw, overlaysRaw] = await Promise.allSettled([
         ApiClient.getEvents(),
         ApiClient.getCameras(),
         ApiClient.getSystemStatus(),
         ApiClient.getSystemModels(),
         ApiClient.getCurrentSession(),
-        ApiClient.getCameraTracks(),
+        ApiClient.getCameraOverlays(),
       ]);
 
       if (eventsRaw.status === "fulfilled" && Array.isArray(eventsRaw.value)) {
@@ -112,8 +112,8 @@ class DashboardApp {
         appState.setCurrentSession(currentSessionRaw.value);
       }
 
-      if (appState.monitoringActive && tracksRaw.status === "fulfilled" && Array.isArray(tracksRaw.value)) {
-        appState.setActiveTracks(tracksRaw.value);
+      if (appState.monitoringActive && overlaysRaw.status === "fulfilled") {
+        appState.setActiveOverlays(overlaysRaw.value);
       }
     } catch (err) {
       console.warn("Initial data load partial failure:", err);
@@ -179,14 +179,14 @@ class DashboardApp {
   async pollTelemetry() {
     try {
       // Track polling only while monitoring: no session, no overlay
-      const [status, tracks, cameras] = await Promise.all([
+      const [status, overlays, cameras] = await Promise.all([
         ApiClient.getSystemStatus().catch(() => null),
-        appState.monitoringActive ? ApiClient.getCameraTracks().catch(() => []) : Promise.resolve(null),
+        appState.monitoringActive ? ApiClient.getCameraOverlays().catch(() => null) : Promise.resolve(null),
         ApiClient.getCameras().catch(() => []),
       ]);
 
       if (status) appState.setSystemStatus(status);
-      if (tracks && appState.monitoringActive) appState.setActiveTracks(tracks);
+      if (overlays && appState.monitoringActive) appState.setActiveOverlays(overlays);
       if (cameras && cameras.length > 0) appState.setCameraInfo(cameras[0]);
     } catch (e) {
       console.debug("Telemetry poll error:", e);

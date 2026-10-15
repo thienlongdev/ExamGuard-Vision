@@ -140,7 +140,8 @@ def test_port_collision_safety_behavior():
 
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    server.bind(("127.0.0.1", 8000))
+    server.bind(("127.0.0.1", 0))
+    port = server.getsockname()[1]
     server.listen(5)
 
     try:
@@ -152,6 +153,7 @@ def test_port_collision_safety_behavior():
             "-File",
             str(REPO_ROOT / "scripts" / "windows" / "start_examguard.ps1"),
             "-NoBrowser",
+            "-Port", str(port),
         ]
         env = os.environ.copy()
         env["EXAMGUARD_LAUNCHER_TEST_MODE"] = "1"
@@ -165,7 +167,7 @@ def test_port_collision_safety_behavior():
             env=env,
         )
         assert res.returncode == 1
-        assert "cổng 8000 đang được chương trình khác sử dụng" in res.stdout
+        assert f"cổng {port} đang được chương trình khác sử dụng" in res.stdout
     finally:
         server.close()
 

@@ -302,7 +302,7 @@ def test_max_severity_computed_per_track():
 
     summary = {item["track_id"]: item for item in p._latest_tracks_summary}
     assert summary[5]["risk_level"] == "HIGH"
-    assert summary[6]["risk_level"] == "LOW"
+    assert summary[6]["risk_level"] == "SAFE"  # No active event is the existing safe UI state.
 
 
 def test_event_dedup_per_track_and_family():

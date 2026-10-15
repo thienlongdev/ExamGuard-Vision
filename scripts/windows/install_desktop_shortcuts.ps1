@@ -34,6 +34,7 @@ try {
     $startLnk = $wshShell.CreateShortcut($startLnkPath)
     $startLnk.TargetPath = $startBat
     $startLnk.WorkingDirectory = $repoRoot
+    $startLnk.WindowStyle = 7
     $startLnk.Description = "ExamGuard Vision - Khởi động giám sát phòng thi"
     $startLnk.Save()
 
@@ -43,6 +44,7 @@ try {
     $stopLnk = $wshShell.CreateShortcut($stopLnkPath)
     $stopLnk.TargetPath = $stopBat
     $stopLnk.WorkingDirectory = $repoRoot
+    $stopLnk.WindowStyle = 7
     $stopLnk.Description = "ExamGuard Vision - Dừng hệ thống an toàn"
     $stopLnk.Save()
 

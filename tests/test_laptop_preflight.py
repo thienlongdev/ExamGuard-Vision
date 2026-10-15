@@ -39,8 +39,9 @@ def test_laptop_preflight_readiness_always_defined():
 
 def test_no_desktop_hardcoded_strings():
     """Verify no hardcoded desktop specs appear in system info or reports."""
-    report = run_preflight()
-    hw_str = json.dumps(report["hardware"]).upper()
+    import inspect
+    # Real discovery must be allowed to report the desktop on which this test runs.
+    hw_str = inspect.getsource(query_windows_system_info).upper()
     assert "9950X" not in hw_str
     assert "5070" not in hw_str
 

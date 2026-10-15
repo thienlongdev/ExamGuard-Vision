@@ -127,6 +127,17 @@ export class ApiClient {
     }
   }
 
+  static async getCameraOverlays(camId = null) {
+    try {
+      const url = camId ? `/api/cameras/${encodeURIComponent(camId)}/overlays` : "/api/cameras/overlays";
+      const res = await fetch(url);
+      if (!res.ok) return { tracks: [], detections: [], frame_timestamp: null };
+      return await res.json();
+    } catch {
+      return { tracks: [], detections: [], frame_timestamp: null };
+    }
+  }
+
   static async getSystemStatus() {
     const res = await fetch("/api/system/status");
     if (res.status === 401) {

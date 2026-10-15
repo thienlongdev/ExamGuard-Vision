@@ -45,8 +45,14 @@ htmlcov/
 # ------------------------------------------------------------------------------
 .env
 *.env
+.env.*
+!.env.example
+!.env.template
 *.pem
 *.key
+*.pfx
+*.p12
+*.keystore
 *.token
 *.dpapi
 *.secret
@@ -121,6 +127,7 @@ final_vi_*.png
 .runtime/
 *.pid
 logs/
+*.log
 *.lnk
 
 # ------------------------------------------------------------------------------
@@ -132,5 +139,12 @@ backups/
 *.db
 *.db-wal
 *.db-shm
+*.db-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite-journal
+*.sqlite3-wal
+*.sqlite3-shm
+*.sqlite3-journal
 storage/db/
 storage/sessions/

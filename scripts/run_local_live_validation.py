@@ -517,11 +517,11 @@ class LiveValidationOrchestrator:
         self.stop_event = threading.Event()
 
         # Telemetry metrics collection
-        self.frame_latencies_ms: List[float] = []
-        self.component_timings: Dict[str, List[float]] = collections.defaultdict(list)
-        self.gpu_memory_samples: List[Dict[str, Any]] = []
-        self.periodic_soak_samples: List[Dict[str, Any]] = []
-        self.captured_events: List[Dict[str, Any]] = []
+        self.frame_latencies_ms = collections.deque(maxlen=1800)
+        self.component_timings = collections.defaultdict(lambda: collections.deque(maxlen=1800))
+        self.gpu_memory_samples = collections.deque(maxlen=120)
+        self.periodic_soak_samples = collections.deque(maxlen=360)
+        self.captured_events = collections.deque(maxlen=1000)
 
         self.current_protocol_step: str = "LIVE_MONITORING"
         self.total_frames_processed = 0
@@ -532,8 +532,8 @@ class LiveValidationOrchestrator:
         """Start local FastAPI and WebSocket backend in a daemon thread."""
         logger.info(f"Starting FastAPI + WebSocket server on 127.0.0.1:{self.port}...")
         app = create_app(
-            camera_id=f"webcam_{self.camera_index}",
-            camera_type="webcam",
+            camera_id=self.webcam_source.source_id,
+            camera_type=getattr(self.webcam_source, "source_type", "webcam"),
             stage2_pipeline=self.pipeline,
             camera_connected=not self.session_bound_capture,
             camera_streaming=not self.session_bound_capture,
@@ -570,13 +570,22 @@ class LiveValidationOrchestrator:
     def setup_pipeline(self) -> bool:
         """Initialize physical webcam source and Stage2Pipeline."""
         logger.info(f"Opening physical webcam device index {self.camera_index} (CAP_DSHOW preference)...")
+        with open(self.config_path, encoding="utf-8") as f:
+            source_config = yaml.safe_load(f).get("video_source", {})
         self.webcam_source = WebcamSource(
             source=self.camera_index,
-            source_id=f"webcam_{self.camera_index}",
-            width=1280,
-            height=720,
-            fps=30.0,
+            source_id=source_config.get("camera_id", f"webcam_{self.camera_index}"),
+            width=int(source_config.get("width", 1280)),
+            height=int(source_config.get("height", 720)),
+            fps=float(source_config.get("target_fps", 30.0)),
+            preferred_backend=source_config.get("camera_backend"),
+            fourcc=source_config.get("fourcc"),
+            async_capture=bool(source_config.get("async_capture", False)),
         )
+        if source_config.get("default_type", "webcam") != "webcam":
+            from src.video.factory import create_video_source
+            self.webcam_source = create_video_source(source_config["default_type"], source_config["default_path"],
+                source_id=source_config.get("camera_id", f"webcam_{self.camera_index}"), extra_config={"reconnect_attempts": source_config.get("max_reconnect_attempts", 5)})
         if self.session_bound_capture:
             logger.info("Session-bound capture: webcam stays closed until a monitoring session starts.")
         else:
@@ -589,16 +598,16 @@ class LiveValidationOrchestrator:
                 f"{self.webcam_source.fps:.1f} FPS via {getattr(self.webcam_source, '_backend_name', 'DSHOW')}"
             )
 
-        logger.info("Initializing Stage 2 full perception pipeline on RTX 3050 (cuda:0)...")
+        logger.info("Initializing Stage 2 full perception pipeline using %s", self.config_path)
         self.pipeline = Stage2Pipeline(
             config_path=self.config_path,
             video_source=self.webcam_source,
-            enable_debug_overlay=True,
+            enable_debug_overlay=not self.headless,
         )
 
         # Wire event listener to capture live physical events
         def _on_live_event(event: FusedEvent, action: str):
-            event.evidence_summary["event_origin"] = "PHYSICAL_LIVE_CAMERA"
+            event.evidence_summary["event_origin"] = self.pipeline.source_origin
             self.captured_events.append({
                 "action": action,
                 "event_id": event.event_id,
@@ -616,7 +625,7 @@ class LiveValidationOrchestrator:
             self.capture_controller = SessionCaptureController(
                 source=self.webcam_source,
                 pipeline=self.pipeline,
-                camera_id=f"webcam_{self.camera_index}",
+                camera_id=self.webcam_source.source_id,
             )
         return True
 
@@ -702,6 +711,8 @@ class LiveValidationOrchestrator:
 
         logger.info("Starting live camera capture & Stage 2 inference loop...")
         last_soak_sample_t = time.time()
+        auto_target = self.pipeline.config.get("performance", {}).get("auto_ai_target_fps", 0)
+        next_ai_time = time.perf_counter()
 
         try:
             while not self.stop_event.is_set():
@@ -710,6 +721,14 @@ class LiveValidationOrchestrator:
                     self._set_gui_window(window_name, False)
                     ctrl.wait_until_active(timeout=0.25)
                     continue
+
+                if auto_target and getattr(self.webcam_source, "async_capture", False):
+                    delay = next_ai_time - time.perf_counter()
+                    if delay > 0:
+                        self.stop_event.wait(min(delay, 1.0))
+                    next_ai_time = time.perf_counter() + 1.0 / auto_target
+                    if self.stop_event.is_set():
+                        break
 
                 slot = ctrl.frame_slot() if ctrl is not None else None
                 if slot is not None and not slot.__enter__():
@@ -724,6 +743,13 @@ class LiveValidationOrchestrator:
                     read_duration_ms = (t1_read - t0_read) * 1000.0
 
                     if vframe is None:
+                        if self.webcam_source.source_type == "video_file":
+                            self.stop_event.set()
+                            break
+                        if self.webcam_source.source_type == "rtsp":
+                            raise RuntimeError("RTSP stream unavailable after bounded reconnect attempts.")
+                        if getattr(self.webcam_source, "failure_reason", None):
+                            raise RuntimeError(self.webcam_source.failure_reason)
                         logger.warning("Empty frame received from webcam. Re-trying...")
                         time.sleep(0.01)
                         continue
@@ -779,7 +805,7 @@ class LiveValidationOrchestrator:
                         vram_cur = round(torch.cuda.memory_allocated(0) / (1024**2), 1) if torch.cuda.is_available() else 0.0
                         cap_fps_val = self.pipeline.observed_capture_fps or 0.0
                         proc_fps_val = self.pipeline.observed_processed_fps or 0.0
-                        p50_val = float(np.percentile(self.frame_latencies_ms[-100:], 50)) if self.frame_latencies_ms else 0.0
+                        p50_val = float(np.percentile(list(self.frame_latencies_ms)[-100:], 50)) if self.frame_latencies_ms else 0.0
 
                         self.periodic_soak_samples.append({
                             "elapsed_seconds": round(now - self.start_wall_time, 1),
@@ -804,8 +830,10 @@ class LiveValidationOrchestrator:
                         on_frame_fn(res)
 
                     # Render HUD and show window
-                    display_frame = res.annotated_frame if res.annotated_frame is not None else vframe.frame.copy()
-                    display_frame = self.render_hud_overlay(display_frame, res)
+                    display_frame = None
+                    if not self.headless or self.burn_in_web_hud:
+                        display_frame = res.annotated_frame if res.annotated_frame is not None else vframe.frame.copy()
+                        display_frame = self.render_hud_overlay(display_frame, res)
                     if self.burn_in_web_hud and hasattr(self.pipeline, "set_external_display_frame"):
                         self.pipeline.set_external_display_frame(display_frame)
 

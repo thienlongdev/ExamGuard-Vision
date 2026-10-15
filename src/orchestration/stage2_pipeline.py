@@ -355,6 +355,12 @@ class Stage2Pipeline:
         # Downstream display frame & track buffer for browser streaming (MJPEG)
         self._latest_jpeg_frame: Optional[bytes] = None
         self._latest_tracks_summary: List[Dict[str, Any]] = []
+        self._latest_object_detections: List[Dict[str, Any]] = []
+        self._latest_overlay_state: Dict[str, Any] = {
+            "tracks": [],
+            "detections": [],
+            "frame_timestamp": None,
+        }
         self._frame_lock = threading.Lock()
 
         import collections
@@ -363,6 +369,8 @@ class Stage2Pipeline:
 
     @property
     def observed_capture_fps(self) -> Optional[float]:
+        if getattr(self.source, "async_capture", False):
+            return self.source.observed_capture_fps
         if len(self._captured_timestamps) >= 5:
             dt = self._captured_timestamps[-1] - self._captured_timestamps[0]
             if dt > 0.01:
@@ -383,7 +391,7 @@ class Stage2Pipeline:
 
     @property
     def dropped_frames_count(self) -> int:
-        return self.ingestion_queue.dropped_frames_count
+        return self.ingestion_queue.dropped_frames_count + getattr(self.source, "skipped_frames", 0)
 
     def reset(self) -> None:
         """Reset transient state when switching or starting a new monitoring session (Workstream 10)."""
@@ -407,6 +415,8 @@ class Stage2Pipeline:
             self._track_metadata.clear()
             with self._frame_lock:
                 self._latest_tracks_summary.clear()
+                self._latest_object_detections.clear()
+                self._latest_overlay_state = {"tracks": [], "detections": [], "frame_timestamp": None}
             logger.info("Stage2Pipeline transient state reset for new monitoring session.")
 
     def add_event_listener(self, listener: Callable[[FusedEvent, str], None]) -> None:
@@ -630,7 +640,12 @@ class Stage2Pipeline:
 
         # 3. Phone spatial association with ambiguity checks and temporal accumulation
         t_phone_start = time.perf_counter()
-        phone_associations = self.phone_associator.associate(tracks, detections, timestamp_sec=ts)
+        phone_associations = self.phone_associator.associate(
+            tracks,
+            detections,
+            timestamp_sec=ts,
+            frame_shape=(h, w),
+        )
         t_phone_end = time.perf_counter()
         phone_assoc_ms = (t_phone_end - t_phone_start) * 1000.0
 
@@ -952,6 +967,7 @@ class Stage2Pipeline:
             posture_cues,
             headpose_cues,
             phone_associations,
+            detections,
             ts=ts,
             cam_id=cam_id,
         )
@@ -974,12 +990,17 @@ class Stage2Pipeline:
         posture_cues: Dict[int, Any],
         headpose_cues: Dict[int, Any],
         phone_associations: Dict[int, Any],
+        detections: Optional[List[Detection]] = None,
         ts: Optional[float] = None,
         cam_id: Optional[str] = None,
     ) -> None:
         """Thread-safe frame buffer update for downstream HTTP/MJPEG streaming."""
         try:
-            ret, jpeg_buf = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+            max_width = self.config.get("performance", {}).get("preview_max_width", 0)
+            preview = frame
+            if max_width and frame.shape[1] > max_width:
+                preview = cv2.resize(frame, (max_width, round(frame.shape[0] * max_width / frame.shape[1])))
+            ret, jpeg_buf = cv2.imencode(".jpg", preview, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
             if ret:
                 encoded_bytes = jpeg_buf.tobytes()
                 # 1. Immediately store latest frame under lock so preview is NEVER starved
@@ -989,6 +1010,62 @@ class Stage2Pipeline:
                 # 2. Build track overlays summary with safe fallback
                 canonical_cam = cam_id or self.camera_id
                 frame_ts = ts if ts is not None else time.time()
+                scale_x = preview.shape[1] / frame.shape[1]
+                scale_y = preview.shape[0] / frame.shape[0]
+
+                # Level 1/2 object observations are published independently of
+                # temporal event eligibility. They represent the current frame
+                # only and are atomically replaced below, preventing stale boxes.
+                object_detections = []
+                assoc_filter_rows = getattr(self.phone_associator, "last_filter_diagnostics", [])
+                for det in (detections or []):
+                    class_name = str(getattr(det, "class_name", "")).lower().strip()
+                    if class_name not in ("cell phone", "phone", "mobile phone") and int(getattr(det, "class_id", -1)) != 67:
+                        continue
+
+                    det_bbox = det.bbox.as_tuple()
+                    associated_track_ids = []
+                    association_status = "UNASSOCIATED"
+                    candidate_only = False
+                    for tid, association in phone_associations.items():
+                        assoc_bbox = getattr(association, "phone_bbox", None)
+                        if not assoc_bbox or max(abs(float(a) - float(b)) for a, b in zip(assoc_bbox, det_bbox)) > 1.0:
+                            continue
+                        associated_track_ids.append(int(tid))
+                        if getattr(association, "status", None) == "AMBIGUOUS":
+                            association_status = "AMBIGUOUS"
+                        elif association_status != "AMBIGUOUS":
+                            association_status = "ASSOCIATED"
+                        candidate_only = candidate_only or bool(getattr(association, "is_candidate_only", False))
+
+                    filter_row = next((
+                        row for row in assoc_filter_rows
+                        if row.get("bbox") and max(abs(float(a) - float(b)) for a, b in zip(row["bbox"], det_bbox)) <= 1.0
+                    ), None)
+                    eligible = bool(filter_row.get("accepted_for_association", True)) if filter_row else True
+                    if not eligible:
+                        association_status = "FILTERED"
+
+                    strong_threshold = float(getattr(self.registry.detector, "phone_strong_confidence", 0.35))
+                    object_detections.append({
+                        "camera_id": canonical_cam,
+                        "class_id": int(det.class_id),
+                        "class_name": str(det.class_name),
+                        "confidence": round(float(det.confidence), 4),
+                        "bbox": [
+                            det_bbox[0] * scale_x,
+                            det_bbox[1] * scale_y,
+                            det_bbox[2] * scale_x,
+                            det_bbox[3] * scale_y,
+                        ],
+                        "detection_state": "CONFIRMED" if float(det.confidence) >= strong_threshold else "CANDIDATE",
+                        "association_status": association_status,
+                        "associated_track_ids": sorted(set(associated_track_ids)),
+                        "association_candidate_only": candidate_only,
+                        "frame_timestamp": frame_ts,
+                        **({"diagnostic": filter_row} if os.environ.get("EXAMGUARD_DIAGNOSTIC_CUES") == "1" else {}),
+                    })
+
                 tracks_summary = []
                 for t in tracks:
                     try:
@@ -1070,7 +1147,7 @@ class Stage2Pipeline:
                         tracks_summary.append({
                             "camera_id": canonical_cam,
                             "track_id": tid,
-                            "bbox": bx,
+                            "bbox": [bx[0] * scale_x, bx[1] * scale_y, bx[2] * scale_x, bx[3] * scale_y],
                             "posture": pos.predicted_class if (pos and hasattr(pos, "predicted_class") and pos.predicted_class) else "N/A",
                             "posture_conf": round(float(pos.confidence), 2) if (pos and hasattr(pos, "confidence") and pos.confidence is not None) else None,
                             "yaw_deg": yaw_val,
@@ -1079,6 +1156,8 @@ class Stage2Pipeline:
                             "candidate": is_turn_candidate,
                             "is_reviewable": head_reviewable,
                             "phone_status": ph.status if ph and hasattr(ph, "status") else "NONE",
+                            "phone_confidence": round(float(ph.confidence), 4) if ph and hasattr(ph, "confidence") else None,
+                            "phone_candidate_only": bool(ph.is_candidate_only) if ph and hasattr(ph, "is_candidate_only") else False,
                             "active_events": [e.event_type for e in track_events],
                             "active_event_family": getattr(primary_ev, "event_family", None) or (getattr(primary_ev, "canonical_type", None)),
                             "primary_event_type": primary_ev.event_type if primary_ev else None,
@@ -1090,6 +1169,19 @@ class Stage2Pipeline:
                         logger.warning(f"Track summary error on track {getattr(t, 'track_id', 'unknown')}: {track_err}", exc_info=True)
                 with self._frame_lock:
                     self._latest_tracks_summary = tracks_summary
+                    self._latest_object_detections = object_detections
+                    self._latest_overlay_state = {
+                        "tracks": tracks_summary,
+                        "detections": object_detections,
+                        "frame_timestamp": frame_ts,
+                        "coordinate_space": "preview_pixels",
+                        "preview_size": [int(preview.shape[1]), int(preview.shape[0])],
+                    }
+                    if os.environ.get("EXAMGUARD_DIAGNOSTIC_CUES") == "1":
+                        self._latest_overlay_state["diagnostics"] = {
+                            "detector": getattr(self.registry.detector, "last_diagnostics", {}),
+                            "association_filter": assoc_filter_rows,
+                        }
         except Exception as e:
             logger.debug(f"Frame buffer update failed: {e}")
 

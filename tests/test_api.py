@@ -6,10 +6,20 @@ from src.api.main import create_app
 from src.behavior.event_manager import EventManager
 from src.behavior.rules import RuleMatch
 from src.behavior.scorer import RiskScorer
+from src.persistence.service import PersistenceService
+from src.security.key_provider import InMemoryKeyProvider, set_key_provider
 
 
 @pytest.fixture
-def client_with_event():
+def client_with_event(tmp_path):
+    # API tests must never merge their synthetic events with the workstation's
+    # monitoring database. A process-local key provider and temporary SQLite DB
+    # preserve the production persistence path while keeping this fixture exact.
+    set_key_provider(InMemoryKeyProvider())
+    # Use a temporary file instead of SQLite ':memory:' because repositories
+    # intentionally open independent connections; each in-memory connection
+    # would otherwise see a different empty schema.
+    persistence = PersistenceService(db_path=str(tmp_path / "api-test.sqlite3"))
     em = EventManager(camera_id="cam-test-101")
     scorer = RiskScorer()
 
@@ -26,7 +36,13 @@ def client_with_event():
     ass = scorer.score_matches(3, [rm])
     ev = em.process_assessment(ass, timestamp=100.0)
 
-    app = create_app(event_manager=em, camera_id="cam-test-101", camera_type="webcam", enforce_auth=False)
+    app = create_app(
+        event_manager=em,
+        camera_id="cam-test-101",
+        camera_type="webcam",
+        persistence_service=persistence,
+        enforce_auth=False,
+    )
     return TestClient(app), ev.event_id
 
 

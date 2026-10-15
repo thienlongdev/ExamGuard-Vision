@@ -2,6 +2,8 @@
 
 This document describes the testing architecture, test categorization, execution commands, and expected outcomes across all automated validation suites in ExamGuard Vision.
 
+> Kết quả hiện hành, exclusion offline chính xác và lệnh Auto/physical validation: [final-academic-validation.md](final-academic-validation.md). Các tổng số và kết quả ASUS bên dưới là snapshot lịch sử, không phải kết quả của workstation mới. Không chạy test launcher/preflight đang giữ camera khi người dùng có monitoring session ACTIVE.
+
 ---
 
 ## 1. Test Architecture Overview

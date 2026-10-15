@@ -60,6 +60,7 @@ class YOLOObjectDetector(ObjectDetector):
         self.target_classes: Dict[int, str] = {}
         self.person_class_id: Optional[int] = None
         self.phone_class_id: Optional[int] = None
+        self.last_diagnostics: Dict[str, object] = {}
         self._load_model()
 
     def _load_model(self) -> None:
@@ -154,6 +155,7 @@ class YOLOObjectDetector(ObjectDetector):
     def detect(self, frame: np.ndarray) -> List[Detection]:
         """Detect persons and cell phones in the frame."""
         if self._model is None:
+            self.last_diagnostics = {"status": "MODEL_UNAVAILABLE", "detections": []}
             return []
 
         classes_to_filter = list(self.target_classes.keys())
@@ -174,15 +176,28 @@ class YOLOObjectDetector(ObjectDetector):
 
         detections: List[Detection] = []
         if not results:
+            self.last_diagnostics = {
+                "status": "NO_RESULT",
+                "image_size": self.image_size,
+                "predict_confidence": predict_conf,
+                "detections": [],
+            }
             return detections
 
         first_res = results[0]
         if first_res.boxes is None or len(first_res.boxes) == 0:
+            self.last_diagnostics = {
+                "status": "NO_POST_NMS_DETECTIONS",
+                "image_size": self.image_size,
+                "predict_confidence": predict_conf,
+                "detections": [],
+            }
             return detections
 
         diag_mode = os.environ.get("EXAMGUARD_DIAGNOSTIC_CUES") == "1"
 
         boxes_data = first_res.boxes.data.cpu().numpy()
+        diagnostic_rows = []
         for row in boxes_data:
             # Format: [x1, y1, x2, y2, conf, cls]
             x1, y1, x2, y2, conf, cls_id = row[:6]
@@ -190,11 +205,14 @@ class YOLOObjectDetector(ObjectDetector):
             conf_flt = float(conf)
             class_name = self.target_classes.get(cls_id_int, first_res.names.get(cls_id_int, f"class_{cls_id_int}"))
             bbox = BBox(x1=float(x1), y1=float(y1), x2=float(x2), y2=float(y2))
+            accepted = True
+            reason = "ACCEPTED"
 
             # Per-class selective threshold gating
             if self.person_class_id is not None and cls_id_int == self.person_class_id:
                 if conf_flt < self.person_confidence:
-                    continue
+                    accepted = False
+                    reason = "BELOW_PERSON_THRESHOLD"
             elif self.phone_class_id is not None and cls_id_int == self.phone_class_id:
                 if diag_mode:
                     logger.info(
@@ -204,12 +222,26 @@ class YOLOObjectDetector(ObjectDetector):
                     )
                 # Gate on phone candidate threshold and minimum usable bbox dimension (reject 1x1 noise)
                 if conf_flt < self.phone_candidate_confidence:
-                    continue
-                if bbox.width < self.min_phone_width_px or bbox.height < self.min_phone_height_px:
-                    continue
+                    accepted = False
+                    reason = "BELOW_PHONE_CANDIDATE_THRESHOLD"
+                elif bbox.width < self.min_phone_width_px or bbox.height < self.min_phone_height_px:
+                    accepted = False
+                    reason = "PHONE_BOX_TOO_SMALL_FOR_RELIABLE_LOCALIZATION"
             else:
                 if conf_flt < self.confidence:
-                    continue
+                    accepted = False
+                    reason = "BELOW_DEFAULT_THRESHOLD"
+
+            diagnostic_rows.append({
+                "bbox": bbox.as_tuple(),
+                "class_id": cls_id_int,
+                "class_name": class_name,
+                "confidence": conf_flt,
+                "accepted": accepted,
+                "reason": reason,
+            })
+            if not accepted:
+                continue
 
             detections.append(
                 Detection(
@@ -220,4 +252,15 @@ class YOLOObjectDetector(ObjectDetector):
                 )
             )
 
+        self.last_diagnostics = {
+            # Ultralytics exposes boxes after its built-in NMS at this adapter boundary.
+            "status": "OK",
+            "coordinate_space": "source_frame_pixels",
+            "image_size": self.image_size,
+            "predict_confidence": predict_conf,
+            "iou_threshold": self.iou_threshold,
+            "post_nms_count": int(len(boxes_data)),
+            "accepted_count": len(detections),
+            "detections": diagnostic_rows,
+        }
         return detections

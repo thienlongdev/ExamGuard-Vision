@@ -10,7 +10,7 @@ import os
 import cv2
 
 from src.tracking.tracker import Track
-from src.detection.types import BBox
+from src.detection.types import BBox, Detection
 from src.orchestration.phone_associator import PhoneAssociator
 from src.fusion.reliability import ReliabilityModel
 from src.fusion.temporal_buffer import TemporalBuffer
@@ -98,6 +98,45 @@ def test_phone_temporal_accumulation_brief_flashes():
     # Hit 2 at t=0.6
     a3 = associator.associate([student], [phone_det], timestamp_sec=0.6)
     assert len(associator._recent_track_hits.get(1, [])) >= 2
+
+
+def test_close_phone_uses_source_frame_scale_not_absolute_pixel_limit():
+    """A 4K close phone must not be dropped merely for exceeding 90,000 px2."""
+    associator = PhoneAssociator(phone_strong_confidence=0.35)
+    student = Track(track_id=1, bbox=BBox(900, 300, 3000, 2100), confidence=0.95, timestamp=1.0)
+    phone = Detection(BBox(1500, 700, 1900, 1200), 67, "cell phone", 0.90)
+
+    result = associator.associate([student], [phone], timestamp_sec=1.0, frame_shape=(2160, 3840))
+
+    assert phone.bbox.area == 200000
+    assert result[1].detected is True
+    assert result[1].phone_bbox == phone.bbox.as_tuple()
+    assert associator.last_filter_diagnostics[0]["accepted_for_association"] is True
+
+
+def test_oversized_non_phone_is_not_accepted_as_phone():
+    """Removing the pixel cap must not admit unrelated large object classes."""
+    associator = PhoneAssociator()
+    student = Track(track_id=1, bbox=BBox(100, 100, 1000, 1800), confidence=0.95, timestamp=1.0)
+    television = Detection(BBox(0, 0, 3800, 2100), 62, "tv", 0.99)
+
+    result = associator.associate([student], [television], timestamp_sec=1.0, frame_shape=(2160, 3840))
+
+    assert result[1].detected is False
+    assert associator.get_unassociated_phones() == []
+    assert associator.last_filter_diagnostics[0]["reason"] == "NOT_PHONE_CLASS"
+
+
+def test_large_unassociated_phone_is_preserved():
+    """A strong phone without a nearby person remains visible instead of disappearing."""
+    associator = PhoneAssociator(phone_strong_confidence=0.35)
+    phone = Detection(BBox(1000, 400, 1600, 1200), 67, "cell phone", 0.88)
+
+    associator.associate([], [phone], timestamp_sec=1.0, frame_shape=(2160, 3840))
+
+    unassociated = associator.get_unassociated_phones()
+    assert len(unassociated) == 1
+    assert unassociated[0]["bbox"] == phone.bbox.as_tuple()
 
 
 def test_phone_severity_hierarchy():

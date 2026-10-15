@@ -261,7 +261,9 @@ def create_encrypted_backup(
         src_path = Path(ev.relative_path) if os.path.isabs(ev.relative_path) else (repo_root / ev.relative_path)
         if src_path.is_file():
             if os.path.isabs(ev.relative_path):
-                rel_sub = Path(ev.relative_path).relative_to(Path(ev.relative_path).anchor)
+                # Do not replicate absolute drive/user/temp trees inside a Windows backup.
+                # Evidence ID preserves uniqueness and avoids MAX_PATH overflow.
+                rel_sub = Path(ev.evidence_id) / src_path.name
             else:
                 rel_sub = Path(ev.relative_path)
 
@@ -416,7 +418,7 @@ def create_local_backup(
         src_path = Path(ev.relative_path) if os.path.isabs(ev.relative_path) else (repo_root / ev.relative_path)
         if src_path.is_file():
             if os.path.isabs(ev.relative_path):
-                rel_sub = Path(ev.relative_path).relative_to(Path(ev.relative_path).anchor)
+                rel_sub = Path(ev.evidence_id) / src_path.name
             else:
                 rel_sub = Path(ev.relative_path)
 

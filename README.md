@@ -45,34 +45,20 @@
 
 ## Chạy nhanh trên Windows (One-Click)
 
-Dành cho laptop demo hoặc máy trạm đã cài đặt sẵn môi trường (`.venv`):
+**Mặc định hiện tại: Auto, một ứng dụng cho nhiều cấu hình phần cứng.**
 
-1. **Khởi động một click:**
-   Double-click:
-   `Start ExamGuard Vision.bat`
-   
-   - Tự động nhận diện thư mục dự án và kiểm tra môi trường `.venv`.
-   - Kiểm tra nhanh cấu hình và sự hiện diện của 7 checkpoint mô hình (không tốn thời gian tính lại SHA).
-   - Tự động khởi động camera vật lý (DirectShow) và pipeline nhận diện AI trên RTX 3050 CUDA.
-   - Bảng điều khiển tự động mở trên trình duyệt mặc định tại:
-     `http://127.0.0.1:8000/`
+1. Lần đầu: double-click `Setup ExamGuard Vision.bat` để chuẩn bị `.venv`, checkpoints, PyTorch/runtime và shortcuts. Tạo tài khoản quản trị riêng trên trang setup.
+2. Mỗi lần dùng: mở icon **ExamGuard Vision** trên Desktop; launcher kiểm tra hardware, camera đã chọn và forward của model trước khi tự mở dashboard tại **http://127.0.0.1:8765/**.
+3. Đăng nhập và bấm **Bắt đầu phiên giám sát** để bật camera và AI. Không tự giám sát trước khi bắt đầu phiên. Sau restart cần đăng nhập lại theo chính sách bảo mật hiện có.
+4. Dừng bằng icon **Stop ExamGuard Vision**. Không đóng cưỡng bức các Python process khác.
 
-2. **Dừng an toàn:**
-   Khi kết thúc phiên giám sát, double-click:
-   `Stop ExamGuard Vision.bat`
-   
-   - Gửi tín hiệu dừng an toàn (graceful stop) đến đúng tiến trình ExamGuard.
-   - Giải phóng tài nguyên camera, dọn dẹp bộ nhớ CUDA và đóng cổng 8000.
-   - Tuyệt đối không can thiệp hay tắt các tiến trình Python khác của hệ điều hành.
+Auto xác minh CUDA thực thi được, dùng CPU có thông báo khi CUDA không khả dụng, chọn camera theo định danh, thương lượng/đo MJPEG và lưu cấu hình tương thích. 4K capture, nhịp AI và preview là các thông số riêng. Không thay checkpoint, nhãn lớp hoặc luật sự kiện để tăng FPS.
 
-> [!TIP]
-> **Cài đặt lối tắt ngoài màn hình Desktop (Chạy 1 lần duy nhất):**
-> Double-click file `Install ExamGuard Shortcuts.bat`. Hệ thống sẽ tạo 2 icon **ExamGuard Vision** và **Stop ExamGuard Vision** trực tiếp trên Desktop.
-> 
-> **Chẩn đoán chuyên sâu & kiểm tra phần cứng khi cần:**
-> ```powershell
-> .\.venv\Scripts\python.exe scripts\laptop_preflight.py
-> ```
+- [Hướng dẫn Windows, chọn nguồn video/RTSP và xử lý lỗi](docs/universal-windows-setup.md)
+- [Kiến trúc Adaptive Runtime](docs/adaptive-runtime.md)
+- [Báo cáo thực nghiệm RTX 5070 ngày 15/10/2026](docs/final-academic-validation.md)
+
+Cấu hình `configs/runtime/asus_a17_demo.yaml` và `scripts/run_asus_a17_demo.py` được giữ làm tham chiếu. Các phần hướng dẫn thủ công và kết quả ASUS bên dưới là tài liệu lịch sử/tham chiếu; bản Auto và báo cáo mới phía trên là nguồn chính cho workstation hiện tại. Cổng 8000 trên máy này thuộc dịch vụ khác và được giữ nguyên.
 
 ---
 

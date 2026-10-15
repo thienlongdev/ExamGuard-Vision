@@ -50,7 +50,7 @@ class RTSPSource(VideoSource):
         self._cap = cv2.VideoCapture(self.rtsp_url, cv2.CAP_FFMPEG)
 
         if not self._cap.isOpened():
-            logger.error(f"Failed to connect to RTSP stream: {self.rtsp_url}")
+            logger.error("Failed to connect to RTSP source %s (credentials omitted)", self.source_id)
             return False
 
         detected_fps = self._cap.get(cv2.CAP_PROP_FPS)

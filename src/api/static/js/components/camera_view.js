@@ -20,6 +20,7 @@ export class CameraViewComponent {
     this.trackPollTimer = null;
     this.resizeObserver = null;
     this.reconnectAttempts = 0;
+    this.lastOverlayUpdateAt = 0;
     this.init();
   }
 
@@ -32,7 +33,10 @@ export class CameraViewComponent {
 
     appState.subscribe((type, payload) => {
       if (type === "TRACKS_UPDATED") {
-        this.renderTracks(payload);
+        this.renderTracks(payload, appState.activeDetections);
+      } else if (type === "OVERLAYS_UPDATED") {
+        this.lastOverlayUpdateAt = Date.now();
+        this.renderTracks(payload.tracks, payload.detections, payload.diagnostics);
       } else if (type === "CAMERA_UPDATED") {
         this.updateCameraMeta(payload);
       } else if (type === "TRACK_HIGHLIGHT_CHANGED") {
@@ -82,9 +86,9 @@ export class CameraViewComponent {
       if (!this.monitoringActive) return;
       if (this.streamState === "ERROR") return;
       try {
-        const tracks = await ApiClient.getCameraTracks(this.canonicalCameraId);
-        if (tracks && this.monitoringActive) {
-          appState.setActiveTracks(tracks);
+        const overlays = await ApiClient.getCameraOverlays(this.canonicalCameraId);
+        if (overlays && this.monitoringActive) {
+          appState.setActiveOverlays(overlays);
         }
       } catch {
         // Silently continue on transient poll hiccup
@@ -95,8 +99,8 @@ export class CameraViewComponent {
   setupResizeObserver() {
     if (window.ResizeObserver) {
       this.resizeObserver = new ResizeObserver(() => {
-        if (appState.activeTracks && appState.activeTracks.length > 0) {
-          this.renderTracks(appState.activeTracks);
+        if ((appState.activeTracks && appState.activeTracks.length > 0) || (appState.activeDetections && appState.activeDetections.length > 0)) {
+          this.renderTracks(appState.activeTracks, appState.activeDetections);
         }
       });
       const feed = document.getElementById("feed-container");
@@ -105,15 +109,15 @@ export class CameraViewComponent {
     }
 
     window.addEventListener("resize", () => {
-      if (appState.activeTracks && appState.activeTracks.length > 0) {
-        this.renderTracks(appState.activeTracks);
+      if ((appState.activeTracks && appState.activeTracks.length > 0) || (appState.activeDetections && appState.activeDetections.length > 0)) {
+        this.renderTracks(appState.activeTracks, appState.activeDetections);
       }
     });
 
     document.addEventListener("fullscreenchange", () => {
       setTimeout(() => {
-        if (appState.activeTracks && appState.activeTracks.length > 0) {
-          this.renderTracks(appState.activeTracks);
+        if ((appState.activeTracks && appState.activeTracks.length > 0) || (appState.activeDetections && appState.activeDetections.length > 0)) {
+          this.renderTracks(appState.activeTracks, appState.activeDetections);
         }
       }, 50);
     });
@@ -185,6 +189,9 @@ export class CameraViewComponent {
     if (this.healthMonitorTimer) clearInterval(this.healthMonitorTimer);
     this.healthMonitorTimer = setInterval(() => {
       if (!this.monitoringActive) return;
+      if (this.lastOverlayUpdateAt && Date.now() - this.lastOverlayUpdateAt > 1000 && this.overlaysLayer) {
+        this.overlaysLayer.innerHTML = "";
+      }
       // 1. If stream image has decoded pixels in DOM, transition to LIVE
       if (this.streamImg && this.streamImg.naturalWidth > 0) {
         if (this.streamState !== "LIVE") {
@@ -361,7 +368,7 @@ export class CameraViewComponent {
     }
   }
 
-  renderTracks(tracks) {
+  renderTracks(tracks, detections = [], diagnostics = null) {
     if (!this.overlaysLayer) {
       this.overlaysLayer = document.getElementById("camera-overlays-layer");
     }
@@ -385,8 +392,6 @@ export class CameraViewComponent {
     if (tracksEl) {
       tracksEl.innerText = `${uniqueTracks.length} THÍ SINH`;
     }
-
-    if (uniqueTracks.length === 0) return;
 
     // Get rendered dimensions of image inside container
     const imgRect = this.streamImg.getBoundingClientRect();
@@ -475,6 +480,7 @@ export class CameraViewComponent {
           t.risk_level === "MEDIUM" ||
           t.review_severity === "AMBER" ||
           t.severity === "AMBER" ||
+          (t.phone_status === "ASSOCIATED" && !t.phone_candidate_only) ||
           t.posture === "HEAD_REST_SLEEP" ||
           (activePrimaryEvent && (activePrimaryEvent.reviewStatus === "awaiting" || activePrimaryEvent.riskLevel === "MEDIUM"))
         ) {
@@ -484,6 +490,8 @@ export class CameraViewComponent {
           t.candidate ||
           t.review_severity === "LOW" ||
           t.severity === "LOW" ||
+          t.phone_status === "AMBIGUOUS" ||
+          t.phone_candidate_only ||
           t.posture === "TURN_HEAD_CLEAR" ||
           (yawAbs !== null && yawAbs >= 24.0)
         ) {
@@ -512,6 +520,8 @@ export class CameraViewComponent {
             ? ` • ${t.yaw_deg}°`
             : "";
           bottomText = `${activePrimaryEvent.displayName}${yawExtra}`;
+        } else if (t.phone_status === "ASSOCIATED") {
+          bottomText = `Điện thoại phát hiện • ${Math.round((t.phone_confidence || 0) * 100)}%`;
         } else if (t.posture === "TURN_HEAD_CLEAR" || (yawAbs !== null && yawAbs >= 24.0)) {
           bottomText = `Quay đầu • ${t.yaw_deg !== null ? `${t.yaw_deg}°` : "rõ"}`;
         } else if (t.posture === "HEAD_REST_SLEEP") {
@@ -522,7 +532,13 @@ export class CameraViewComponent {
       } else if (visualState === "CANDIDATE") {
         boxClass = "track-box state-candidate";
         badgeHtml = `<span class="track-tag-badge candidate">👁 ĐANG QUAY ĐẦU</span>`;
-        if (yawAbs !== null) {
+        if (t.phone_status === "AMBIGUOUS") {
+          badgeHtml = `<span class="track-tag-badge candidate">? CHƯA RÕ LIÊN KẾT</span>`;
+          bottomText = "Có điện thoại gần nhiều thí sinh";
+        } else if (t.phone_candidate_only) {
+          badgeHtml = `<span class="track-tag-badge candidate">⌛ ĐANG XÁC MINH</span>`;
+          bottomText = "Ứng viên điện thoại";
+        } else if (yawAbs !== null) {
           bottomText = `Góc quay • ${t.yaw_deg}°`;
         } else if (t.turn_candidate || t.candidate) {
           bottomText = "Đang quay đầu";
@@ -592,6 +608,38 @@ export class CameraViewComponent {
       });
 
       this.overlaysLayer.appendChild(boxEl);
+    });
+
+    // Phone boxes are current-frame visual evidence, independent of event state.
+    // They disappear on the next frame when the detector no longer reports them.
+    (detections || []).forEach((det, index) => {
+      if (!det || !Array.isArray(det.bbox) || det.bbox.length !== 4) return;
+      const bbox = det.bbox;
+      const x1 = bbox[0] * scaleX + offsetX;
+      const y1 = bbox[1] * scaleY + offsetY;
+      const w = (bbox[2] - bbox[0]) * scaleX;
+      const h = (bbox[3] - bbox[1]) * scaleY;
+      if (w <= 0 || h <= 0) return;
+
+      const confirmed = det.detection_state === "CONFIRMED";
+      const uncertain = det.association_status === "AMBIGUOUS";
+      const unassociated = det.association_status === "UNASSOCIATED" || det.association_status === "FILTERED";
+      const confidence = Math.round(Number(det.confidence || 0) * 100);
+      let label = confirmed ? `ĐIỆN THOẠI ${confidence}%` : `ỨNG VIÊN ĐIỆN THOẠI ${confidence}%`;
+      if (uncertain) label += " · CHƯA RÕ NGƯỜI";
+      else if (unassociated) label += " · CHƯA LIÊN KẾT";
+
+      const diagnosticMode = new URLSearchParams(window.location.search).get("diagnostics") === "1";
+      const diagnosticReason = diagnosticMode && det.diagnostic?.reason ? `<span class="phone-box-debug">${det.diagnostic.reason}</span>` : "";
+      const phoneEl = document.createElement("div");
+      phoneEl.className = `phone-box ${confirmed ? "confirmed" : "candidate"} ${uncertain ? "uncertain" : ""}`;
+      phoneEl.id = `phone-box-${index}`;
+      phoneEl.style.left = `${Math.round(x1)}px`;
+      phoneEl.style.top = `${Math.round(y1)}px`;
+      phoneEl.style.width = `${Math.round(w)}px`;
+      phoneEl.style.height = `${Math.round(h)}px`;
+      phoneEl.innerHTML = `<span class="phone-box-label">${label}</span>${diagnosticReason}`;
+      this.overlaysLayer.appendChild(phoneEl);
     });
 
     if (appState.highlightedTrackId) {

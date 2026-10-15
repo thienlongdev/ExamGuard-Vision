@@ -953,6 +953,16 @@ def create_app(
 
     # --- HEALTH & CAMERA STATUS ENDPOINTS ---
 
+    @app.get("/ready")
+    async def runtime_readiness():
+        """Minimal launcher identity/readiness; private telemetry remains authenticated."""
+        state = getattr(stage2_pipeline, "runtime_status", None)
+        if not state:
+            return JSONResponse(status_code=503, content={"application": "ExamGuard Vision", "state": "INITIALIZING"})
+        public = {k: state.get(k) for k in ("state", "pid", "instance", "device", "models_verified", "monitoring", "reason")}
+        public["application"] = "ExamGuard Vision"
+        return JSONResponse(status_code=200 if state["state"] in ("READY", "DEGRADED") and state.get("models_verified") else 503, content=public)
+
     @app.get("/health", response_model=HealthResponse)
     async def health_check():
         """Unauthenticated health check for launcher and local diagnostics."""
@@ -1155,6 +1165,36 @@ def create_app(
 
         return JSONResponse(
             content=tracks,
+            headers={
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0",
+            },
+        )
+
+    @app.get("/api/cameras/overlays")
+    @app.get("/api/cameras/{cam_id}/overlays")
+    async def get_camera_overlays(request: Request, cam_id: Optional[str] = None):
+        """Current-frame person and object overlays; never implies a reviewable event."""
+        if enforce_auth:
+            _require_permission(request, Permission.MONITOR_VIEW)
+
+        if cam_id == "overlays":
+            cam_id = None
+
+        if camera_manager is not None:
+            target_cam = camera_manager.resolve_canonical_camera_id(cam_id)
+            overlays = camera_manager.get_camera_overlays(target_cam)
+        elif stage2_pipeline is not None:
+            with stage2_pipeline._frame_lock:
+                overlays = dict(getattr(stage2_pipeline, "_latest_overlay_state", {
+                    "tracks": [], "detections": [], "frame_timestamp": None
+                }))
+        else:
+            overlays = {"tracks": [], "detections": [], "frame_timestamp": None}
+
+        return JSONResponse(
+            content=overlays,
             headers={
                 "Cache-Control": "no-cache, no-store, must-revalidate",
                 "Pragma": "no-cache",
@@ -1940,8 +1980,8 @@ def create_app(
         )
 
         configured_rates = ConfiguredRates(
-            capture_fps=30.0,
-            inference_fps=12.0,
+            capture_fps=getattr(getattr(stage2_pipeline, "source", None), "requested_fps", 30.0),
+            inference_fps=(getattr(stage2_pipeline, "config", {}).get("performance", {}).get("auto_ai_target_fps", 12.0)),
         )
 
         observed_rates = ObservedRates(
@@ -1952,6 +1992,31 @@ def create_app(
 
         import torch
         vram = torch.cuda.memory_allocated(0) / (1024.0 ** 2) if torch.cuda.is_available() else 0.0
+        import psutil
+        runtime_details = None
+        if stage2_pipeline is not None:
+            source = getattr(stage2_pipeline, "source", None)
+            config = getattr(stage2_pipeline, "config", {})
+            measured = getattr(stage2_pipeline, "runtime_status", {})
+            registry = getattr(stage2_pipeline, "registry", None)
+            detector = getattr(registry, "detector", None)
+            runtime_details = {
+                "gpu_name": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
+                "gpu_total_mb": round(torch.cuda.get_device_properties(0).total_memory / 2**20, 1) if torch.cuda.is_available() else None,
+                "gpu_reserved_mb": round(torch.cuda.memory_reserved(0) / 2**20, 1) if torch.cuda.is_available() else 0,
+                "rss_mb": round(psutil.Process().memory_info().rss / 2**20, 1),
+                "backend": getattr(source, "backend_name", getattr(source, "source_type", None)),
+                "fourcc": getattr(source, "actual_fourcc", None),
+                "stale_skipped": stage2_pipeline.dropped_frames_count,
+                "latency_p50_ms": measured.get("latency_p50_ms") if is_stream else None,
+                "latency_p95_ms": measured.get("latency_p95_ms") if is_stream else None,
+                # Report the instantiated detector, not a nominal/default UI value.
+                # This keeps the operator display honest when Adaptive Runtime selects
+                # a different input size for the current machine.
+                "detector_image_size": getattr(detector, "image_size", None),
+                "cadence": config.get("cadence", {}),
+                "performance": config.get("performance", {}),
+            }
 
         return SystemStatusResponse(
             camera_counts=camera_counts,
@@ -1971,9 +2036,13 @@ def create_app(
             model_registry=models_meta,
             drop_percentage=drop_pct,
             queue_depth=q_depth,
+            queue_capacity=getattr(getattr(stage2_pipeline, "ingestion_queue", None), "maxsize", None),
+            runtime_device=str(getattr(getattr(stage2_pipeline, "registry", None), "device", "unknown")),
+            runtime_state=getattr(stage2_pipeline, "runtime_status", {}).get("state"),
+            runtime_details=runtime_details,
             gpu_vram_allocated_mb=round(vram, 1),
             evidence_storage_status="HEALTHY" if ps.db.check_health() else "ERROR",
-            operator_warnings=[],
+            operator_warnings=[getattr(stage2_pipeline, "runtime_status", {}).get("reason")] if getattr(stage2_pipeline, "runtime_status", {}).get("reason") else [],
         )
 
     @app.get("/api/system/security", response_model=SecurityStatusResponse)

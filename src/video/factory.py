@@ -1,6 +1,7 @@
 """Factory functions to instantiate VideoSource instances from config or CLI args."""
 
 import logging
+import hashlib
 from typing import Any, Dict, Optional, Union
 
 from src.video.base import VideoSource
@@ -35,7 +36,7 @@ def create_video_source(
         Instantiated VideoSource.
     """
     st = source_type.lower().strip()
-    sid = source_id or f"{st}-{source}"
+    sid = source_id or (f"rtsp-{hashlib.sha256(str(source).encode()).hexdigest()[:12]}" if st in ("rtsp", "cctv", "ip_camera") else f"{st}-{source}")
     extra = extra_config or {}
 
     if st in ("webcam", "camera"):
@@ -47,6 +48,8 @@ def create_video_source(
             height=height,
             fps=fps,
             preferred_backend=extra.get("preferred_backend"),
+            fourcc=extra.get("fourcc"),
+            async_capture=bool(extra.get("async_capture", False)),
         )
 
     elif st in ("video", "video_file", "file"):
@@ -60,10 +63,11 @@ def create_video_source(
         )
 
     elif st in ("rtsp", "cctv", "ip_camera"):
+        from src.video.source_settings import resolve_rtsp_url
         reconnect_attempts = int(extra.get("reconnect_attempts", 10))
         reconnect_delay = float(extra.get("reconnect_delay_seconds", 1.5))
         return RTSPSource(
-            rtsp_url=str(source),
+            rtsp_url=resolve_rtsp_url(str(source)),
             source_id=sid,
             max_reconnect_attempts=reconnect_attempts,
             initial_reconnect_delay=reconnect_delay,

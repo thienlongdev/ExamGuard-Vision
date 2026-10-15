@@ -16,7 +16,7 @@ import numpy as np
 import pytest
 from starlette.testclient import TestClient
 
-from src.detection.types import BBox
+from src.detection.types import BBox, Detection
 from src.tracking.tracker import Track
 from src.fusion.types import FusedEvent, EventFamily, EventLifecycleState
 from src.orchestration.stage2_pipeline import Stage2Pipeline
@@ -187,6 +187,74 @@ def test_camera_tracks_endpoint_returns_json_and_no_cache_headers(clean_stage2_p
     assert data[0]["track_id"] == 1
     assert data[0]["bbox"] == [100, 100, 300, 400]
     assert data[0]["review_severity"] == "GREEN"
+
+
+def test_phone_detection_overlay_is_independent_of_review_event(clean_stage2_pipeline):
+    """A current phone box is published before any temporal event becomes reviewable."""
+    pipe = clean_stage2_pipeline
+    frame = np.zeros((720, 1280, 3), dtype=np.uint8)
+    track = Track(track_id=7, bbox=BBox(200, 100, 800, 700), confidence=0.95, timestamp=1.0)
+    phone = Detection(BBox(430, 330, 560, 590), 67, "cell phone", 0.82)
+    associations = pipe.phone_associator.associate(
+        [track], [phone], timestamp_sec=1.0, frame_shape=frame.shape[:2]
+    )
+
+    pipe._update_latest_frame_buffer(
+        frame, [track], {}, {}, associations, [phone], ts=1.0, cam_id="webcam_0"
+    )
+
+    assert pipe._active_events_map == {}
+    assert len(pipe._latest_object_detections) == 1
+    observed = pipe._latest_object_detections[0]
+    assert observed["bbox"] == [430.0, 330.0, 560.0, 590.0]
+    assert observed["detection_state"] == "CONFIRMED"
+    assert observed["association_status"] == "ASSOCIATED"
+    assert observed["associated_track_ids"] == [7]
+
+
+def test_phone_overlay_is_replaced_on_next_frame(clean_stage2_pipeline):
+    """Phone boxes cannot linger after the detector reports no phone."""
+    pipe = clean_stage2_pipeline
+    frame = np.zeros((720, 1280, 3), dtype=np.uint8)
+    phone = Detection(BBox(100, 100, 200, 300), 67, "cell phone", 0.75)
+    pipe._update_latest_frame_buffer(frame, [], {}, {}, {}, [phone], ts=1.0, cam_id="webcam_0")
+    assert len(pipe._latest_object_detections) == 1
+
+    pipe._update_latest_frame_buffer(frame, [], {}, {}, {}, [], ts=1.1, cam_id="webcam_0")
+    assert pipe._latest_object_detections == []
+
+
+def test_camera_overlays_endpoint_returns_tracks_and_detections(clean_stage2_pipeline):
+    pipe = clean_stage2_pipeline
+    frame = np.zeros((720, 1280, 3), dtype=np.uint8)
+    track = Track(track_id=1, bbox=BBox(100, 100, 400, 600), confidence=0.95, timestamp=1.0)
+    phone = Detection(BBox(180, 250, 250, 380), 67, "cell phone", 0.78)
+    associations = pipe.phone_associator.associate([track], [phone], 1.0, frame.shape[:2])
+    pipe._update_latest_frame_buffer(frame, [track], {}, {}, associations, [phone], ts=1.0, cam_id="webcam_0")
+
+    client = TestClient(create_app(stage2_pipeline=pipe, enforce_auth=False))
+    response = client.get("/api/cameras/overlays")
+
+    assert response.status_code == 200
+    assert "no-cache" in response.headers["cache-control"]
+    payload = response.json()
+    assert payload["tracks"][0]["track_id"] == 1
+    assert payload["detections"][0]["class_name"] == "cell phone"
+    assert payload["coordinate_space"] == "preview_pixels"
+
+
+def test_system_status_reports_instantiated_detector_image_size(clean_stage2_pipeline):
+    """Telemetry must expose the effective detector object, not a stale YAML/UI default."""
+    pipe = clean_stage2_pipeline
+    pipe.registry.detector.image_size = 960
+    pipe.config.setdefault("performance", {})["detector_image_size"] = 640
+
+    client = TestClient(create_app(stage2_pipeline=pipe, enforce_auth=False))
+    response = client.get("/api/system/status")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["runtime_details"]["detector_image_size"] == 960
 
 
 def test_camera_manager_returns_rich_tracks_from_pipeline():

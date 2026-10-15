@@ -1,5 +1,7 @@
 # ExamGuard Vision — Hardware Validation & Certification Report
 
+> Các số liệu ASUS bên dưới là lịch sử. Kết quả đo mới trên RTX 5070: [final-academic-validation.md](final-academic-validation.md).
+
 **Target Platform:** ASUS TUF Gaming A17 (FA707RC)  
 **Execution Environment:** Windows 11 Home 64-bit | Python 3.13.11 | PyTorch 2.14.1+cu126 | CUDA 12.6  
 **Hardware Specifications:**

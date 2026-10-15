@@ -51,7 +51,7 @@ export class HealthStripComponent {
 
         <div class="health-divider"></div>
 
-        <div class="health-item" title="Độ sâu hàng đợi khung hình (Tối đa 5)">
+        <div class="health-item" title="Độ sâu hàng đợi khung hình">
           <span class="label">Hàng đợi</span>
           <span class="val" id="strip-queue">0 / 5</span>
         </div>
@@ -112,7 +112,7 @@ export class HealthStripComponent {
         elTracks.innerText = sys.active_students !== undefined ? sys.active_students : appState.activeTracks.length;
       }
       if (elQueue) {
-        elQueue.innerText = `${sys.queue_depth || 0} / 5`;
+        elQueue.innerText = `${sys.queue_depth || 0}${sys.queue_capacity ? ` / ${sys.queue_capacity}` : ""}`;
       }
       if (elDrops) {
         elDrops.innerText = sys.drop_percentage !== null && sys.drop_percentage !== undefined

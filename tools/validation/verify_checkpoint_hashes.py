@@ -1,7 +1,7 @@
 """
 Verify All Protected Checkpoint Hashes After Stage 2 Integrity Repair
 ====================================================================
-Computes SHA-256 hashes for all 6 protected model checkpoints, validates exact equality
+Computes SHA-256 hashes for all 7 registered model checkpoints, validates exact equality
 with expected frozen hashes, and saves runs/stage2_integrity/checkpoint_hashes_after.json.
 """
 
@@ -10,9 +10,10 @@ import json
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 EXPECTED_HASHES = {
+    "models/trained/yolo26m.pt": "401cea9ab23ad19246ff7744859816bc599f350e93c9dd30367b6f0a0745d0b7",
     "models/trained/stage1_best.pt": "6d713808f0bc670e8bf06e01b006fac73d8d6e5db7130584cec1658b003ce98a",
     "models/trained/stage1_5_best.pt": "68690cf82715dc6dad2eb35a08711531170e935eb7dbe1c30fafabae341e2c2c",
     "models/trained/v4_posture_best.pt": "529a23f96ebec6051ad29279fba3cd5279e7aa8fe2e46292ab4bb9c9523ca180",
@@ -63,7 +64,7 @@ def main():
 
     if not all_matched:
         sys.exit(1)
-    print("ALL 6 PROTECTED CHECKPOINTS INTACT. ZERO MUTATIONS.")
+    print("ALL 7 REGISTERED CHECKPOINTS INTACT. ZERO MUTATIONS.")
 
 
 if __name__ == "__main__":

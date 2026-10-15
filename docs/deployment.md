@@ -1,5 +1,7 @@
 # ExamGuard Vision — Deployment & Operations Guide
 
+> Hướng dẫn hiện hành cho Windows Auto: [universal-windows-setup.md](universal-windows-setup.md). Các cấu hình ASUS bên dưới giữ làm tham chiếu.
+
 This guide details the setup, hardware requirements, configuration options, and runtime operations for ExamGuard Vision on local laptops and exam room workstations.
 
 ---

@@ -456,6 +456,54 @@ html, body {
   border-color: var(--state-high);
 }
 
+/* Current-frame phone observation. This is intentionally distinct from the
+   person/event severity box: a phone box is visual evidence, not an accusation. */
+.phone-box {
+  position: absolute;
+  pointer-events: none;
+  border-radius: 4px;
+  z-index: 3;
+}
+
+.phone-box.confirmed {
+  border: 2.5px solid #22d3ee;
+  background: rgba(34, 211, 238, 0.08);
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.55);
+}
+
+.phone-box.candidate,
+.phone-box.uncertain {
+  border: 2px dashed #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+}
+
+.phone-box-label,
+.phone-box-debug {
+  position: absolute;
+  left: -2px;
+  white-space: nowrap;
+  color: #06121a;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 3px 6px;
+  border-radius: 3px;
+  background: #22d3ee;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+.phone-box-label { top: -24px; }
+.phone-box.candidate .phone-box-label,
+.phone-box.uncertain .phone-box-label { background: #f59e0b; }
+.phone-box-debug {
+  top: 4px;
+  background: rgba(15, 23, 42, 0.9);
+  color: #f8fafc;
+  font-size: 9px;
+  font-weight: 600;
+}
+
 @keyframes pulse-attention {
   0%, 100% { box-shadow: 0 0 12px rgba(245, 158, 11, 0.35); border-color: rgba(245, 158, 11, 0.85); }
   50% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.65); border-color: #f59e0b; }

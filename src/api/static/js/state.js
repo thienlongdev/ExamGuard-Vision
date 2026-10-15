@@ -32,6 +32,8 @@ class DashboardState {
     this.selectedEventId = null;
     this.highlightedTrackId = null;
     this.activeTracks = [];
+    this.activeDetections = [];
+    this.overlayFrameTimestamp = null;
     this.cameraInfo = null;
     this.systemStatus = null;
     this.systemModels = null;
@@ -201,6 +203,19 @@ class DashboardState {
     this.notify("TRACKS_UPDATED", this.activeTracks);
   }
 
+  setActiveOverlays(overlays) {
+    const safe = overlays || {};
+    this.activeTracks = Array.isArray(safe.tracks) ? safe.tracks : [];
+    this.activeDetections = Array.isArray(safe.detections) ? safe.detections : [];
+    this.overlayFrameTimestamp = safe.frame_timestamp ?? null;
+    this.notify("OVERLAYS_UPDATED", {
+      tracks: this.activeTracks,
+      detections: this.activeDetections,
+      frameTimestamp: this.overlayFrameTimestamp,
+      diagnostics: safe.diagnostics || null,
+    });
+  }
+
   setCameraInfo(camera) {
     this.cameraInfo = camera;
     this.notify("CAMERA_UPDATED", camera);
@@ -253,7 +268,9 @@ class DashboardState {
     if (!next) {
       // Overlay and track summary vanish immediately; no stale bbox while the backend closes
       this.activeTracks = [];
-      this.notify("TRACKS_UPDATED", this.activeTracks);
+      this.activeDetections = [];
+      this.overlayFrameTimestamp = null;
+      this.notify("OVERLAYS_UPDATED", { tracks: [], detections: [], frameTimestamp: null, diagnostics: null });
     }
     this.notify("MONITORING_ACTIVE_CHANGED", next);
   }

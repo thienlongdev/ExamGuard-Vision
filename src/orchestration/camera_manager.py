@@ -124,6 +124,11 @@ class CameraPipelineWorker:
         # Thread-safe preview buffer
         self._latest_jpeg: Optional[bytes] = None
         self._latest_tracks: List[Dict[str, Any]] = []
+        self._latest_overlay_state: Dict[str, Any] = {
+            "tracks": [],
+            "detections": [],
+            "frame_timestamp": None,
+        }
         self._preview_lock = threading.Lock()
 
         # Telemetry measurement windows
@@ -331,9 +336,12 @@ class CameraPipelineWorker:
                 if now - last_preview_time >= 0.065:
                     last_preview_time = now
                     pipe_tracks = []
+                    pipe_overlay_state = None
                     if self.pipeline and hasattr(self.pipeline, "_latest_tracks_summary"):
                         with self.pipeline._frame_lock:
                             pipe_tracks = list(self.pipeline._latest_tracks_summary)
+                            if hasattr(self.pipeline, "_latest_overlay_state"):
+                                pipe_overlay_state = dict(self.pipeline._latest_overlay_state)
                     elif result and result.tracks:
                         pipe_tracks = [
                             {
@@ -348,6 +356,8 @@ class CameraPipelineWorker:
 
                     with self._preview_lock:
                         self._latest_tracks = pipe_tracks
+                        if pipe_overlay_state is not None:
+                            self._latest_overlay_state = pipe_overlay_state
                         if result.annotated_frame is not None:
                             annotated = result.annotated_frame.copy()
                             cv2.putText(
@@ -438,6 +448,14 @@ class CameraPipelineWorker:
                     return list(self.pipeline._latest_tracks_summary)
         with self._preview_lock:
             return list(self._latest_tracks)
+
+    def get_latest_overlay_state(self) -> Dict[str, Any]:
+        """Return one coherent current-frame overlay snapshot."""
+        if self.pipeline and hasattr(self.pipeline, "_latest_overlay_state"):
+            with self.pipeline._frame_lock:
+                return dict(self.pipeline._latest_overlay_state)
+        with self._preview_lock:
+            return dict(self._latest_overlay_state)
 
 
 class CameraManager:
@@ -748,3 +766,15 @@ class CameraManager:
     def get_camera_tracks(self, camera_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """Alias for get_tracks_summary matching main.py endpoint calls."""
         return self.get_tracks_summary(camera_id)
+
+    def get_camera_overlays(self, camera_id: Optional[str] = None) -> Dict[str, Any]:
+        """Return current track and object overlays from the same processed frame."""
+        cid = self.resolve_canonical_camera_id(camera_id)
+        worker = self.workers.get(cid)
+        if worker:
+            return worker.get_latest_overlay_state()
+        for fallback_worker in self.workers.values():
+            state = fallback_worker.get_latest_overlay_state()
+            if state.get("tracks") or state.get("detections"):
+                return state
+        return {"tracks": [], "detections": [], "frame_timestamp": None}

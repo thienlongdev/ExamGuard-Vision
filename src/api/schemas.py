@@ -117,6 +117,10 @@ class SystemStatusResponse(BaseModel):
     model_registry: Optional[Dict[str, Any]] = None
     drop_percentage: Optional[float] = None  # None when no camera frames captured
     queue_depth: Optional[int] = 0
+    queue_capacity: Optional[int] = None
+    runtime_device: Optional[str] = None
+    runtime_state: Optional[str] = None
+    runtime_details: Optional[Dict[str, Any]] = None
     posture_eligible_count: Optional[int] = 0
     headpose_eligible_count: Optional[int] = 0
     gpu_vram_allocated_mb: Optional[float] = 0.0

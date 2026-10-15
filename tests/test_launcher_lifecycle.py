@@ -4,7 +4,7 @@ Tests on physical ASUS TUF Gaming A17:
 1. Start via start_examguard.ps1
 2. Health verification & WebSocket readiness
 3. Duplicate start prevention (already-running detection)
-4. Clean stop via stop_examguard.ps1 & port 8000 release
+4. Clean stop via stop_examguard.ps1 & port 8765 release
 5. Clean restart verification
 6. Final stop & state cleanup
 """
@@ -87,12 +87,12 @@ def test_full_launcher_lifecycle():
         assert first_pid > 0, f"Invalid PID recorded: {first_pid}"
 
         # Verify live API health and status
-        resp = requests.get("http://127.0.0.1:8000/health", timeout=3)
+        resp = requests.get("http://127.0.0.1:8765/health", timeout=3)
         assert resp.status_code == 200
         health_data = resp.json()
         _safe_print(f"Verified Health API: status={health_data.get('status')}")
 
-        sys_resp = requests.get("http://127.0.0.1:8000/api/system/status", timeout=3)
+        sys_resp = requests.get("http://127.0.0.1:8765/api/system/status", timeout=3)
         # In production foundation, /api/system/status strictly requires authentication
         assert sys_resp.status_code in [200, 401]
         if sys_resp.status_code == 200:
@@ -121,15 +121,15 @@ def test_full_launcher_lifecycle():
         assert "Đã dừng ExamGuard Vision an toàn" in stop_res.stdout
         assert not pid_file.exists(), "PID file must be deleted after stop"
 
-        # Confirm port 8000 is freed
+        # Confirm port 8765 is freed
         time.sleep(1)
         port_free = False
         try:
-            requests.get("http://127.0.0.1:8000/health", timeout=1)
+            requests.get("http://127.0.0.1:8765/health", timeout=1)
         except requests.exceptions.RequestException:
             port_free = True
-        assert port_free, "Port 8000 must be released after stop"
-        _safe_print("Port 8000 confirmed free.")
+        assert port_free, "Port 8765 must be released after stop"
+        _safe_print("Port 8765 confirmed free.")
 
         # STEP 4: Restart Test
         _safe_print("\n--- STEP 4: Restarting ExamGuard Vision ---")
@@ -142,7 +142,7 @@ def test_full_launcher_lifecycle():
         assert second_pid > 0
 
         # Verify API is responsive again
-        resp_after = requests.get("http://127.0.0.1:8000/health", timeout=3)
+        resp_after = requests.get("http://127.0.0.1:8765/health", timeout=3)
         assert resp_after.status_code == 200
         _safe_print("Verified API is healthy after restart.")
 

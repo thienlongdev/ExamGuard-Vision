@@ -83,7 +83,7 @@ export class SystemViewComponent {
                   </svg>
                   Nhịp xử lý & Trạng thái kết nối
                 </h3>
-                <span class="system-tag-chip">ASUS A17 BALANCED</span>
+                <span class="system-tag-chip">RUNTIME ĐANG SỬ DỤNG</span>
               </div>
               <div class="component-runtime-table-wrapper" id="component-runtime-box"></div>
             </div>
@@ -498,8 +498,16 @@ export class SystemViewComponent {
     const conf = sys.configured_rates || {};
     const h = appState.telemetryHistory;
 
-    const vramAlloc = sys.gpu_vram_allocated_mb || 289.3;
-    const vramPct = Math.min(100, Math.round((vramAlloc / 4096.0) * 100));
+    const detail = sys.runtime_details || {};
+    const vramAlloc = sys.gpu_vram_allocated_mb ?? 0;
+    const vramTotal = detail.gpu_total_mb;
+    const vramPct = vramTotal ? Math.min(100, Math.round((vramAlloc / vramTotal) * 100)) : null;
+    const device = escapeHtml(sys.runtime_device || "—");
+    const modelInfo = sys.model_registry || models;
+    const precision = (name) => escapeHtml(modelInfo[name]?.precision_mode || "—");
+    const cadence = detail.cadence || {};
+    const detectorSize = detail.detector_image_size || detail.performance?.detector_image_size || modelInfo.detector?.runtime_image_size?.[0] || "—";
+    const fmtNumber = (value, digits = 1) => value === null || value === undefined ? "—" : Number(value).toFixed(digits);
     const activeStreams = sys.active_cameras !== undefined ? sys.active_cameras : (cam.streaming ? 1 : 0);
     // Rates exist only while a session is capturing; otherwise show "—" rather than a nominal number
     const camActive = !!cam.streaming;
@@ -511,11 +519,11 @@ export class SystemViewComponent {
       : (cam.capture_state === "IDLE" || cam.status === "READY" || cam.device_present)
         ? { cls: "idle", text: "SẴN SÀNG" }
         : { cls: "offline", text: "NGOẠI TUYẾN" };
-    const queueDepth = cam.queue_depth !== undefined ? cam.queue_depth : (sys.queue_depth || 1);
-    const dropPct = cam.drop_percentage || sys.drop_percentage || 0.0;
-    const frameAge = cam.ai_frame_age_ms || sys.ai_frame_age_ms || 45.3;
-    const staleCount = cam.stale_skipped !== undefined ? cam.stale_skipped : (sys.stale_skipped || 0);
-    const backendName = cam.backend_name || "CAP_MSMF";
+    const queueDepth = cam.queue_depth ?? sys.queue_depth ?? 0;
+    const dropPct = cam.drop_percentage ?? sys.drop_percentage ?? 0;
+    const frameAge = detail.latency_p50_ms;
+    const staleCount = detail.stale_skipped ?? cam.stale_skipped ?? 0;
+    const backendName = escapeHtml(detail.backend || cam.backend_name || "—");
 
     grid.innerHTML = `
       <div class="system-card">
@@ -528,8 +536,8 @@ export class SystemViewComponent {
         <div class="system-metric-value">${fmtFps(capFps)} <span class="unit">FPS</span></div>
         <div class="system-metrics-sub">
           <div class="sub-item"><span>Backend phần cứng</span><strong>${backendName} (Async Ingest)</strong></div>
-          <div class="sub-item"><span>Độ phân giải & Cấu hình</span><strong>${cam.observed_resolution || cam.configured_resolution || '1280x720'} @ 30 FPS</strong></div>
-          <div class="sub-item"><span>Rớt phần cứng</span><strong>${dropPct.toFixed(1)}% (0 rớt)</strong></div>
+          <div class="sub-item"><span>Độ phân giải & Cấu hình</span><strong>${escapeHtml(cam.observed_resolution || cam.configured_resolution || '—')} @ ${fmtNumber(conf.capture_fps)} FPS · ${escapeHtml(detail.fourcc || '—')}</strong></div>
+          <div class="sub-item"><span>Bỏ khung cho AI (có chủ đích)</span><strong>${dropPct.toFixed(1)}% · Hàng đợi ${queueDepth}</strong></div>
         </div>
       </div>
 
@@ -543,21 +551,22 @@ export class SystemViewComponent {
         <div class="system-metric-value">${fmtFps(procFps)} <span class="unit">FPS</span></div>
         <div class="system-metrics-sub">
           <div class="sub-item"><span>Mục tiêu xử lý AI</span><strong>${(conf.inference_fps || 12.0).toFixed(0)} Hz</strong></div>
-          <div class="sub-item"><span>Độ tươi khung (Age p50)</span><strong>${frameAge.toFixed(0)} ms (p95: 70.8 ms)</strong></div>
-          <div class="sub-item"><span>Khung cũ bỏ qua (Stale)</span><strong>${staleCount} khung (Không dồn trễ)</strong></div>
+          <div class="sub-item"><span>Độ tươi khung (Age p50)</span><strong>${fmtNumber(frameAge)} ms (p95: ${fmtNumber(detail.latency_p95_ms)} ms)</strong></div>
+          <div class="sub-item"><span>Khung cũ bỏ qua (Stale)</span><strong>${staleCount} khung</strong></div>
         </div>
       </div>
 
       <div class="system-card">
         <div class="system-card-top">
-          <span class="system-card-title">3. Bộ nhớ GPU & VRAM (RTX 3050)</span>
-          <span class="system-tag-chip ${vramAlloc > 0 ? 'online' : 'idle'}">RTX 3050 · 4 GB</span>
+          <span class="system-card-title">3. Bộ nhớ GPU & Thiết bị suy luận</span>
+          <span class="system-tag-chip ${vramAlloc > 0 ? 'online' : 'idle'}">${device}</span>
         </div>
         <div class="system-metric-value">${vramAlloc.toFixed(0)} <span class="unit">MB</span></div>
         <div class="system-metrics-sub">
-          <div class="sub-item"><span>VRAM cấp phát / Dự lưu</span><strong>${vramAlloc.toFixed(0)} MB / 512 MB</strong></div>
-          <div class="sub-item"><span>Tải trên VRAM</span><strong>${vramPct}% / 4096 MB</strong></div>
-          <div class="sub-item"><span>RAM hệ thống (RSS)</span><strong>~2.07 GB (Ổn định)</strong></div>
+          <div class="sub-item"><span>GPU phát hiện</span><strong>${escapeHtml(detail.gpu_name || 'Không có CUDA GPU')}</strong></div>
+          <div class="sub-item"><span>VRAM cấp phát / Dự lưu</span><strong>${vramAlloc.toFixed(0)} MB / ${fmtNumber(detail.gpu_reserved_mb, 0)} MB</strong></div>
+          <div class="sub-item"><span>Tải trên VRAM</span><strong>${fmtNumber(vramPct, 0)}% / ${fmtNumber(vramTotal, 0)} MB</strong></div>
+          <div class="sub-item"><span>RAM ứng dụng (RSS)</span><strong>${fmtNumber(detail.rss_mb, 0)} MB</strong></div>
         </div>
       </div>
 
@@ -624,43 +633,43 @@ export class SystemViewComponent {
           <tbody>
             <tr>
               <td><strong>Thu hình độc lập (Camera Source)</strong></td>
-              <td><span class="status-tag confirmed">CAP_MSMF High-Speed</span></td>
-              <td>~28 - 30 FPS</td>
-              <td>1280x720 BGR</td>
+              <td><span class="status-tag confirmed">${backendName}</span></td>
+              <td>${fmtFps(capFps)} FPS</td>
+              <td>${escapeHtml(cam.observed_resolution || cam.configured_resolution || '—')} · ${escapeHtml(detail.fourcc || '—')}</td>
               <td>Async Capture Thread + Drop-Stale Queue</td>
             </tr>
             <tr>
               <td><strong>Phát hiện đối tượng (YOLO26m)</strong></td>
-              <td><span class="status-tag confirmed">CUDA FP32</span></td>
-              <td>12.0 Hz</td>
-              <td>640x640 người / điện thoại</td>
+              <td><span class="status-tag confirmed">${device} ${precision('detector')}</span></td>
+              <td>${fmtFps(procFps)} Hz</td>
+              <td>${escapeHtml(detectorSize)}x${escapeHtml(detectorSize)} người / điện thoại</td>
               <td>Shared Singleton + Inference Lock</td>
             </tr>
             <tr>
               <td><strong>Theo dõi danh tính (ByteTrack)</strong></td>
               <td><span class="status-tag confirmed">Độc lập camera</span></td>
-              <td>30.0 Hz</td>
-              <td>Cosine similarity</td>
+              <td>${fmtFps(procFps)} Hz</td>
+              <td>Kalman / IoU association</td>
               <td>(camera_id, track_id)</td>
             </tr>
             <tr>
               <td><strong>Phân loại tư thế (MobileNetV3)</strong></td>
-              <td><span class="status-tag confirmed">CUDA FP32 (Batched)</span></td>
-              <td>Thích ứng 4.0 - 8.0 Hz</td>
+              <td><span class="status-tag confirmed">${device} ${precision('posture')} (Batched)</span></td>
+              <td>${fmtNumber(detail.performance?.normal_posture_hz)} - ${fmtNumber(detail.performance?.attention_posture_hz)} Hz</td>
               <td>224x224 MobileNetV3</td>
-              <td>Vectorized Crop Batching (Batch 8-32)</td>
+              <td>Vectorized Crop Batching</td>
             </tr>
             <tr>
               <td><strong>Ước lượng góc quay (HopeNet-Yaw)</strong></td>
-              <td><span class="status-tag confirmed">CUDA FP16 Autocast</span></td>
-              <td>Thích ứng 4.0 - 8.0 Hz</td>
+              <td><span class="status-tag confirmed">${device} ${precision('headpose')}</span></td>
+              <td>${fmtNumber(detail.performance?.normal_headpose_hz)} - ${fmtNumber(detail.performance?.attention_headpose_hz)} Hz</td>
               <td>[-99.0°, +99.0°]</td>
               <td>Batched GPU + Anti-Starvation (350ms)</td>
             </tr>
             <tr>
               <td><strong>Hành vi tổng quát (Stage 1.5)</strong></td>
-              <td><span class="status-tag confirmed">CUDA FP32</span></td>
-              <td>4.0 Hz</td>
+              <td><span class="status-tag confirmed">${device} ${precision('macro_behavior_detector')}</span></td>
+              <td>${fmtNumber(cadence.macro_hz)} Hz</td>
               <td>768x768 toàn khung</td>
               <td>Shared Inference Model</td>
             </tr>

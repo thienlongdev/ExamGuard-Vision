@@ -88,6 +88,9 @@ class PhoneAssociator:
         self._recent_track_hits: Dict[int, List[Tuple[float, float, Tuple[float, float, float, float]]]] = {}
         # Unassociated strong phone detections from latest frame
         self.unassociated_phones: List[Detection] = []
+        # Per-frame classification/filter trace. Exposed only through the
+        # authenticated diagnostic overlay when diagnostics are enabled.
+        self.last_filter_diagnostics: List[Dict[str, Any]] = []
 
     def cleanup_expired_tracks(self, active_track_ids: List[int]) -> None:
         """Prune stale track accumulation data."""
@@ -113,9 +116,11 @@ class PhoneAssociator:
         tracks: List[Track],
         detections: List[Detection],
         timestamp_sec: Optional[float] = None,
+        frame_shape: Optional[Tuple[int, int]] = None,
     ) -> Dict[int, TrackPhoneAssociation]:
         """Associate phone detections with student tracks and accumulate short-memory evidence."""
         self.unassociated_phones = []
+        self.last_filter_diagnostics = []
         diag_mode = os.environ.get("EXAMGUARD_DIAGNOSTIC_CUES") == "1"
 
         # Initialize default unassociated result for every active track
@@ -153,15 +158,51 @@ class PhoneAssociator:
             else:
                 norm_dets.append(d)
 
-        # Filter detections for phones with handheld dimensions sanity check
+        # Filter detections using semantic and resolution-aware checks. YOLO
+        # returns source-frame coordinates, so absolute 350x420/90,000 px
+        # limits incorrectly rejected legitimate close phones on 4K frames.
         phone_dets = []
+        frame_h = float(frame_shape[0]) if frame_shape else None
+        frame_w = float(frame_shape[1]) if frame_shape else None
         for d in norm_dets:
-            if d.class_name in ("cell phone", "phone", "mobile phone") or d.class_id == 67:
-                bw = float(d.bbox.width)
-                bh = float(d.bbox.height)
-                # Filter out giant boxes (desk surfaces, TV/screens, chair backs > 350x420 px or area > 90,000)
-                if bw <= 350.0 and bh <= 420.0 and (bw * bh) <= 90000.0:
-                    phone_dets.append(d)
+            is_phone_class = d.class_name.lower().strip() in ("cell phone", "phone", "mobile phone") or d.class_id == 67
+            bw = float(d.bbox.width)
+            bh = float(d.bbox.height)
+            reason = "ACCEPTED"
+            accepted = is_phone_class
+
+            if not is_phone_class:
+                reason = "NOT_PHONE_CLASS"
+            elif bw <= 0.0 or bh <= 0.0:
+                accepted = False
+                reason = "INVALID_BOX"
+            elif frame_w and frame_h:
+                width_ratio = bw / frame_w
+                height_ratio = bh / frame_h
+                # Retain genuine close-up phones regardless of absolute pixel
+                # size. Only a near-full-frame box is suppressed from person
+                # attribution; it remains observable in the raw overlay.
+                if width_ratio >= 0.98 and height_ratio >= 0.98:
+                    accepted = False
+                    reason = "IMPLAUSIBLE_FULL_FRAME_BOX"
+
+            diag = {
+                "bbox": d.bbox.as_tuple(),
+                "confidence": float(d.confidence),
+                "class_id": int(d.class_id),
+                "class_name": str(d.class_name),
+                "accepted_for_association": accepted,
+                "reason": reason,
+            }
+            if frame_w and frame_h:
+                diag.update({
+                    "width_ratio": round(bw / frame_w, 6),
+                    "height_ratio": round(bh / frame_h, 6),
+                    "area_ratio": round((bw * bh) / (frame_w * frame_h), 6),
+                })
+            self.last_filter_diagnostics.append(diag)
+            if accepted:
+                phone_dets.append(d)
 
         now_ts = timestamp_sec if timestamp_sec is not None else time.time()
 
@@ -187,7 +228,8 @@ class PhoneAssociator:
                                 np.hypot(p1[0] - p2[0], p1[1] - p2[1])
                                 for p1 in prev_centers for p2 in prev_centers
                             )
-                            spatially_consistent = (max_jitter <= 85.0)
+                            track_diag = np.hypot(t.bbox.width, t.bbox.height)
+                            spatially_consistent = (max_jitter <= max(85.0, 0.06 * track_diag))
 
                         hit_span = (valid_hits[-1][0] - valid_hits[0][0]) if len(valid_hits) >= 2 else 0.0
                         is_temporal_supported = (
@@ -248,14 +290,11 @@ class PhoneAssociator:
             if not candidate_scores:
                 # Phone detected but no student track close enough: retain as unassociated observable
                 if phone.confidence >= self.phone_strong_confidence:
-                    bw = float(phone.bbox.width)
-                    bh = float(phone.bbox.height)
-                    if bw <= 280.0 and bh <= 320.0:
-                        self.unassociated_phones.append(phone)
-                        if diag_mode:
-                            logger.info(
-                                f"[DIAGNOSTIC_CUES] Unassociated phone preserved: conf={phone.confidence:.3f} bbox={phone.bbox.as_tuple()}"
-                            )
+                    self.unassociated_phones.append(phone)
+                    if diag_mode:
+                        logger.info(
+                            f"[DIAGNOSTIC_CUES] Unassociated phone preserved: conf={phone.confidence:.3f} bbox={phone.bbox.as_tuple()}"
+                        )
                 continue
 
             # Sort candidate tracks by association score descending
@@ -305,7 +344,9 @@ class PhoneAssociator:
                     curr_cy = (phone.bbox.y1 + phone.bbox.y2) / 2.0
                     prev_centers = [((h[2][0] + h[2][2]) / 2.0, (h[2][1] + h[2][3]) / 2.0) for h in valid_hits[:-1]]
                     mean_dist = sum(np.hypot(curr_cx - px, curr_cy - py) for px, py in prev_centers) / len(prev_centers)
-                    spatially_consistent = (mean_dist <= 75.0)
+                    best_track = next((t for t in tracks if t.track_id == best_track_id), None)
+                    track_diag = np.hypot(best_track.bbox.width, best_track.bbox.height) if best_track else 0.0
+                    spatially_consistent = (mean_dist <= max(75.0, 0.05 * track_diag))
 
                 hit_span = (valid_hits[-1][0] - valid_hits[0][0]) if len(valid_hits) >= 2 else 0.0
                 is_temporal_supported = (

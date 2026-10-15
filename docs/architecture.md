@@ -1,5 +1,7 @@
 # ExamGuard Vision — Architecture & Pipeline Design
 
+> Thiết kế Auto cho Windows và ranh giới điều chỉnh runtime: [Adaptive Runtime](adaptive-runtime.md).
+
 ExamGuard Vision is a real-time, multi-stage computer vision and temporal behavior fusion system engineered for exam room proctoring assistance.
 
 ---

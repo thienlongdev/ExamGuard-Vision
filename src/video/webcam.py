@@ -2,6 +2,8 @@
 
 import logging
 import time
+import threading
+from collections import deque
 from typing import Optional, Union
 import cv2
 import numpy as np
@@ -22,6 +24,8 @@ class WebcamSource(VideoSource):
         height: int = 720,
         fps: float = 30.0,
         preferred_backend: Optional[str] = None,
+        fourcc: Optional[str] = None,
+        async_capture: bool = False,
     ):
         super().__init__(source_id=source_id, source_type="webcam")
         self.source_origin = "PHYSICAL_LIVE_CAMERA"
@@ -30,6 +34,18 @@ class WebcamSource(VideoSource):
         self.requested_height = height
         self.requested_fps = fps
         self.preferred_backend = preferred_backend
+        self.requested_fourcc = fourcc
+        self.actual_fourcc = "UNKNOWN"
+        self.async_capture = async_capture
+        self.identity_check = None
+        self.failure_reason = None
+        self._capture_stop = threading.Event()
+        self._condition = threading.Condition()
+        self._capture_thread = None
+        self._latest = None
+        self._consumed_idx = 0
+        self.skipped_frames = 0
+        self.capture_times = deque(maxlen=120)
         self._cap: Optional[cv2.VideoCapture] = None
         self._actual_width = width
         self._actual_height = height
@@ -40,6 +56,11 @@ class WebcamSource(VideoSource):
         """Open the webcam device with backend fallback."""
         if self._cap is not None and self._cap.isOpened():
             return True
+
+        if self.identity_check is not None and not self.identity_check():
+            self.failure_reason = "Saved physical camera identity changed. Explicit selection required."
+            logger.error(self.failure_reason)
+            return False
 
         logger.info(f"Opening webcam device index={self.device_index} (id={self.source_id})")
         
@@ -82,6 +103,24 @@ class WebcamSource(VideoSource):
         self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.requested_height)
         if self.requested_fps > 0:
             self._cap.set(cv2.CAP_PROP_FPS, self.requested_fps)
+        if self.requested_fourcc:
+            # Verified DSHOW order on the owner's UVC camera. Check the accepted values below.
+            code = cv2.VideoWriter_fourcc(*self.requested_fourcc)
+            self._cap.set(cv2.CAP_PROP_FOURCC, code)
+            if int(self._cap.get(cv2.CAP_PROP_FOURCC)) != code:
+                # Some drivers need FOURCC before dimensions; retry on the same exclusive handle.
+                self._cap.set(cv2.CAP_PROP_FOURCC, code)
+                self._cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.requested_width)
+                self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.requested_height)
+                self._cap.set(cv2.CAP_PROP_FPS, self.requested_fps)
+            actual = int(self._cap.get(cv2.CAP_PROP_FOURCC))
+            self.actual_fourcc = "".join(chr((actual >> (8 * i)) & 255) for i in range(4))
+            ok, first = self._cap.read()
+            if (not ok or first is None or first.shape[:2] != (self.requested_height, self.requested_width)
+                    or self.actual_fourcc != self.requested_fourcc):
+                logger.error("Requested camera mode rejected: %sx%s %s; accepted FOURCC=%s", self.requested_width, self.requested_height, self.requested_fourcc, self.actual_fourcc)
+                self.release()
+                return False
 
         # Read actual properties
         self._actual_width = int(self._cap.get(cv2.CAP_PROP_FRAME_WIDTH)) or self.requested_width
@@ -92,13 +131,51 @@ class WebcamSource(VideoSource):
         self._frame_count = 0
         self._start_time = time.time()
         self._last_timestamp = -1.0
+        self.failure_reason = None
+        self.capture_times.clear()
+        self._latest = None
+        self._consumed_idx = 0
+        self.skipped_frames = 0
         logger.info(
             f"Webcam opened via {self._backend_name}: {self._actual_width}x{self._actual_height} @ {self._actual_fps:.1f} FPS"
         )
+        if self.async_capture:
+            self._capture_stop.clear()
+            self._capture_thread = threading.Thread(target=self._capture_worker, name=f"capture-{self.source_id}", daemon=True)
+            self._capture_thread.start()
         return True
 
     def read(self) -> Optional[VideoFrame]:
         """Capture and return the next frame from webcam with strictly monotonic timestamps."""
+        if self.async_capture:
+            with self._condition:
+                self._condition.wait_for(lambda: self.failure_reason or self._capture_stop.is_set() or
+                                         (self._latest is not None and self._latest.frame_idx > self._consumed_idx), timeout=2.0)
+                if self.failure_reason or self._latest is None or self._latest.frame_idx <= self._consumed_idx:
+                    return None
+                frame = self._latest
+                self.skipped_frames += max(0, frame.frame_idx - self._consumed_idx - 1)
+                self._consumed_idx = frame.frame_idx
+                return frame
+        return self._read_capture()
+
+    def _capture_worker(self):
+        while not self._capture_stop.is_set():
+            frame = self._read_capture()
+            with self._condition:
+                if frame is None:
+                    self.failure_reason = "Camera stopped delivering frames; monitoring interrupted. Reconnect and explicitly restart the session."
+                    self._condition.notify_all()
+                    break
+                self._latest = frame
+                self._condition.notify_all()
+
+    @property
+    def observed_capture_fps(self):
+        times = list(self.capture_times)
+        return (len(times)-1)/(times[-1]-times[0]) if len(times) > 4 and times[-1] > times[0] else None
+
+    def _read_capture(self) -> Optional[VideoFrame]:
         if self._cap is None or not self._cap.isOpened():
             if not self.open():
                 return None
@@ -114,6 +191,7 @@ class WebcamSource(VideoSource):
         self._last_timestamp = current_time
 
         self._frame_count += 1
+        self.capture_times.append(time.perf_counter())
 
         return VideoFrame(
             frame=frame,
@@ -127,6 +205,15 @@ class WebcamSource(VideoSource):
 
     def release(self) -> None:
         """Release the webcam handle."""
+        self._capture_stop.set()
+        with self._condition:
+            self._condition.notify_all()
+        if self._capture_thread is not None:
+            self._capture_thread.join(timeout=3.0)
+            if self._capture_thread.is_alive():
+                raise RuntimeError("Camera driver read blocked; refusing to release a handle still in use.")
+            self._capture_thread = None
+        self._latest = None
         if self._cap is not None:
             self._cap.release()
             self._cap = None
