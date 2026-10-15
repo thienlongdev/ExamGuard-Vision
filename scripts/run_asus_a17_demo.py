@@ -15,7 +15,6 @@ Launches the full ExamGuard-Vision perception pipeline on the physical ASUS A17 
 """
 
 import argparse
-import json
 import logging
 import os
 import sys

@@ -380,7 +380,8 @@ def run_physical_normal_baseline():
         },
     }
 
-    out_path = REPO_ROOT / "tools" / "validation" / "physical_normal_baseline_results.json"
+    out_path = REPO_ROOT / "reports" / "validation" / "physical_normal_baseline_results.json"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
 

@@ -1,6 +1,12 @@
 # ExamGuard Vision — Research, Datasets & Model Development
 
-This document consolidates the engineering research, dataset curation, model architecture benchmarks, and training methodology established during the development of ExamGuard Vision.
+This document preserves historical research notes and dataset/model lineage. For current measured runtime behavior, use [the RTX 5070 detection-quality report](final-detection-quality-validation.md). Dataset sizes and model scores below describe older research subsets; they are not a fresh-clone inventory or a certification of classroom accuracy.
+
+## Current dataset availability
+
+No `datasets/` directory or raw training image corpus is present in this workstation checkout. The small identity/statistics/conflict fixtures in `tests/fixtures/` and all `configs/dataset_mapping*.yaml` / `configs/train*.yaml` definitions are retained. Nothing was deleted, downloaded, relabeled, or re-split during cleanup. Normal inference only needs the frozen checkpoints.
+
+The `tools/dataset/` acquisition and audit programs remain available. SCB acquisition is implemented by `acquire_scb5_full.py`; `acquire_public_archive.py` safely extracts an explicitly supplied authorized ZIP. Run acquisition from the repository root only after reviewing the source's current terms. Historical utilities importing `training.*` (including `rebuild_dataset.py`, `audit_and_prepare_datasets.py`, and `audit_acquisition.py`) need that external package; it is not included here. `tests/test_dataset_tooling.py` has the same prerequisite. This repository does not claim a complete from-scratch retraining environment.
 
 ---
 
@@ -95,7 +101,21 @@ Single-frame visual detections suffer from momentary occlusions, motion blur, an
 4. **Observable Event State Machine**: Events progress through deterministic states (`PENDING` -> `ACTIVE` -> `COOLDOWN` -> `RESOLVED`), preventing notification spam.
 
 ### 3.2 Ablation Findings
-Ablation experiments comparing raw Stage 1 detection against V4D fusion confirmed:
+Historical notes reported the figures below, but the supporting labeled evaluation and raw ablation artifacts are not distributed in this checkout. These figures are **unverified historical claims**, not established accuracy results for the current runtime:
 - **False Positive Reduction**: 74.2% drop in spurious cheating flags caused by natural exam room movement (stretching, checking watch, turning page).
 - **Sustained Turn Precision**: Requiring $\ge 1.5$ seconds of continuous lateral turn ($|\text{yaw}| > 35^\circ$) eliminated 91.8% of micro-glance false triggers.
 - **Evidence Traceability**: Every event links directly to the temporal window and timestamped snapshot, enabling auditable human supervisor review.
+
+
+## Attribution and source terms
+
+| Asset / method | Source used or referenced by the repository | Terms and scope |
+|---|---|---|
+| YOLO26 detector / macro architecture | [Ultralytics YOLO26](https://docs.ultralytics.com/models/yolo26/) | [Ultralytics licensing](https://www.ultralytics.com/license): AGPL-3.0 or a separate Enterprise agreement. This repository does not establish a commercial redistribution grant. |
+| Tracking algorithm | [ByteTrack](https://github.com/FoundationVision/ByteTrack) | Upstream MIT; runtime imports the Ultralytics implementation, whose terms also apply. |
+| Headpose architecture | [HopeNet](https://github.com/natanielruiz/deep-head-pose) | [Upstream Apache-2.0](https://github.com/natanielruiz/deep-head-pose/blob/master/LICENSE.md); architecture attribution is separate from the rights in each trained checkpoint/dataset. |
+| SCB classroom data | [SCB-Dataset host](https://huggingface.co/datasets/wintonYF/SCB-Dataset), [SCB-05 acquisition source](https://www.kaggle.com/datasets/shreyasudaya/scb-05-dataset) | Historical identity metadata records the host's license declaration; this cleanup did not verify rights for every individual image/subset. Do not assume all mirrors or classroom images share one license. |
+| AFLW2000-3D / face-pose lineage | [3DDFA project and dataset references](https://github.com/cleardusk/3DDFA) | Follow the linked dataset terms; code licensing does not grant rights over face images. No corpus is bundled here. |
+| Single-image phone scale benchmark | [COCO terms and image-source information](https://cocodataset.org/#termsofuse) | The detection-quality report identifies the exact image. COCO annotations and source photographs have distinct terms; the photo and generated scale canvases remain local. |
+
+No project-wide license was declared by the owners. Author credits and existing checkpoint storage are preserved; this maintenance work does not relicense code, weights, or datasets. Existing third-party rights and missing corpus/training prerequisites remain explicit limitations.

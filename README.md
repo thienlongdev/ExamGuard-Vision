@@ -1,652 +1,206 @@
 # ExamGuard Vision
 
-**Hệ thống AI hỗ trợ giám sát phòng thi theo thời gian thực và rà soát sự kiện dành cho giám thị**
+Hệ thống thị giác máy tính hỗ trợ **giám sát phòng thi và rà soát sự kiện**, phục vụ học tập, trình diễn và nghiên cứu học thuật. ExamGuard Vision phát hiện đối tượng, theo dõi người theo thời gian và cung cấp bằng chứng để giám thị xem xét. **Kết quả AI không phải bằng chứng kết luận gian lận; quyết định cuối cùng thuộc về con người.**
 
-[![Python 3.13](https://img.shields.io/badge/Python-3.13.11-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![PyTorch 2.14+cu126](https://img.shields.io/badge/PyTorch-2.14.1%2Bcu126-EE4C2C.svg?logo=pytorch&logoColor=white)](https://pytorch.org/)
-[![CUDA 12.6](https://img.shields.io/badge/CUDA-12.6-76B900.svg?logo=nvidia&logoColor=white)](https://developer.nvidia.com/cuda-toolkit)
-[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Git LFS](https://img.shields.io/badge/Checkpoints-Git%20LFS-F05032.svg?logo=git-lfs&logoColor=white)](https://git-lfs.github.com/)
-[![Status](https://img.shields.io/badge/School%20Demo-Certified-brightgreen.svg)]()
+## Bắt đầu nhanh trên Windows
 
----
+**Luồng khuyến nghị: clone GitHub → chạy setup một lần → mở ứng dụng bằng một cú nhấp.**
 
-> [!IMPORTANT]
-> ### NGUYÊN LÝ THIẾT KẾ VÀ GIỚI HẠN PHÁP LÝ CỐT LÕI
-> **Hệ thống này TUYỆT ĐỐI KHÔNG tự động kết luận hay gắn nhãn thí sinh "gian lận" từ bất kỳ khung hình đơn lẻ hay chuỗi suy luận AI nào.**
-> 
-> - **AI chỉ phát hiện các hành vi và đối tượng vật lý quan sát được** trong không gian phòng thi (ví dụ: gục đầu xuống bàn/ngủ, quay đầu sang hai bên kéo dài, điện thoại di động gắn với khu vực ngồi của thí sinh, đứng dậy rời chỗ).
-> - Thuật toán theo dõi đa đối tượng (`ByteTrack`) kết hợp phân tích chuỗi thời gian cửa sổ trượt (sliding temporal buffer), hợp nhất đa tín hiệu `V4D` và bộ quy tắc tính điểm rủi ro bằng chứng (Evidence Risk Scorer) sẽ tổng hợp thành các **"sự kiện hành vi quan sát được cần chú ý"** (Observable / Suspicious Events) kèm các mức độ bằng chứng (`LOW`, `MEDIUM`, `HIGH`).
-> - **Giám thị phòng thi là người duy nhất có thẩm quyền đưa ra kết luận cuối cùng** (Xác nhận sự kiện - Confirm Event hoặc Bác bỏ - Dismiss) thông qua Bảng điều khiển rà soát bằng chứng trực quan.
-> - Điểm số đơn khung hình bị giới hạn cứng không vượt quá 25 điểm (`max_single_frame_score: 25.0`), đảm bảo không có cảnh báo rủi ro cao nào bị kích hoạt chỉ từ một frame ngẫu nhiên.
+### 1. Chuẩn bị công cụ
 
----
-
-## Mục lục
-
-1. [Chạy nhanh trên Windows (One-Click)](#chạy-nhanh-trên-windows-one-click)
-2. [Bắt đầu nhanh trong 5 phút (Dành cho người mới clone repo)](#1-bắt-đầu-nhanh-trong-5-phút-dành-cho-người-mới-clone-repo)
-3. [Xử lý sự cố thường gặp lần đầu chạy](#2-xử-lý-sự-cố-thường-gặp-lần-đầu-chạy)
-4. [Tổng quan hệ thống](#3-tổng-quan-hệ-thống)
-5. [Kiến trúc luồng xử lý (Pipeline Architecture)](#4-kiến-trúc-luồng-xử-lý-pipeline-architecture)
-6. [Danh mục hành vi và tư thế quan sát](#5-danh-mục-hành-vi-và-tư-thế-quan-sát)
-7. [Nguồn video hỗ trợ và tính trung thực nguồn gốc](#6-nguồn-video-hỗ-trợ-và-tính-trung-thực-nguồn-gốc)
-8. [Bảng điều khiển ExamGuard Vision Control Center](#7-bảng-điều-khiển-examguard-vision-control-center)
-9. [Hệ thống API và WebSocket](#8-hệ-thống-api-và-websocket)
-10. [Danh mục Checkpoint và Model Registry](#9-danh-mục-checkpoint-và-model-registry)
-11. [Quản lý bằng chứng và An toàn bảo mật](#10-quản-lý-bằng-chứng-và-an-toàn-bảo-mật)
-12. [Cấu trúc thư mục repository](#11-cấu-trúc-thư-mục-repository)
-13. [Kiểm thử và Đánh giá tính toàn vẹn](#12-kiểm-thử-và-đánh-giá-tính-toàn-vẹn)
-14. [Kết quả xác thực trên cấu hình ASUS TUF Gaming A17](#13-kết-quả-xác-thực-trên-cấu-hình-asus-tuf-gaming-a17)
-15. [Đánh giá tính sẵn sàng: Demo trường học vs Sản xuất](#14-đánh-giá-tính-sẵn-sàng-demo-trường-học-vs-sản-xuất)
-16. [Nghiên cứu và Huấn luyện ngoại tuyến](#15-nghiên-cứu-và-huấn-luyện-ngoại-tuyến)
-
----
-
-## Chạy nhanh trên Windows (One-Click)
-
-**Mặc định hiện tại: Auto, một ứng dụng cho nhiều cấu hình phần cứng.**
-
-1. Lần đầu: double-click `Setup ExamGuard Vision.bat` để chuẩn bị `.venv`, checkpoints, PyTorch/runtime và shortcuts. Tạo tài khoản quản trị riêng trên trang setup.
-2. Mỗi lần dùng: mở icon **ExamGuard Vision** trên Desktop; launcher kiểm tra hardware, camera đã chọn và forward của model trước khi tự mở dashboard tại **http://127.0.0.1:8765/**.
-3. Đăng nhập và bấm **Bắt đầu phiên giám sát** để bật camera và AI. Không tự giám sát trước khi bắt đầu phiên. Sau restart cần đăng nhập lại theo chính sách bảo mật hiện có.
-4. Dừng bằng icon **Stop ExamGuard Vision**. Không đóng cưỡng bức các Python process khác.
-
-Auto xác minh CUDA thực thi được, dùng CPU có thông báo khi CUDA không khả dụng, chọn camera theo định danh, thương lượng/đo MJPEG và lưu cấu hình tương thích. 4K capture, nhịp AI và preview là các thông số riêng. Không thay checkpoint, nhãn lớp hoặc luật sự kiện để tăng FPS.
-
-- [Hướng dẫn Windows, chọn nguồn video/RTSP và xử lý lỗi](docs/universal-windows-setup.md)
-- [Kiến trúc Adaptive Runtime](docs/adaptive-runtime.md)
-- [Báo cáo thực nghiệm RTX 5070 ngày 15/10/2026](docs/final-academic-validation.md)
-
-Cấu hình `configs/runtime/asus_a17_demo.yaml` và `scripts/run_asus_a17_demo.py` được giữ làm tham chiếu. Các phần hướng dẫn thủ công và kết quả ASUS bên dưới là tài liệu lịch sử/tham chiếu; bản Auto và báo cáo mới phía trên là nguồn chính cho workstation hiện tại. Cổng 8000 trên máy này thuộc dịch vụ khác và được giữ nguyên.
-
----
-
-## 1. Bắt đầu nhanh trong 5 phút (Dành cho người mới clone repo)
-
-Phần này hướng dẫn người dùng mới, kỹ sư đánh giá hoặc reviewer triển khai chạy sản phẩm ngay từ con số không sau khi clone mã nguồn từ GitHub.
-
-### Bước 1: Cài đặt Git LFS và Clone mã nguồn
-
-Repository này sử dụng **Git LFS (Large File Storage)** để lưu trữ các model checkpoint kích thước lớn (như `v4_headpose_yaw_best.pt` 284 MB). Hãy đảm bảo bạn đã cài đặt Git LFS trước khi clone:
+Cài [Git cho Windows](https://git-scm.com/install/windows), [Git LFS](https://git-lfs.com/) và [Python 3.13 x64 bản thường](https://www.python.org/downloads/windows/), kèm Python Launcher (`py`). Không dùng bản Python free-threaded. Nếu máy có Windows Package Manager, có thể chạy các lệnh sau trong PowerShell hoặc CMD:
 
 ```powershell
-# 1. Cài đặt Git LFS vào môi trường git của bạn (chỉ cần chạy một lần)
-git lfs install
+winget install --exact --id Git.Git --source winget
+winget install --exact --id GitHub.GitLFS --source winget
+winget install --exact --id Python.Python.3.13 --source winget
+```
 
-# 2. Clone mã nguồn dự án
+Mở lại terminal sau khi cài để cập nhật `PATH`.
+
+### 2. Clone mã nguồn và tải model
+
+```powershell
+git lfs install
 git clone https://github.com/thienlongdev/ExamGuard-Vision.git
 cd ExamGuard-Vision
-
-# 3. Kéo đầy đủ các file checkpoint nặng về máy (bắt buộc)
 git lfs pull
 ```
 
-> [!TIP]
-> **Kiểm tra file LFS:** Nếu file `models/trained/v4_headpose_yaw_best.pt` có dung lượng ~284 MB thì đã tải thành công. Nếu chỉ có vài trăm bytes (chứa text `version https://git-lfs...`), bạn hãy chạy lại lệnh `git lfs pull`.
+### 3. Cài đặt một lần
 
-### Bước 2: Tạo và kích hoạt môi trường ảo Python
-
-Khuyến nghị sử dụng **Python 3.10 đến Python 3.13** (Dự án được kiểm thử chuẩn mực trên Python 3.13.11 64-bit trên Windows):
+Nhấp đúp **Setup ExamGuard Vision.bat**, hoặc chạy trong PowerShell:
 
 ```powershell
-# Tạo môi trường ảo .venv
-python -m venv .venv
+& ".\Setup ExamGuard Vision.bat"
 ```
 
-Kích hoạt môi trường ảo:
-- Trên **PowerShell**:
-  ```powershell
-  .\.venv\Scripts\Activate.ps1
-  ```
-  *(Nếu gặp lỗi `ExecutionPolicy`, bạn có thể chạy bằng cách gọi trực tiếp `.\.venv\Scripts\python.exe` mà không cần kích hoạt).*
-- Trên **Command Prompt (CMD)**:
-  ```cmd
-  .venv\Scripts\activate.bat
-  ```
-
-### Bước 3: Cài đặt PyTorch và Dependencies
-
-Để tránh việc cài đặt đè phiên bản PyTorch CPU hoặc xung đột CUDA, bạn nên cài đặt PyTorch theo cấu hình phần cứng của mình trước, sau đó mới cài đặt các thư viện bổ trợ:
+Setup tạo hoặc dùng lại `.venv`, tải checkpoint qua Git LFS, cài PyTorch và dependencies, kiểm tra tương thích, tạo shortcut rồi khởi động Auto. Lần đầu có thể mất vài phút. Nếu muốn chủ động dùng CPU:
 
 ```powershell
-# Nâng cấp pip
-.\.venv\Scripts\python.exe -m pip install --upgrade pip
-
-# LỰA CHỌN A: Máy có NVIDIA GPU (Cấu hình chuẩn CUDA 12.6, tương thích dòng RTX 3050/3060/40xx)
-.\.venv\Scripts\python.exe -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126
-
-# LỰA CHỌN B: Máy không có GPU rời (Chạy trên CPU)
-# .\.venv\Scripts\python.exe -m pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
-
-# Cài đặt các gói phụ thuộc runtime của dự án
-.\.venv\Scripts\python.exe -m pip install -r requirements-runtime.txt
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/windows/setup_examguard.ps1 -Backend CPU
 ```
 
-### Bước 4: Kiểm tra nhanh môi trường phần cứng và CUDA
+### 4. Khởi chạy và bắt đầu giám sát
 
-Chạy lệnh 1 dòng sau để xác nhận PyTorch đã nhận diện GPU:
+Mỗi lần sử dụng, nhấp đúp shortcut **ExamGuard Vision** trên Desktop, hoặc chạy:
 
 ```powershell
-.\.venv\Scripts\python.exe -c "import torch; print('PyTorch:', torch.__version__); print('CUDA Available:', torch.cuda.is_available()); print('Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
+& ".\Start ExamGuard Vision.bat"
 ```
-*Kết quả kỳ vọng trên máy có card NVIDIA: `CUDA Available: True` và tên GPU hiển thị rõ ràng.*
 
-### Bước 5: Chạy công cụ tiền kiểm định tự động (Laptop Preflight)
+Sau khi các model sẵn sàng, trình duyệt tự mở tại **http://127.0.0.1:8765/**. Lần đầu, tạo tài khoản quản trị riêng ở `/setup`, đăng nhập rồi bấm **Bắt đầu phiên giám sát**. Không có tài khoản hay mật khẩu quản trị mặc định. Vòng lặp capture/AI bắt đầu theo phiên; bước cấu hình phần cứng ban đầu có thể mở camera trong thời gian ngắn để kiểm tra.
 
-Dự án cung cấp sẵn kịch bản kiểm tra toàn diện phần cứng, GPU VRAM, 7 file checkpoint cryptographic hash, camera và cổng mạng:
+### 5. Kết thúc và dừng an toàn
+
+Kết thúc phiên trong dashboard để đóng phiên bình thường, sau đó dùng shortcut **Stop ExamGuard Vision**, hoặc chạy:
 
 ```powershell
-.\.venv\Scripts\python.exe scripts/laptop_preflight.py
+& ".\Stop ExamGuard Vision.bat"
 ```
-*Kịch bản sẽ thông báo `LAPTOP_PREFLIGHT_COMPLETE` và in báo cáo tình trạng sẵn sàng.*
 
-### Bước 6: Khởi chạy ExamGuard Vision Demo
+Trong **CMD**, gọi tên file batch trong dấu ngoặc kép và bỏ ký hiệu `&` của PowerShell, ví dụ `"Start ExamGuard Vision.bat"`. Script dừng kiểm tra đúng tiến trình của dự án và yêu cầu tắt an toàn, không tắt các tiến trình Python khác. Sau khi khởi động lại ứng dụng, cần đăng nhập lại.
 
-Chạy launcher một lệnh chuẩn dành cho máy demo:
+Xem [hướng dẫn Windows và xử lý lỗi](docs/universal-windows-setup.md) nếu thiếu model, camera bận, cổng bị chiếm hoặc CUDA không hoạt động.
+
+## Chức năng chính
+
+- **Phát hiện và tracking:** YOLO26m nhận diện người/điện thoại; ByteTrack duy trì ID theo dõi theo từng camera.
+- **Liên kết điện thoại:** PhoneAssociator xử lý theo tỷ lệ khung hình, giữ các trường hợp chưa liên kết hoặc mơ hồ; không loại điện thoại hợp lệ chỉ vì bounding box lớn trong ảnh 4K.
+- **Phân tích hành vi:** kết hợp tư thế, góc quay đầu, hành vi tổng quát và temporal fusion để tạo sự kiện theo thời gian.
+- **Bounding box và overlay:** hiển thị người, điện thoại và ứng viên ở khung hiện tại; quy đổi tọa độ từ ảnh nguồn sang preview.
+- **Nguồn video:** webcam có thương lượng MJPEG, video file để phát lại và RTSP tùy chọn; giữ thông tin nguồn gốc khi xử lý.
+- **Adaptive Runtime:** chọn cấu hình theo phần cứng, xác minh CUDA hoặc dùng CPU, giữ hàng đợi giới hạn và tách nhịp capture/AI/preview.
+- **Dashboard:** FastAPI có xác thực, cập nhật qua WebSocket, lịch sử phiên, xem bằng chứng và thao tác Xác nhận/Bỏ qua của giám thị.
+- **Vận hành Windows:** setup một lần, shortcut Desktop, ngăn khởi động trùng và dừng an toàn; có mã nguồn mã hóa evidence và backup.
+
+## Kiến trúc tổng quát
+
+```text
+Webcam / video file / RTSP
+  → YOLO phát hiện → ByteTrack tracking + liên kết điện thoại
+  → tư thế / headpose / hành vi tổng quát → temporal fusion
+  → sự kiện + bằng chứng + lưu trữ → FastAPI / WebSocket
+  → dashboard → giám thị rà soát
+```
+
+AI cung cấp quan sát và mức cảnh báo để rà soát. Hệ thống không tự xác nhận hành vi gian lận từ một ảnh hoặc tự thay giám thị đưa ra kết luận.
+
+## Yêu cầu phần cứng và phần mềm
+
+| Thành phần | Môi trường đã kiểm chứng / luồng cài đặt hiện hành |
+|---|---|
+| Hệ điều hành | Windows 11 x64; launcher dùng Windows PowerShell, khóa cục bộ dùng DPAPI |
+| Python | Python 3.13 x64 bản thường, có lệnh `py` |
+| Inference | PyTorch 2.11.0 / torchvision 0.26.0; setup chọn wheel CUDA 12.8 hoặc CPU chính thức |
+| GPU NVIDIA | Không bắt buộc; muốn tăng tốc phải có driver tương thích và CUDA kernel chạy được |
+| Camera | Webcam Windows truy cập được; camera USB đã thử hỗ trợ DirectShow MJPEG |
+| Mạng và ổ đĩa | Cần Internet khi clone, tải LFS và cài thư viện; thư mục dự án phải ghi được, đủ chỗ cho môi trường, khoảng 561 MiB model và evidence cục bộ |
+| Trình duyệt | Trình duyệt desktop hiện hành; dashboard sử dụng tiếng Việt |
+
+CPU vẫn chạy pipeline đã triển khai nhưng throughput thấp hơn. Chưa xác minh tăng tốc GPU AMD/Intel hay hiệu năng trên mọi laptop. FFmpeg trong `PATH` hỗ trợ liệt kê định danh/chế độ DirectShow và cần thiết khi chọn an toàn giữa nhiều webcam. Với một webcam, có thể dùng cơ chế PnP/OpenCV được nêu trong hướng dẫn Windows.
+
+## Cấu hình camera và Adaptive Runtime
+
+Auto kiểm tra phần cứng, chạy CUDA kernel thật, xác minh hash checkpoint, thương lượng chế độ camera và chạy forward cả bốn model đang sử dụng trước khi công bố sẵn sàng. Cấu hình tương thích đã đo có thể được dùng lại ở lần khởi động sau.
+
+- **Detector:** chọn 960×960 khi CUDA dùng được, VRAM ≥ 8192 MiB và RAM khả dụng ≥ 4096 MiB. Các trường hợp còn lại dùng 640×640, bao gồm cấu hình ASUS 4 GiB tham chiếu.
+- **Model khác:** macro detector dùng 768×768; model tư thế/headpose đang sử dụng dùng 224×224.
+- **Webcam:** phải xác nhận resolution/FourCC được chấp nhận và đo tốc độ thực tế. Cắm webcam 4K không bảo đảm capture 4K30 hay xử lý AI ở 30 FPS.
+- **Preview và evidence:** preview giới hạn chiều rộng 1280 pixel, bounding box được scale tương ứng; evidence dùng khung hình nguồn.
+
+| Khái niệm | Ý nghĩa |
+|---|---|
+| Độ phân giải camera | Kích thước ảnh thực sự thu được, ví dụ 3840×2160 |
+| Kích thước đầu vào YOLO | Kích thước yêu cầu khi model inference, ví dụ 960×960; khác ảnh camera 4K |
+| Capture FPS | Số khung hình camera thu được mỗi giây |
+| AI FPS | Số khung hình pipeline AI xử lý mỗi giây; có thể thấp hơn Capture FPS vì chủ động bỏ khung cũ để hạn chế độ trễ |
+
+Cấu hình gốc nằm ở `configs/stage2_pipeline.yaml`; cấu hình phần cứng/nguồn được sinh trong `.runtime/` và không đưa lên Git. Các profile ASUS và công cụ nâng cao được giữ làm tham chiếu. Xem [thiết kế Adaptive Runtime](docs/adaptive-runtime.md) để hiểu cache, lựa chọn cấu hình và xử lý lỗi.
+
+**Đổi nguồn:** dừng ứng dụng rồi mở **Configure ExamGuard Source.bat** để chọn webcam, video file hoặc RTSP. Camera đã lưu bị mất sẽ chặn startup thay vì tự chuyển thiết bị. Credentials RTSP tùy chọn được Windows DPAPI bảo vệ; không ghi mật khẩu hay đường dẫn video riêng vào cấu hình được track.
+
+## Model, dataset và khả năng tái lập
+
+Repository giữ nguyên **bảy checkpoint cố định** ở đường dẫn chuẩn: năm file qua Git thường, hai file headpose lớn qua Git LFS. Clone/LFS tải model mà không cần dữ liệu riêng của workstation hay tìm URL model bên ngoài. File nhỏ bắt đầu bằng `version https://git-lfs...` chỉ là LFS pointer, chưa phải checkpoint đã tải.
+
+Sau setup, kiểm tra model và dependencies:
 
 ```powershell
-& ".\.venv\Scripts\python.exe" scripts/run_asus_a17_demo.py
+.\.venv\Scripts\python.exe tools/validation/verify_checkpoint_hashes.py
+.\.venv\Scripts\python.exe -m pip check
 ```
 
-Tuỳ chọn dòng lệnh bổ sung (nếu cần):
-- `--camera-index 1`: Đổi sang camera gắn ngoài (mặc định là `0`).
-- `--port 8000`: Đổi cổng dịch vụ dashboard (mặc định là `8000`).
-- `--headless`: Tắt cửa sổ hiển thị OpenCV cục bộ (chỉ theo dõi qua trình duyệt web).
-- `--burn-in-web-hud`: Bật ghi đè thông số debug HUD vào luồng video web (mặc định tắt để giữ video web sạch chuẩn thương mại).
+Auto chặn khởi động nếu thiếu model, còn LFS pointer hoặc hash sai. [Bảng kiểm chứng model](docs/model-integrity.md) ghi vai trò, đường dẫn, kích thước và SHA-256. Các model chính, model fallback và baseline lịch sử đều được giữ nguyên byte.
 
-### Bước 7: Mở Bảng điều khiển Giám thị (Dashboard)
+Inference thông thường **không cần dataset huấn luyện**. Checkout này có cấu hình mapping/training và fixture metadata nhỏ, không có thư mục `datasets/` chứa ảnh huấn luyện. Công cụ acquisition, annotations metadata và định nghĩa tập dữ liệu vẫn được giữ; setup không tải dataset. Một số tiện ích nghiên cứu cũ cần package `training` bên ngoài chưa được phân phối trong repository; xem [nghiên cứu và nguồn dữ liệu](docs/research.md).
 
-Mở trình duyệt web bất kỳ (Chrome, Edge, Firefox) và truy cập:
-- **Trang chủ Dashboard**: [http://127.0.0.1:8000/](http://127.0.0.1:8000/)
-- **Đường dẫn phụ (Alias)**: [http://127.0.0.1:8000/dashboard](http://127.0.0.1:8000/dashboard)
-- **Kênh dữ liệu WebSocket**: `ws://127.0.0.1:8000/ws/events`
+Để cập nhật một bản clone đã có, dừng ứng dụng trước rồi chạy:
 
-### Bước 8: Dừng hệ thống an toàn
-
-Khi muốn kết thúc phiên giám sát:
-- Nhấp chuột vào cửa sổ OpenCV HUD và nhấn phím **`q`** hoặc **`ESC`**.
-- Hoặc nhấn tổ hợp phím **`Ctrl + C`** trên cửa sổ terminal.
-- Tiến trình sẽ tự động giải phóng tài nguyên phần cứng camera, ngắt kết nối WebSocket và tắt máy chủ HTTP sạch sẽ.
-
----
-
-## 2. Xử lý sự cố thường gặp lần đầu chạy
-
-| Hiện tượng lỗi | Nguyên nhân khả dĩ | Cách khắc phục |
-|---|---|---|
-| **Lỗi PyTorch khi tải checkpoint** (`_pickle.UnpicklingError` hoặc báo file quá nhỏ) | Checkpoint chưa được Git LFS tải thực sự, hiện chỉ là file con trỏ text vài trăm bytes | Chạy lệnh `git lfs pull` tại thư mục gốc của repository. Kiểm tra lại kích thước `models/trained/v4_headpose_yaw_best.pt` phải đạt ~284 MB. |
-| **`torch.cuda.is_available() == False`** | Chưa cài đặt bản build PyTorch CUDA phù hợp hoặc driver NVIDIA chưa tương thích | Kiểm tra `nvidia-smi`. Gỡ `torch` hiện tại và cài đặt lại bằng lệnh: `pip install torch torchvision --index-url https://download.pytorch.org/whl/cu126`. Hệ thống vẫn có thể chạy trên CPU nhưng tốc độ khung hình sẽ thấp hơn. |
-| **Không mở được Webcam** (`Could not open physical webcam`) | Camera đang bị phần mềm khác chiếm dụng (Zoom, Teams, Camera app của Windows) hoặc sai chỉ mục | Đóng tất cả ứng dụng đang dùng webcam. Kiểm tra quyền riêng tư camera trong Windows Settings. Chạy lệnh: `.\.venv\Scripts\python.exe scripts/run_local_live_validation.py --check-camera` để dò tìm camera khả dụng. |
-| **Lỗi cổng 8000 bị chiếm dụng** (`Address already in use`) | Có một tiến trình khác đang mở cổng 8000 trên máy | Chạy launcher với tham số đổi cổng: `.\.venv\Scripts\python.exe scripts/run_asus_a17_demo.py --port 8080`, sau đó truy cập [http://127.0.0.1:8080/](http://127.0.0.1:8080/). |
-| **Trang web mở được nhưng không thấy video camera** | Trình duyệt chưa tải được luồng MJPEG hoặc pipeline khởi động trễ | Kiểm tra thanh trạng thái `Health Strip` ở đầu trang xem camera có báo `STREAMING` không. Kiểm tra endpoint `/api/cameras`. Thử F5 làm mới trình duyệt. |
-
----
-
-## 3. Tổng quan hệ thống
-
-**ExamGuard Vision** là nền tảng thị giác máy tính và phân tích hành vi chuỗi thời gian nhiều tầng, được thiết kế chuyên biệt để hỗ trợ giám thị trong công tác giám sát phòng thi, phát hiện sớm các bất thường thể hiện bằng chứng rõ ràng và rà soát khách quan.
-
-### Điểm nổi bật về mặt công nghệ:
-1. **Phân tách rành mạch giữa Nhận diện và Kết luận**: AI phát hiện cử chỉ, vật thể, góc quay đầu; động cơ suy luận tổng hợp độ nghi vấn theo thời gian; giám thị là người quyết định.
-2. **Khắc phục nhược điểm Single-frame**: Giảm cảnh báo do chuyển động thoáng qua thông qua temporal fusion, debounce và hysteresis, kết hợp máy trạng thái thời gian và bộ đệm trượt 30 giây.
-3. **Luồng video độc lập (Single-Camera Ownership)**: Camera vật lý chỉ mở một lần duy nhất trong toàn hệ thống bởi pipeline chính. Luồng video hiển thị trên Web tiêu thụ frame đã qua xử lý downstream, không gây xung đột cổng USB/driver webcam.
-4. **Giao diện thương mại sạch (Clean Product Stream)**: Luồng video trên web hoàn toàn sạch sẽ, không bị vẽ đè chữ debug khó nhìn; khung bounding box và thông số được vẽ mượt mà ở phía client (trình duyệt).
-5. **Vận hành hoàn toàn Offline**: Hệ thống có thể vận hành offline và không yêu cầu CDN/cloud trong luồng runtime chính, không gửi dữ liệu ra ngoài môi trường mạng nội bộ.
-
----
-
-## 4. Kiến trúc luồng xử lý (Pipeline Architecture)
-
-Hệ thống được tổ chức theo kiến trúc đường ống xử lý theo tầng (Multi-Stage Pipeline) hoàn chỉnh:
-
-```
-[ Nguồn Video (Webcam / File / RTSP CCTV) ]
-                    │
-                    ▼
-[ Ingestion & Đệm hàng đợi giải mã độc lập (Bounded Ingestion Queue) ]
-                    │
-                    ▼
-[ General Object Detector: yolo26m.pt (640x640: person, cell phone) ]
-                    │
-                    ▼
-[ ByteTrack Multi-Object Tracker (Gán và duy trì ID thí sinh liên tục) ]
-                    │
-                    ▼
-[ Crop Scheduler & Scale Gating (Cắt vùng đối tượng & lọc độ phân giải) ]
-                    │
-    ┌───────────────┼───────────────┬─────────────────────────┐
-    ▼               ▼               ▼                         ▼
-[ Posture Model ] [ Headpose Yaw ] [ Macro Behavior ] [ Phone Association ]
- (MobileNetV3)     (HopeNet-Yaw)     (Stage 1.5)       (Ràng buộc không gian)
-  224x224, 4 lớp   224x224, yaw deg   768x768           với bounding box người
-    └───────────────┬───────────────┴─────────────────────────┘
-                    │
-                    ▼
-[ Đóng gói UnifiedTrackUpdate (Kèm định danh nguồn gốc SourceOrigin) ]
-                    │
-                    ▼
-[ Động cơ Hợp nhất Đa tín hiệu V4D (Multi-Cue Temporal Fusion Engine) ]
-   - Sliding Temporal Buffer (Cửa sổ trượt lưu lịch sử 30s)
-   - Bộ lọc nhất quán & trừ hao tín hiệu trùng lặp (Anti Double-Counting)
-                    │
-                    ▼
-[ Observable Event Engine (Máy trạng thái sự kiện: CANDIDATE -> ACTIVE -> COOLDOWN) ]
-                    │
-                    ▼
-[ Bộ tính điểm rủi ro bằng chứng (Evidence Risk Scorer: LOW, MEDIUM, HIGH) ]
-                    │
-                    ▼
-[ Quản lý bằng chứng (Evidence Manager: Chụp snapshot JPEG tại thời điểm mở sự kiện) ]
-                    │
-         ┌──────────┴──────────┐
-         ▼                     ▼
-[ FastAPI REST API ]   [ WebSocket Broadcaster ]
- (Lưu trữ & Truy vấn)   (Phát tán sự kiện tức thời)
-         │                     │
-         └──────────┬──────────┘
-                    ▼
-[ Bảng điều khiển ExamGuard Vision Control Center ]
- (Giao diện web dành cho giám thị: MONITOR, REVIEW, SYSTEM)
-                    │
-                    ▼
-[ Giám thị rà soát & Đưa ra quyết định cuối cùng (Confirm / Dismiss) ]
-```
-
----
-
-## 5. Danh mục hành vi và tư thế quan sát
-
-Hệ thống tuân thủ nghiêm ngặt hệ thống danh pháp hành vi quan sát được (Observable Fact-based Ontology).
-
-### 5.1 Bốn lớp tư thế chuẩn (V4 Posture Classes)
-
-Model chuyên biệt MobileNetV3-Small (`v4_posture_best.pt`) phân loại vùng thân trên thí sinh thành đúng 4 trạng thái hình học:
-
-| Class ID | Mã định danh tư thế | Giải thích ngữ nghĩa |
-|---|---|---|
-| `0` | `NORMAL_UPRIGHT` | Thí sinh ngồi thẳng, mắt hướng về phía trước hoặc làm bài bình thường. |
-| `1` | `NORMAL_READ_WRITE` | Thí sinh hơi cúi đầu xuống mặt bàn để đọc đề hoặc viết bài (hành vi hợp lệ). |
-| `2` | `HEAD_REST_SLEEP` | Thí sinh gục hẳn đầu xuống bàn hoặc có dấu hiệu ngủ trong giờ thi. |
-| `3` | `TURN_HEAD_CLEAR` | Thí sinh quay đầu rõ rệt sang trái hoặc sang phải khỏi vị trí bài thi. |
-
-> [!CAUTION]
-> **Điện thoại di động không phải là một lớp tư thế!** Điện thoại di động được phát hiện độc lập qua detector vật thể và sau đó được liên kết không gian (Spatial Binding) với vị trí ngồi của thí sinh.
-
-### 5.2 Các họ sự kiện quan sát được (Observable Event Families)
-
-Dựa trên dữ liệu chuỗi thời gian, động cơ `EventEngine` sẽ kích hoạt các sự kiện sau khi hành vi kéo dài vượt ngưỡng định trước:
-
-1. **`SUSTAINED_HEAD_REST` (Gục đầu kéo dài)**:
-   - Kích hoạt khi thí sinh duy trì tư thế `HEAD_REST_SLEEP` liên tục trên **2,0 giây** (với xác suất $\ge 0.55$).
-   - Tự động bị triệt tiêu nếu điểm tư thế đọc/viết `NORMAL_READ_WRITE` chiếm ưu thế.
-2. **`SUSTAINED_LATERAL_HEAD_ORIENTATION` (Quay đầu kéo dài)**:
-   - Kích hoạt khi thí sinh duy trì tư thế `TURN_HEAD_CLEAR` hoặc góc quay đầu lệch $\ge 25^\circ$ liên tục trên **1,5 giây**.
-   - Hợp nhất giữa phân loại tư thế thân người và góc quay đầu liên tục (HopeNet-Yaw).
-3. **`PHONE_ASSOCIATED` (Điện thoại liên kết với thí sinh)**:
-   - Kích hoạt khi phát hiện điện thoại di động nằm trong hoặc rất gần vùng bounding box của thí sinh liên tục trên **1,0 giây**.
-4. **`DISCUSSION_CANDIDATE` (Dấu hiệu trao đổi bài)**:
-   - Kích hoạt khi có sự phối hợp giữa quay đầu hướng về phía thí sinh khác hoặc dấu hiệu tương tác kéo dài trên **2,0 giây**.
-5. **`STANDING` (Đứng dậy khỏi chỗ)**:
-   - Kích hoạt khi thí sinh rời vị trí ngồi hoặc đứng lên trong phòng thi kéo dài trên **1,5 giây**.
-6. **`MULTI_CUE_ATTENTION_SHIFT` (Chuyển hướng chú ý đa tín hiệu)**:
-   - Sự kết hợp đồng thời giữa nhiều tín hiệu bất thường trong cùng một khoảng thời gian.
-
-### 5.3 Thang đo mức cảnh báo bằng chứng (Evidence Alert Levels)
-
-Hệ thống áp dụng 3 mức cảnh báo trực quan dựa trên **mức độ đầy đủ và sự bền bỉ của bằng chứng quan sát được**, hoàn toàn không mang ý nghĩa phán xét tội lỗi:
-
-- **`GREEN` (BÌNH THƯỜNG / THẤP, 0 – 39 điểm)**: Thí sinh duy trì tư thế đọc/viết hoặc ngồi thẳng bình thường, hoặc tín hiệu xuất hiện thoáng qua dưới ngưỡng sự kiện.
-- **`AMBER` (CẦN CHÚ Ý / TRUNG BÌNH, 40 – 74 điểm)**: Hành vi diễn ra rõ ràng trong một khoảng thời gian (gục đầu kéo dài, quay đầu kéo dài, đứng dậy rời chỗ được kiểm chứng hình học), cần giám thị lưu tâm quan sát.
-- **`RED` (CẢNH BÁO CAO / CAO, 75 – 100 điểm)**: Phát hiện điện thoại di động có liên kết không gian rõ ràng và kéo dài (`PHONE_ASSOCIATED` với `CLEAR_ASSOCIATION`), hoặc có sự kết hợp của nhiều dấu hiệu bất thường đồng thời.
-
-> [!NOTE]
-> **Quy tắc ngữ nghĩa cốt lõi:**
-> *"Mức cảnh báo là mức ưu tiên rà soát bằng chứng, không phải xác suất gian lận."* AI chỉ quan sát và tổng hợp bằng chứng hành vi theo chuỗi thời gian; việc kết luận hoàn toàn thuộc thẩm quyền của giám thị phòng thi.
-
----
-
-## 6. Nguồn video hỗ trợ và tính trung thực nguồn gốc
-
-Hệ thống thiết kế trừu tượng hoá nguồn video qua lớp `VideoSource`, cho phép vận hành linh hoạt trên nhiều môi trường khác nhau:
-
-| Nguồn video | Lớp xử lý | Mục đích sử dụng | Cơ chế đặc trưng |
-|---|---|---|---|
-| **Webcam tích hợp / USB** | `WebcamSource` | Trình diễn trực tiếp trên laptop demo / phòng thí nghiệm | Sử dụng DirectShow (`CAP_DSHOW`) trên Windows, hỗ trợ 1280x720 và 640x480 @ 30 FPS. |
-| **Tệp tin video ghi sẵn** | `VideoFileSource` | Kiểm thử hồi quy ngoại tuyến, benchmark thuật toán lặp lại | Đọc từng khung hình tuần tự theo timestamp chuẩn xác, cho phép tái hiện các ca kiểm thử phức tạp. |
-| **Camera IP / CCTV trường học** | `RTSPSource` | Triển khai thực tế trên camera cố định góc cao | Thu nhận luồng RTSP H.264 qua mạng LAN, có cơ chế tự động kết nối lại khi mất mạng (exponential backoff). |
-
-### Tính trung thực nguồn gốc (`SourceOrigin`)
-Mọi bản ghi dữ liệu, track và sự kiện đều được gán nhãn nguồn gốc cụ thể (`PHYSICAL_LIVE_CAMERA`, `SOFTWARE_VALIDATION_FIXTURE`, `REPLAY_STREAM`, `VIDEO_FILE`, `RTSP_STREAM`, `SYNTHETIC_TEST`, hoặc `UNKNOWN`). Hệ thống **tuyệt đối không bao giờ nâng cấp giả mạo** dữ liệu fixture phần mềm thành camera vật lý.
-
----
-
-## 7. Bảng điều khiển ExamGuard Vision Control Center
-
-Giao diện giám sát hiện đại, tối ưu cho giám thị theo dõi trực quan theo thời gian thực trên màn hình máy tính:
-
-### 7.1 Màn hình theo dõi chính (MONITOR View)
-- **Hero Camera Viewport**: Khung phát video tỉ lệ 16:9 với độ trễ thấp từ luồng downstream MJPEG. Overlay bounding box bo góc hiện đại hiển thị ID học sinh, tư thế hiện tại và nhãn chú ý.
-- **Thanh chỉ số KPI (KPI Bar)**: Bốn thẻ đếm tức thì: Tổng sự kiện (Total Events), Chờ rà soát (Awaiting Review), Giám thị đã xác nhận (Human Confirmed), Giám thị đã bác bỏ (Dismissed).
-- **Thanh đo sức khỏe Telemetry (Health Strip)**: Cung cấp thông tin camera (CAM 01 LIVE), FPS thu nhận, FPS xử lý AI, số thí sinh đang bám vết, độ sâu hàng đợi, tỷ lệ rớt khung hình (0.0%), và dung lượng VRAM GPU đã sử dụng.
-- **Hàng đợi rà soát (Review Queue)**: Danh sách các thẻ sự kiện theo thứ tự ưu tiên, cuộn độc lập mượt mà không co rút thẻ, giữ nguyên kích thước ảnh chụp bằng chứng thu nhỏ, thanh đo rủi ro (0–100), mốc thời gian tương đối và các nút thao tác nhanh.
-- **Dòng thời gian hoạt động (Activity Timeline)**: Biểu đồ trực quan hóa diễn biến hành vi theo thời gian, chứng minh hành vi được theo dõi theo chuỗi chứ không phán xét nhất thời.
-
-### 7.2 Màn hình rà soát trực tiếp (REVIEW View)
-- Bảng nhật ký sự kiện của phiên hiện tại để giám thị rà soát và đối chiếu.
-- Bộ lọc thông minh theo trạng thái rà soát (`Chờ duyệt`, `Đã xác nhận`, `Đã bỏ qua`), theo mức độ cảnh báo hoặc tìm kiếm thí sinh.
-
-### 7.3 Màn hình lịch sử phiên giám sát (HISTORY View)
-- **Tự động quản lý phiên (Automatic Sessions)**: Mỗi lần khởi động, hệ thống tự động khởi tạo phiên thi trên SQLite với nhịp tim (heartbeat) định kỳ, tự động phát hiện và khôi phục phiên gián đoạn (`INTERRUPTED`).
-- **Danh sách phiên thi**: Xem lại toàn bộ các buổi thi trong quá khứ, thông tin phòng thi, giám thị, thời lượng, tổng sự kiện, tỷ lệ duyệt.
-- **Xem lại phiên & Chỉnh sửa thông tin**: Mở chi tiết từng phiên, cập nhật tên kỳ thi / phòng / giám thị, duyệt bảng sự kiện đã lưu và nhật ký kiểm toán (Audit Trail) liên kết chuỗi băm chống giả mạo.
-
-### 7.4 Màn hình quản trị hệ thống & Dữ liệu sao lưu (SYSTEM View)
-- Báo cáo chi tiết phần cứng ASUS A17, tình trạng kết nối camera và độ phân giải thực tế.
-- **Dữ liệu & Sao lưu (Persistence & Local Backup)**: Theo dõi trạng thái cơ sở dữ liệu SQLite WAL, dung lượng bằng chứng, bộ đệm video vòng lặp an toàn RAM (tối đa 64MB/cam) và nút bấm `[Sao lưu ngay]`.
-- **Sổ đăng ký Model (Model Registry)**: Liệt kê đầy đủ checkpoint, mã băm SHA-256 đã chứng thực, thiết bị thực thi (`cuda:0`), và kích thước ảnh đầu vào.
-
-### 7.5 Ngăn kéo chi tiết sự kiện & Phát video bằng chứng (Event Details Drawer)
-Khi giám thị nhấp chuột vào bất kỳ sự kiện nào trong hàng đợi hoặc bảng lịch sử:
-- **Ảnh chụp bằng chứng & Trình phát Video cục bộ**: Xem ảnh snapshot độ nét cao hoặc phát lại video clip ngữ cảnh (trước, trong và sau sự kiện) trực tiếp trên HTML5 video player mà không phụ thuộc internet.
-- **Xác thực toàn vẹn (Evidence Integrity)**: Đối soát tự động mã băm SHA-256 của tệp trên đĩa với cơ sở dữ liệu để phát hiện tệp bị chỉnh sửa hoặc thất lạc.
-- **Giải thích mã theo dõi (Track ID)**: Thể hiện rõ mã theo dõi (`Thí sinh #...`) chỉ là định danh tạm thời của camera trong phiên, không phải nhận diện danh tính sinh trắc học.
-- **Nhật ký xử lý**: Hiển thị tên giám thị xử lý, thời điểm duyệt, ghi chú và các nút Xác nhận / Bỏ qua.
-
-> [!TIP]
-> Chi tiết toàn diện về mô hình phiên, kiến trúc lưu trữ, bộ đệm video, mã băm SHA-256, sao lưu cục bộ và chính sách lưu giữ xem tại: [docs/persistence-and-evidence.md](docs/persistence-and-evidence.md).
-
----
-
-## 8. Hệ thống API và WebSocket
-
-FastAPI backend cung cấp hệ thống endpoint REST và WebSocket chuẩn mực, bảo mật và hiệu năng cao:
-
-### 8.1 Các endpoint REST
-
-| Phương thức | Đường dẫn Route | Mục đích chức năng |
-|---|---|---|
-| `GET` | `/` hoặc `/dashboard` | Phục vụ trang giao diện Bảng điều khiển Giám thị HTML/JS (100% offline). |
-| `GET` | `/health` | Kiểm tra trạng thái hoạt động của backend service (`HealthResponse`). |
-| `GET` | `/api/cameras` | Lấy danh sách camera, trạng thái kết nối, độ phân giải và FPS đo được. |
-| `GET` | `/api/cameras/stream` | Cung cấp luồng video MJPEG downstream từ pipeline chính cho trình duyệt. |
-| `GET` | `/api/cameras/frame` | Lấy 1 khung hình JPEG mới nhất từ pipeline. |
-| `GET` | `/api/cameras/tracks` | Lấy danh sách bounding box và trạng thái bám vết của các thí sinh hiện tại. |
-| `GET` | `/api/events` | Truy vấn danh sách sự kiện (hỗ trợ lọc theo `risk_level`, `status`, `limit`). |
-| `GET` | `/api/events/{event_id}` | Xem thông tin chi tiết của một sự kiện cụ thể. |
-| `PATCH` | `/api/events/{event_id}` | Cập nhật quyết định của giám thị (`confirmed` hoặc `dismissed`) kèm ghi chú. |
-| `GET` | `/api/system/status` | Lấy toàn bộ thông số viễn trắc hệ thống, FPS, VRAM, độ sâu hàng đợi, KPI. |
-| `GET` | `/api/system/models` | Trả về thông tin đăng ký của các model AI kèm mã băm SHA-256. |
-| `GET` | `/api/evidence/{file_path:path}` | Tải file ảnh chụp bằng chứng an toàn (có chống Path Traversal). |
-
-### 8.2 Giao tiếp thời gian thực (WebSocket)
-
-- **Địa chỉ kết nối**: `ws://127.0.0.1:8000/ws/events`
-- **Các gói tin phát tán (Broadcast Payloads)**:
-  - `EVENT_OPEN`: Phát ra ngay khi một hành vi bất thường đủ điều kiện chuyển thành sự kiện cần chú ý.
-  - `EVENT_UPDATE`: Cập nhật diễn biến điểm số và bằng chứng của sự kiện khi nó đang tiếp diễn.
-  - `EVENT_CLOSE`: Đóng sự kiện khi thí sinh trở về trạng thái bình thường (chuyển sang trạng thái chờ giám thị duyệt).
-  - `EVENT_STATUS_UPDATED`: Đồng bộ tức thời khi giám thị bấm Xác nhận hoặc Bác bỏ sự kiện.
-- **Khả năng phục hồi kết nối**: Client JavaScript tích hợp sẵn thuật toán Reconnect tự động với thời gian chờ tăng theo cấp số nhân (bounded exponential backoff), phân biệt rõ các trạng thái `connecting`, `connected`, `reconnecting`, `disconnected`.
-
----
-
-## 9. Danh mục Checkpoint và Model Registry
-
-Tất cả các model sử dụng trong luồng suy luận đều được cố định phiên bản và xác thực bằng mã băm mật mã học SHA-256:
-
-| Tên vai trò model | File Checkpoint | Kích thước | SHA-256 Hash được chứng thực | Kiến trúc & Đầu vào |
-|---|---|---|---|---|
-| **General Object Detector** | `models/trained/yolo26m.pt` | ~44.3 MB | `401cea9ab23ad19246ff7744859816bc599f350e93c9dd30367b6f0a0745d0b7` | YOLOv8/v11 640x640 (person, cell phone) |
-| **Macro Behavior Detector** | `models/trained/stage1_5_best.pt` | ~44.0 MB | `68690cf82715dc6dad2eb35a08711531170e935eb7dbe1c30fafabae341e2c2c` | Custom YOLO Stage 1.5 @ 768x768 |
-| **Posture Classifier** | `models/trained/v4_posture_best.pt` | ~18.5 MB | `529a23f96ebec6051ad29279fba3cd5279e7aa8fe2e46292ab4bb9c9523ca180` | MobileNetV3-Small @ 224x224 (4 lớp tư thế) |
-| **Headpose Yaw Estimator** | `models/trained/v4_headpose_yaw_best.pt` *(Git LFS)* | ~284.2 MB | `5d15eec5941cfc8d2468d09c27bff8eca2014e62bb12fc9a95c0c6239fbbca55` | HopeNet-Yaw @ 224x224 (Góc quay $[-99^\circ, +99^\circ]$) |
-| **Headpose Circular Fallback** | `models/fallback/headpose_resnet18/best_model.pt` *(Git LFS)* | ~44.7 MB | `bc31d46cfea007ebddfb6a8d5845641a32fd1cc018a831c4c8ae8b61e579a7d9` | ResNet18 Circular Yaw (Phạm vi $[-180^\circ, +180^\circ]$) |
-| **High-Res Person Crop Fallback** | `models/fallback/posture_320/best_model.pt` | ~18.5 MB | `070a2e328a161b1c957576ec13647d65846a073f9dd35488c7c6edc847f0f4cf` | MobileNetV3-Small @ 320x320 |
-| **Stage 1 Baseline Checkpoint** | `models/trained/stage1_best.pt` | ~44.0 MB | `6d713808f0bc670e8bf06e01b006fac73d8d6e5db7130584cec1658b003ce98a` | Baseline foundation checkpoint |
-
----
-
-## 10. Quản lý bằng chứng và An toàn bảo mật
-
-### 10.1 Vòng đời chụp bằng chứng (Evidence Lifecycle)
-Để tối ưu hóa tài nguyên phần cứng và tránh áp lực đọc ghi đĩa khi vận hành thời gian thực, cấu hình chuẩn của hệ thống sử dụng chế độ **`snapshot-only`**:
-- Ngay khi một sự kiện chuyển trạng thái sang `ACTIVE`, hệ thống sẽ trích xuất khung hình gốc tại thời điểm đó và lưu bất đồng bộ dưới dạng ảnh JPEG vào thư mục phiên (ví dụ: `evidence/asus_a17_demo/snapshots/{event_id}_open.jpg`).
-- Ảnh bằng chứng được liên kết chặt chẽ với metadata sự kiện, bao gồm các chỉ số suy luận tại chính thời điểm chụp.
-
-### 10.2 Bảo vệ an toàn đường dẫn và chống Path Traversal
-Endpoint `/api/evidence/{file_path:path}` được gia cố an ninh nghiêm ngặt:
-1. **Chỉ phục vụ từ các thư mục gốc hợp lệ (Allowed Roots)**: Chỉ cho phép truy xuất trong `storage/evidence`, `evidence`, và `runs/local_live`.
-2. **Giải mã URL 3 lần (Multi-pass unquote)**: Vô hiệu hóa kỹ thuật vượt rào bằng mã hóa kép (như `%252e%252e`).
-3. **Chặn đứng mọi ký tự nguy hiểm**: Tự động từ chối yêu cầu chứa `..`, `%2e`, ký tự ổ đĩa (`C:`, `D:`), hoặc đường dẫn mạng UNC (`\\`, `//`).
-4. **Chống nhầm lẫn phiên bằng mã lỗi HTTP 409 Conflict**: Nếu truy vấn theo tên file cũ trùng lặp ở nhiều thư mục phiên khác nhau, máy chủ sẽ từ chối và yêu cầu đường dẫn phiên tường minh, tránh việc trả về nhầm ảnh của ca thi khác.
-5. **Không lộ đường dẫn máy chủ**: Đường dẫn tuyệt đối nội bộ trên máy trạm không bao giờ bị trả về phía client.
-
----
-
-## 11. Cấu trúc thư mục repository
-
-Cấu trúc thư mục tinh gọn và chuẩn mực kỹ thuật của dự án:
-
-```
-ExamGuard-Vision/
-├── .gitattributes             # Cấu hình Git LFS cho các checkpoint lớn (> 100 MB)
-├── .gitignore                # Loại trừ virtualenv, dataset thô, video và bằng chứng cục bộ
-├── pytest.ini                # Cấu hình bộ kiểm thử tự động pytest
-├── README.md                 # Tài liệu kỹ thuật và hướng dẫn triển khai hệ thống
-├── requirements.txt          # Danh sách toàn bộ thư viện chi tiết
-├── requirements-runtime.txt  # Danh sách phụ thuộc phục vụ chạy thực thi (loại trừ cố định torch)
-│
-├── configs/                  # Thư mục cấu hình tham số hệ thống
-│   ├── camera.yaml           # Cấu hình nguồn camera và FPS
-│   ├── classes.yaml          # Danh mục taxonomy nhãn và lớp
-│   ├── inference.yaml        # Ngưỡng tin cậy suy luận và thiết bị
-│   ├── tracking.yaml         # Tham số ByteTrack
-│   ├── v4d_fusion.yaml       # Tham số hợp nhất chuỗi thời gian V4D và ngưỡng rủi ro
-│   ├── deployment/           # Metadata chứng thực và kiểm định môi trường triển khai
-│   └── runtime/              # Cấu hình hồ sơ thực thi đã chứng thực
-│       └── asus_a17_demo.yaml # Hồ sơ vận hành chuẩn cho ASUS TUF Gaming A17
-│
-├── docs/                     # Tài liệu kỹ thuật chi tiết
-│   ├── architecture.md       # Thiết kế kiến trúc luồng xử lý và hợp nhất đa tín hiệu
-│   ├── deployment.md         # Hướng dẫn chi tiết triển khai và vận hành hệ thống
-│   ├── validation.md         # Báo cáo kiểm định phần cứng và chứng thực hệ thống
-│   ├── research.md           # Nghiên cứu mô hình, bộ dữ liệu và đánh giá hợp nhất V4D
-│   └── testing.md            # Kiến trúc kiểm thử, phân loại test suites và hướng dẫn QA
-│
-├── models/                   # Thư mục lưu trữ model
-│   ├── trained/              # Các model đã huấn luyện và đóng băng
-│   │   ├── yolo26m.pt              # Detector vật thể tổng quát (COCO person, phone)
-│   │   ├── stage1_best.pt          # Baseline foundation checkpoint
-│   │   ├── stage1_5_best.pt        # Model hành vi macro Stage 1.5
-│   │   ├── v4_posture_best.pt      # Model phân loại tư thế 4 lớp (MobileNetV3)
-│   │   └── v4_headpose_yaw_best.pt # Model ước lượng góc quay đầu (HopeNet - Git LFS)
-│   ├── fallback/             # Checkpoint dự phòng tối ưu cho thiết bị giới hạn tài nguyên
-│   │   ├── posture_320/            # Model MobileNetV3 phân giải 320x320
-│   │   └── headpose_resnet18/      # Model ResNet18 HopeNet (Git LFS)
-│   └── manifests/            # Manifest xác thực danh tính và kiến trúc model
-│       └── v4_checkpoint_identity.json
-│
-├── scripts/                  # Kịch bản vận hành trực tiếp dành cho người dùng
-│   ├── run_asus_a17_demo.py  # Kịch bản khởi chạy một lệnh chuẩn cho demo trường học
-│   ├── laptop_preflight.py   # Công cụ tiền kiểm tra phần cứng, GPU, model và cổng mạng
-│   └── run_local_live_validation.py # Bộ công cụ kiểm định sâu các thành phần
-│
-├── src/                      # Mã nguồn logic cốt lõi
-│   ├── api/                  # Tầng Backend FastAPI & Giao tiếp
-│   │   ├── main.py           # Khởi tạo REST API và WebSocket router
-│   │   ├── schemas.py        # Định nghĩa cấu trúc dữ liệu Pydantic
-│   │   ├── websocket.py      # Quản lý kết nối WebSocket và phát tán sự kiện
-│   │   ├── static_ui.py      # Trình nạp giao diện HTML nhúng
-│   │   ├── templates/        # Template HTML bảng điều khiển giám thị
-│   │   └── static/           # Tài nguyên tĩnh JS/CSS phục vụ dashboard 100% offline
-│   ├── behavior/             # Quản lý sự kiện và bộ tính điểm
-│   │   └── event_manager.py  # Quản lý vòng đời sự kiện, debounce và cooldown
-│   ├── detection/            # Adapter bộ nhận diện vật thể YOLO
-│   │   ├── object_detector.py # General Object Detector adapter
-│   │   └── behavior_detector.py # Macro Behavior Detector adapter
-│   ├── evidence/             # Chụp và lưu trữ ảnh chụp bằng chứng
-│   │   └── snapshot.py       # Module ghi ảnh JPEG bất đồng bộ
-│   ├── fusion/               # Động cơ hợp nhất đa tín hiệu V4D
-│   │   ├── types.py          # Enums (SourceOrigin, PostureClass, EventFamily, RiskLevel)
-│   │   ├── cue_state.py      # Trạng thái quan sát từng frame của mỗi thí sinh
-│   │   ├── fusion_engine.py  # Động cơ hợp nhất đa tín hiệu theo thời gian
-│   │   └── event_engine.py   # Máy trạng thái phát hiện sự kiện hành vi
-│   ├── models/               # Định nghĩa kiến trúc PyTorch (Posture, HeadPose)
-│   │   ├── posture/          # MobileNetV3 posture classifier
-│   │   └── headpose/         # HopeNet yaw estimator
-│   ├── orchestration/        # Tầng điều phối quy trình xử lý
-│   │   ├── stage2_pipeline.py# Đường ống xử lý chính (Camera -> Model -> Fusion)
-│   │   └── model_registry.py # Quản lý và kiểm tra mã băm SHA-256 của các model
-│   ├── pilot/                # Module tiền kiểm tra và cấu hình camera
-│   ├── tracking/             # Module bám vết đa đối tượng ByteTrack
-│   └── video/                # Lớp trừu tượng hoá nguồn video
-│       ├── base.py           # VideoSource ABC
-│       ├── webcam.py         # WebcamSource (DirectShow / MSMF)
-│       ├── video_file.py     # VideoFileSource
-│       └── rtsp.py           # RTSPSource
-│
-├── tests/                    # Bộ kiểm thử tự động (Unit & Integration tests)
-│   └── fixtures/             # Dữ liệu mẫu kiểm thử và video giả lập
-│
-└── tools/                    # Công cụ nội bộ phục vụ nghiên cứu và phát triển
-    ├── benchmark/            # Công cụ đo lường hiệu năng suy luận và thông lượng
-    ├── dataset/              # Công cụ thu thập, tiền xử lý và kiểm định tập dữ liệu
-    ├── dev/                  # Tiện ích hỗ trợ phát triển và quét mã bí mật
-    ├── research/             # Kịch bản huấn luyện, phân tích góc quay và tái tạo báo cáo
-    └── validation/           # Bộ kịch bản kiểm tra toàn vẹn checkpoint và hiệu chuẩn camera
-```
-
-### Tài liệu kỹ thuật chuyên sâu (Technical Documentation)
-- **[Kiến trúc Hệ thống & Hợp nhất Đa tín hiệu (docs/architecture.md)](docs/architecture.md)**: Sơ đồ chi tiết quy trình xử lý luồng, máy trạng thái sự kiện Observable Event Engine và cơ chế chống đếm trùng tín hiệu.
-- **[Hướng dẫn Triển khai & Vận hành (docs/deployment.md)](docs/deployment.md)**: Hướng dẫn cài đặt từ đầu, tham số dòng lệnh launcher và danh mục xử lý sự cố thường gặp.
-- **[Báo cáo Kiểm định Phần cứng & Chứng thực (docs/validation.md)](docs/validation.md)**: Toàn văn kết quả kiểm định soak test 10 phút, đo lường an toàn bộ nhớ VRAM, độ trễ từng module và ma trận sẵn sàng phần cứng.
-- **[Nghiên cứu Mô hình & Tập Dữ liệu (docs/research.md)](docs/research.md)**: Căn cứ khoa học, phân tích tập dữ liệu SCB-Dataset5, AFLW, chuẩn hóa góc quay và đánh giá abalation V4D.
-- **[Kiểm thử & Đảm bảo Chất lượng (docs/testing.md)](docs/testing.md)**: Phân loại 219 tests, hướng dẫn chạy kiểm thử tự động và giải thích chi tiết các bài test phụ thuộc dữ liệu offline.
-
----
-
-## 12. Kiểm thử và Đánh giá tính toàn vẹn
-
-### 12.1 Kết quả kiểm định Pytest thực tế
-
-Báo cáo kiểm định độc lập được ghi nhận trung thực và minh bạch:
-
-- **Bộ kiểm thử phục vụ Runtime / Demo**: **100% ĐẠT** (Toàn bộ 39 tests cốt lõi tập trung và 196 tests kiểm tra logic phần mềm đều vượt qua).
-- **Tổng số ca kiểm thử thu thập (`pytest -ra`)**: **219 tests**
-  - **196 tests ĐẠT (Passed)**: Bao gồm toàn bộ quy trình nhận diện, bám vết ByteTrack, phân loại tư thế MobileNetV3, ước lượng góc quay đầu HopeNet, suy luận hợp nhất V4D, máy trạng thái sự kiện, tính điểm rủi ro, API FastAPI, WebSocket và Dashboard UI.
-  - **21 tests KHÔNG ĐẠT (Failed)**: Xuất phát hoàn toàn từ việc **các tập dữ liệu nghiên cứu huấn luyện ngoại tuyến** (`datasets/processed_v3`, `datasets/stage1_5`, `datasets/v4_crop`, `datasets/v4_head_pose`) nằm trong `.gitignore` và không được phân phối trên máy triển khai thực tế. Không có bất kỳ lỗi nào liên quan đến logic thực thi runtime của sản phẩm.
-  - **2 tests ĐƯỢC BỎ QUA (Skipped)**: Bỏ qua do thiếu thư mục dữ liệu ảnh khuôn mặt gốc AFLW.
-
-### 12.2 Các lệnh kiểm thử khuyến nghị
-
-Chạy bộ kiểm thử tập trung cho runtime và demo:
 ```powershell
-.\.venv\Scripts\pytest tests/test_final_certification_audit.py tests/test_dashboard_ui.py tests/test_api.py tests/test_stage2_api_contract.py tests/test_v4d_event_engine.py tests/test_v4d_fusion_engine.py tests/test_laptop_preflight.py -v
+git switch main
+git pull --ff-only origin main
+git lfs pull
 ```
 
-Chạy toàn bộ pytest của repository:
+Giữ nguyên thay đổi cục bộ nếu Git báo xung đột hoặc lịch sử phân kỳ. Chạy lại setup khi dependencies thay đổi. Sau khi cài, runtime cục bộ không cần dịch vụ cloud.
+
+## Kiểm thử phần mềm
+
+Lựa chọn regression tập trung sau bảo vệ Adaptive Runtime, điện thoại/association, tracking/overlay, API, bảo mật và nguồn video:
+
 ```powershell
-.\.venv\Scripts\pytest -ra
+.\.venv\Scripts\python.exe -m pytest -q tests/test_adaptive_runtime.py tests/test_high_recall_and_reliability.py tests/test_live_track_overlay.py tests/test_multi_track_validation.py tests/test_api.py tests/test_auth_and_rbac.py tests/test_video_source.py tests/test_async_capture_and_latest_frame.py tests/test_repo_secret_audit.py
 ```
 
----
+Chạy test trong checkout tạm để fixture không dùng database vận hành. Không chạy physical preflight, benchmark camera hay test toàn bộ vòng đời launcher khi đang giám sát. [Hướng dẫn kiểm thử](docs/testing.md) phân biệt test phần mềm, kiểm tra thiết bị thật và yêu cầu dữ liệu nghiên cứu.
 
-## 13. Kết quả xác thực trên cấu hình ASUS TUF Gaming A17
+Trong đợt bảo trì ngày **16/10/2026**, đã cài dependencies vào môi trường CPU mới, `pip check` đạt, **115 test tập trung đạt**, import **78 module** và forward thật **bốn model trên CPU** đạt bằng đầu vào tổng hợp. Đây là kiểm chứng phần mềm/cài đặt; không phải phép đo FPS laptop hay lần kiểm tra GUI/camera vật lý mới.
 
-Hệ thống đã trải qua quá trình đo đạc thực nghiệm vật lý khắt khe trên cấu hình laptop tham chiếu đại diện cho môi trường demo di động:
+## Kết quả đo đã có và giới hạn
 
-### 13.1 Thông số phần cứng máy thử nghiệm
-- **Thiết bị**: Laptop ASUS TUF Gaming A17 (Mã model: `FA707RC_FA707RC`)
-- **Vi xử lý (CPU)**: AMD Ryzen 7 6800H with Radeon Graphics (8 nhân vật lý, 16 luồng xử lý @ 3.2 GHz)
-- **Bộ nhớ RAM**: 16 GB DDR5 (Tốc độ đo được: 4800 MT/s)
-- **Card đồ họa (GPU)**: NVIDIA GeForce RTX 3050 Laptop GPU (4.096 MB VRAM)
-- **Phiên bản Driver NVIDIA**: 566.07 (Hỗ trợ CUDA 12.6)
-- **Kiểm kê Camera Vật lý Thực tế**:
-  - **Chỉ mục 0 (Index 0)**: `USB2.0 HD UVC WebCam` (DirectShow `CAP_DSHOW`, 1280x720 @ 30 FPS) — Hoạt động bình thường.
-  - **Chỉ mục 1 (Index 1)**: Không tìm thấy camera vật lý thứ 2 (`isOpened() == False`).
-  - **Định danh trạng thái**: `AVAILABLE_PHYSICAL_CAMERAS = 1`, `PHYSICAL_SINGLE_CAMERA_VALIDATED = YES`, `PHYSICAL_DUAL_CAMERA_VALIDATED = NO`.
-- **Hệ điều hành**: Microsoft Windows 11 Home 64-bit
+[Báo cáo chất lượng phát hiện ngày 15/10/2026](docs/final-detection-quality-validation.md) ghi nhận cửa sổ quan sát 20 giây sau restart trên **Windows 11, Ryzen 9 9950X, RTX 5070 12 GB**, Python 3.13.9, PyTorch 2.11.0+cu128 và camera USB DirectShow:
 
-### 13.2 Kết quả đo đạc thực nghiệm & Nguồn gốc kiểm chuẩn (Benchmark Provenance)
-Toàn bộ thông số hiệu năng đều có nhãn nguồn gốc kiểm định rõ ràng (chi tiết tại [docs/multi-camera-validation.md](docs/multi-camera-validation.md)):
-- **Đơn camera vật lý (`PHYSICAL_USB`)**: AI hiệu dụng 7,12 FPS, độ trễ p50 = 66,0 ms, p95 = 88,2 ms, tỷ lệ rớt 0,0%.
-- **Đôi camera hỗn hợp (`MIXED_PHYSICAL_REPLAY`)**: 1 Webcam USB vật lý (9,12 FPS) + 1 luồng video phát lại (13,86 FPS), độ trễ p50 = 63,5 ms, tỷ lệ rớt 0,0%.
-- **Đôi camera phát lại (`REPLAY_VIDEO`)**: 2 luồng đồng thời 14,1 FPS/camera, tỷ lệ rớt 0,0%, phân phối suy luận cân bằng tuyệt đối (tỷ lệ 1.000).
-- **Bốn camera phát lại tải cao (`REPLAY_VIDEO`)**: 4 luồng đồng thời 7,77 FPS/camera, độ trễ p50 = 120,1 ms, tỷ lệ rớt 0,0%, chia sẻ GPU công bằng.
-- **Bộ nhớ VRAM GPU (Đo lường chính xác qua PyTorch CUDA API)**:
-  - Trọng số mô hình cơ sở (`torch.cuda.memory_allocated()`): **130,34 MB** (yolo26m: 44.3 MB, stage1_5: 44.0 MB, v4_posture: 18.5 MB, v4_headpose: 23.5 MB).
-  - VRAM cấp phát cơ sở (`torch.cuda.memory_reserved()`): **444,0 MB**.
-  - Đỉnh kích hoạt động tối đa (`torch.cuda.max_memory_allocated()`): **504,35 MB** (khi tải đồng thời 4 camera).
-- **Bộ nhớ RAM máy chủ chiếm dụng**: 1.650 – 1.720 MB RSS.
-- **Tính độc lập & Cách ly**:
-  - Không nhận diện khuôn mặt sinh trắc học hoặc Re-ID chéo camera.
-  - Bám vết phân định độc lập theo bộ đôi `(camera_id, track_id)`.
-  - Hàng đợi, bộ đệm khung hình và ảnh chụp bằng chứng hoàn toàn tách biệt theo từng camera.
+| Chỉ số | Giá trị quan sát |
+|---|---:|
+| Camera acquisition | 3840×2160 MJPEG |
+| Capture FPS trung bình | 26.93 FPS |
+| AI FPS toàn pipeline trung bình | 17.28 FPS |
+| Độ tuổi khung từ sau decode đến kết quả, p50 / p95 | 66.84 / 86.42 ms |
+| Đầu vào detector thực tế | 960×960, CUDA |
 
----
+Đây là số đo lịch sử trên một workstation, không phải benchmark mới của đợt cleanup hay cam kết cho máy khác. Độ tuổi khung bắt đầu từ timestamp phần mềm sau decode, không gồm thời gian phơi sáng sensor hoặc debounce để mở sự kiện. Độ phân giải camera không phải kích thước đầu vào neural network.
 
-## 14. Đánh giá tính sẵn sàng: Pilot Kiểm soát vs Sản xuất
+Precision/recall trên tập đại diện, false events/hour, độ chính xác trong phòng thi đông, liên kết sai người và phát hiện điện thoại xa/bị che vẫn **chưa được xác minh đầy đủ** bằng dữ liệu gắn nhãn độc lập. Regression tổng hợp và thử scale trên một ảnh không chứng minh độ chính xác thực tế của lớp học. Dự án dành cho trình diễn/nghiên cứu học thuật có giám thị, chưa phải hệ thống tự động đưa ra quyết định kỷ luật.
 
-Để đảm bảo tính trung thực kỹ thuật tuyệt đối, dự án xác lập rõ ranh giới vận hành:
+## Cấu trúc repository
 
-| Tiêu chí đánh giá | Trạng thái | Giải thích chi tiết |
-|---|:---:|---|
-| **Sẵn sàng cho Demo trường học (`READY_FOR_SCHOOL_DEMO`)** | **YES** | Hệ thống đóng gói hoàn chỉnh, vận hành ổn định trên 1 máy trạm, launcher 1 click, giao diện đẹp mắt, bằng chứng trực quan. |
-| **Sẵn sàng cho Thử nghiệm Thí điểm An toàn (`READY_FOR_CONTROLLED_SECURE_PILOT`)** | **YES** | Nền tảng an ninh đã chứng thực: đăng nhập bắt buộc, Argon2id, RBAC, CSRF, mã hóa bằng chứng AES-256-GCM, bảo vệ khóa DPAPI, sao lưu mã hóa hoàn toàn trong RAM không lưu file tạm không mã hóa trên đĩa, băm kiểm toán bất biến. |
-| **Sẵn sàng cho Sản xuất Đại trà (`READY_FOR_PRODUCTION`)** | **NO** | Chưa sẵn sàng để triển khai quy mô toàn trường hoặc các kỳ thi pháp lý lớn khi chưa hoàn thiện các điều kiện hạ tầng bên dưới. |
-
-### Các hạng mục bắt buộc trước khi đưa vào sản xuất quy mô lớn (Production Blockers):
-1. **Thử nghiệm phòng thi thực tế đa camera vật lý**: Kiểm định đồng thời nhiều camera IP/CCTV lắp đặt tại phòng thi thực.
-2. **Bảo mật kênh truyền mạng (TLS/HTTPS)**: Bắt buộc cấu hình chứng chỉ số TLS cho các điểm kết nối từ xa ngoài localhost.
-3. **Quản lý khóa trung tâm (Central KMS/HSM)**: Nâng cấp từ Windows DPAPI cục bộ sang giải pháp quản lý khóa tập trung cấp tổ chức.
-4. **Cơ sở dữ liệu tập trung & Dự phòng thảm họa**: Lưu trữ phân tán chịu lỗi cao (PostgreSQL Clustered) thay thế SQLite cục bộ.
-5. **Đánh giá an ninh độc lập (Penetration Testing)**: Thực hiện kiểm thử thâm nhập độc lập trước khi tiếp nhận dữ liệu thi chính thức.
-
----
-
-## 15. Nghiên cứu và Huấn luyện ngoại tuyến
-
-Dành cho các nhà nghiên cứu và kỹ sư muốn tìm hiểu quy trình xây dựng dữ liệu và huấn luyện các mô hình trong hệ thống:
-
-```
-Tập dữ liệu thô (datasets/raw/)
-    │
-    ▼
-Kiểm định & Lọc dữ liệu (training/inspect_dataset.py, training/validate_dataset.py)
-    │
-    ▼
-Trực quan hóa mẫu nhãn (training/visual_sample_inspector.py)
-    │
-    ▼
-Ánh xạ nhãn chuẩn hóa (configs/dataset_mapping.yaml, training/class_mapping.py)
-    │
-    ▼
-Phân chia tập train/val/test theo nhóm (training/split_dataset.py, training/build_manifest.py)
-    │
-    ▼
-Huấn luyện nền tảng Stage 1 (training/train_stage1.py, configs/train_stage1.yaml)
-    │
-    ▼
-Huấn luyện thích nghi miền Stage 2 (training/train_stage2.py, configs/train_stage2.yaml)
-    │
-    ▼
-Đánh giá chuyên sâu (training/evaluate.py)
+```text
+configs/       Cấu hình runtime, profile tham chiếu, mapping/training
+docs/         Hướng dẫn, kiến trúc, bảo mật, nghiên cứu và báo cáo kiểm chứng
+models/        Checkpoint, model fallback và manifest định danh
+scripts/       Launcher Auto/ASUS, chọn nguồn và script Windows
+src/           Detection, tracking, fusion, evidence, persistence, API/dashboard
+tests/         Regression, bảo mật và fixture tổng hợp/metadata
+tools/         Acquisition, nghiên cứu, benchmark, validation và công cụ phát triển
+*.bat          Setup, khởi chạy, dừng, chọn nguồn và cài shortcut Windows
 ```
 
-### Ràng buộc bất biến về tăng cường dữ liệu định hướng:
-Trong tất cả các cấu hình huấn luyện hành vi tư thế, bắt buộc phải thiết lập:
-```yaml
-fliplr: 0.0
-flipud: 0.0
-```
-*Nguyên do: Hành vi thi cử có tính định hướng không gian nghiêm ngặt (ví dụ: quay đầu nhìn bài thí sinh bên trái khác với bên phải). Việc lật ngang ảnh ngẫu nhiên (horizontal flip) sẽ làm đảo lộn ngữ nghĩa góc quay và phá hủy khả năng học góc đầu của mô hình.*
+`requirements-runtime.txt` là danh sách dependencies dùng chung; `requirements.txt` chuyển tiếp tới file này. Setup chọn PyTorch CPU/CUDA riêng. `.venv/`, `.runtime/`, `storage/`, `evidence/`, `reports/`, `runs/`, backup, log và secrets được giữ cục bộ. Xem [quyết định bảo trì repository](docs/repository-maintenance.md).
 
----
+## Bảo mật, quyền riêng tư và ghi công
 
-## Giấy phép và Tác giả
+Dữ liệu giám sát lưu cục bộ. Hệ thống có authentication/RBAC, CSRF, cách ly phiên, mã hóa evidence, lưu khóa DPAPI và human review. ID tracking ẩn danh không làm hình ảnh camera mất tính chất dữ liệu cá nhân. Người vận hành chịu trách nhiệm về sự đồng ý, quyền truy cập, thời hạn lưu và rà soát phù hợp. Khi backup, giữ database, evidence và khóa liên quan cùng nhau; clone mã nguồn không chuyển phiên riêng hay khóa gắn với tài khoản Windows sang máy khác.
 
-- **Dự án**: ExamGuard Vision
-- **Tác giả / Nhóm phát triển**: Nguyễn Tú Thiên Long - Hoàng Văn Thái - Nguyễn Minh Đức
-- **Mục đích**: Nghiên cứu khoa học, chuyển đổi số giáo dục và hỗ trợ nâng cao tính trung thực trong thi cử.
-- **Giấy phép**: Đề tài nghiên cứu ứng dụng — Chưa công bố giấy phép mã nguồn mở chính thức. Vui lòng ghi rõ nguồn khi tham khảo hoặc tái sử dụng.
+Ghi công cho các tác giả bên thứ ba: [Ultralytics YOLO26](https://docs.ultralytics.com/models/yolo26/) với [điều khoản AGPL-3.0 / Enterprise](https://www.ultralytics.com/license), [ByteTrack](https://github.com/FoundationVision/ByteTrack) (upstream MIT; ứng dụng dùng adapter của Ultralytics) và [HopeNet](https://github.com/natanielruiz/deep-head-pose) (upstream Apache-2.0). Điều khoản dataset khác với code/model; dữ liệu công khai không mặc nhiên có quyền phân phối lại. [Tài liệu nghiên cứu](docs/research.md) dẫn nguồn SCB, AFLW/3DDFA, COCO và nêu các quyền chưa xác minh.
+
+Nhóm phát triển: **Nguyễn Tú Thiên Long, Hoàng Văn Thái, Nguyễn Minh Đức**. Dự án chưa công bố giấy phép mã nguồn mở chung; đợt bảo trì này không thay giấy phép hay cấp quyền đối với tài sản bên thứ ba.
+
+## Tài liệu bổ sung
+
+- [Cài đặt Windows và xử lý lỗi](docs/universal-windows-setup.md)
+- [Adaptive Runtime](docs/adaptive-runtime.md) và [kiến trúc pipeline](docs/architecture.md)
+- [Bảo mật](docs/security.md) và [lưu trữ/bằng chứng](docs/persistence-and-evidence.md)
+- [Tính toàn vẹn checkpoint](docs/model-integrity.md) và [kiểm thử](docs/testing.md)
+- [Kiểm chứng học thuật RTX 5070](docs/final-academic-validation.md) và [chất lượng phát hiện](docs/final-detection-quality-validation.md)
+- [Nghiên cứu/dataset](docs/research.md) và [bảo trì repository](docs/repository-maintenance.md)

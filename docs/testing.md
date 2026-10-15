@@ -1,103 +1,60 @@
-# ExamGuard Vision — Testing & Quality Assurance Guide
+# Testing ExamGuard Vision
 
-This document describes the testing architecture, test categorization, execution commands, and expected outcomes across all automated validation suites in ExamGuard Vision.
+Use the focused software selection below for source maintenance. Historical suite totals are recorded in [academic validation](final-academic-validation.md) and [detection-quality validation](final-detection-quality-validation.md); they are not a promise about a new machine or a reason to rerun every test.
 
-> Kết quả hiện hành, exclusion offline chính xác và lệnh Auto/physical validation: [final-academic-validation.md](final-academic-validation.md). Các tổng số và kết quả ASUS bên dưới là snapshot lịch sử, không phải kết quả của workstation mới. Không chạy test launcher/preflight đang giữ camera khi người dùng có monitoring session ACTIVE.
+## Prepare an isolated checkout
 
----
+Run Windows setup on a new machine as described in the [README](../README.md). For maintenance while the owner's app is active, create a disposable checkout or source snapshot and a separate environment instead of running tests against the operational folder. API fixtures can create databases, keys, and evidence under the checkout's `storage/` directory even when they do not use a physical camera.
 
-## 1. Test Architecture Overview
+The supported dependency order is PyTorch/torchvision for CPU or CUDA first, then `requirements-runtime.txt`, then `python -m pip check`. `requirements.txt` forwards to that shared definition. The required Git/LFS models and synthetic/metadata fixtures are tracked; real session data is not.
 
-The repository utilizes **pytest** as its automated test runner, configured at the root via `pytest.ini`. The test suite consists of **219 collected tests** designed to safeguard code correctness, cryptographic integrity, API contracts, and real-time inference safety:
+## Software regression checks
 
-```
-tests/
-├── fixtures/                           # Lightweight test fixtures and metadata
-│   ├── scb_dataset5_full/              # Dataset statistics & identity reports
-│   ├── annotation_conflicts_v3.json    # Quarantined conflict index
-│   ├── generate_sample_video.py        # Synthetic test video generator
-│   └── sample_exam.mp4                 # Synthetic offline exam hall clip
-│
-├── test_stage2_pipeline_orchestration.py # End-to-end single frame & stream pipeline tests
-├── test_stage2_integrity.py            # Checkpoint identity, taxonomy, and cadence tests
-├── test_stage2_model_registry.py       # Singleton model lifecycle & SHA-256 validation
-├── test_stage2_api_contract.py         # FastAPI REST endpoints and WebSocket lifecycle
-├── test_stage2_event_integration.py    # Multi-cue event state progression & cooldown
-├── test_stage2_batch_track_mapping.py  # ByteTrack association & crop scheduler gating
-├── test_stage2_backpressure.py         # Bounded ingestion queue and frame dropping
-├── test_stage2_memory_bounds.py        # RSS and VRAM memory leak prevention
-├── test_stage2_evidence_lifecycle.py   # Snapshot capture, evidence linking & cleanup
-├── test_stage2_timestamp_flow.py       # Monotonic clock validation, NaN/Inf rejection
-├── test_dashboard_ui.py                # Dashboard HTML, components & offline assets
-├── test_laptop_preflight.py            # Hardware probing, GPU capability, port tests
-├── test_desktop_semantic_integrity.py  # Decoupled software validation & origin tagging
-├── test_pilot_preparation.py           # Camera profile schemas, seat zones, retention
-├── test_pilot_integrity_corrective.py  # Operating envelope, RTSP recovery, 7/7 hashes
-├── test_rules_scorer.py                # Risk scoring, thresholds & debounce rules
-├── test_temporal_buffer.py             # Sliding window history & track eviction
-├── test_v4d_capability.py              # Dynamic headpose & posture dispatch tests
-├── test_v4d_event_engine.py            # Observable event state machine transitions
-├── test_v4d_fusion_engine.py           # Multi-cue temporal fusion & veto rules
-├── test_v4d_missing_cues.py            # Graceful degradation under missing cue inputs
-├── test_v4d_replay.py                  # Telemetry JSONL replay determinism
-├── test_v4d_risk_aggregator.py         # Risk level recurrence escalation
-├── test_v4d_temporal_buffer.py         # Duration-in-state calculation & timestamp order
-├── test_v4d_timestamp_robustness.py    # FPS invariance (15, 25, 30 FPS)
-├── test_video_source.py                # VideoSource abstractions (Webcam, File, RTSP)
-├── test_pipeline_smoke.py              # Rapid end-to-end software smoke test
-├── test_acquisition_v2.py              # Preflight bounding box geometry checks
-├── test_acquisition_v3.py              # SCB5 identity handling & duplicate resolution
-├── test_stage1_5_pipeline.py           # Stage 1.5 holdout & duplicate hash checks
-└── test_v4b_crop_dataset.py            # Crop dataset manifest & ontology checks
-```
+From the disposable repository root, in PowerShell:
 
----
-
-## 2. Test Categorization & Expected Results
-
-When executing the complete test suite (`pytest -ra`), tests fall into two distinct categories:
-
-### 2.1 Runtime & Operational Test Suite (100% PASS)
-- **Scope**: Covers all software logic, model inference, tracking, fusion engine, event state machines, risk scoring, FastAPI REST routes, WebSocket broadcasting, and Dashboard UI rendering.
-- **Result**: **196 PASSED**, **2 SKIPPED**, **0 FAILURES**.
-- **Execution Command**:
-  ```powershell
-  .venv\Scripts\pytest.exe -k "not dataset and not v4b and not stage1_5_holdout and not processed_v3"
-  ```
-
-### 2.2 Offline Dataset-Dependent Tests (Expected Failures on Deployment)
-- **Scope**: Tests located in `test_v4b_crop_dataset.py`, `test_acquisition_v3.py`, and `test_stage1_5_pipeline.py` that verify the raw offline training directory trees (`datasets/processed_v3`, `datasets/stage1_5_holdout`, `datasets/v4_crop`).
-- **Why they fail on clean clone**: In accordance with privacy and repository cleanliness standards, **raw training datasets are excluded from git tracking** via `.gitignore`. The repository distributes certified frozen model checkpoints, not gigabytes of student training images.
-- **Expected Failures**: ~21 dataset manifest tests fail because `datasets/` is intentionally absent on deployment workstations. This is the **correct, expected behavior** and does not impact software runtime operations.
-
----
-
-## 3. Recommended Test Commands
-
-### Run Rapid Runtime Smoke Suite (< 15 seconds)
 ```powershell
-.venv\Scripts\pytest.exe tests/test_pipeline_smoke.py tests/test_stage2_api_contract.py tests/test_stage2_model_registry.py
+.\.venv\Scripts\python.exe tools/validation/verify_checkpoint_hashes.py
+.\.venv\Scripts\python.exe -m pip check
+.\.venv\Scripts\python.exe -m pytest -q tests/test_adaptive_runtime.py tests/test_high_recall_and_reliability.py tests/test_live_track_overlay.py tests/test_multi_track_validation.py tests/test_api.py tests/test_auth_and_rbac.py tests/test_video_source.py tests/test_async_capture_and_latest_frame.py tests/test_repo_secret_audit.py
 ```
 
-### Run Full Stage 2 & V4D Core Suite
+This selection covers capability policy, mocked camera failure/mode checks, phone association, track isolation, source/preview coordinates, event semantics, REST/auth/RBAC, source abstractions, asynchronous capture, and secret-scanner redaction. Tests use synthetic data; passing them does not establish classroom detection accuracy. The DPAPI fixture is Windows-specific and creates only its own disposable credential blob.
+
+Other useful focused modules include `test_backup_encryption.py`, `test_session_bound_capture_and_auth_restart.py`, and `test_windows_launcher.py`. Some launcher tests write PID metadata or invoke stop scripts; execute them only in a disposable checkout, never against an active instance's `.runtime/` directory.
+
+Check changed Python syntax/imports, JavaScript with `node --check` (or `node --input-type=module --check` on stdin), PowerShell with `System.Management.Automation.Language.Parser`, configuration parsing, and `git diff --check`. Parse launchers without executing setup/start/stop during source-only review.
+
+## Physical checks: schedule separately
+
+The following can open a camera, change application lifecycle state, or compete for inference resources:
+
+- `scripts/laptop_preflight.py` and unmocked tests in `test_laptop_preflight.py`.
+- `test_launcher_lifecycle.py`: starts, stops, and restarts an application on port 8765.
+- Camera benchmarks and `tools/validation/validate_adaptive_workstation.py`.
+- Historical soak/session/physical certification utilities.
+
+Stop the intended ExamGuard instance normally before physical checks; never stop another application to free its port. Real hardware, first-run GUI actions, USB disconnect/reconnect, multi-camera use, RTSP, and crowded-room accuracy require their own evidence. A software test is not a substitute.
+
+`tools/validation/observe_live_runtime.py` only samples an already active process's telemetry, but its raw JSON output still remains local. Newly generated physical summary files go under ignored `reports/validation/`.
+
+## Offline research prerequisites
+
+There is no bundled training corpus or `training` Python package in the deployment checkout. Preserve existing datasets and their labels/splits when working in a research environment. In a clean deployment checkout:
+
+- `tests/test_dataset_tooling.py` cannot collect without the external `training.*` modules.
+- `test_acquisition_v3.py`, `test_stage1_5_pipeline.py`, and `test_v4b_crop_dataset.py` include checks needing separately acquired/prepared datasets.
+- Historical artifact assertions may skip when the original local `runs/` or `reports/` outputs are absent.
+
+Use explicit module selections rather than treating `pytest tests/` as a camera-free deployment gate. Do not manufacture datasets, historical reports, or evaluation results to make missing-prerequisite tests pass. See [research provenance](research.md).
+
+## Before publishing
+
+Stage an explicit reviewed file list, then run:
+
 ```powershell
-.venv\Scripts\pytest.exe tests/test_stage2_*.py tests/test_v4d_*.py
+.\.venv\Scripts\python.exe tools/dev/audit_repo_secrets.py --staged
+git diff --cached --check
+git diff --cached --stat
 ```
 
-### Run Laptop Hardware & Checkpoint Certification
-```powershell
-.venv\Scripts\python.exe scripts/laptop_preflight.py
-```
-
-### Run Headless Software Stack Verification
-```powershell
-.venv\Scripts\python.exe scripts/run_local_live_validation.py --validate-software-stack
-```
-
----
-
-## 4. Test Fixtures & Synthetic Data
-
-- **Synthetic Exam Video (`tests/fixtures/sample_exam.mp4`)**: Automatically generated via `tools/dev/generate_sample_video.py`. Renders synthetic geometric student avatars without using real human imagery.
-- **Conflict Quarantine Fixture (`tests/fixtures/annotation_conflicts_v3.json`)**: Contains the 2,939 quarantined multi-label conflict records used to assert negative supervision exclusion.
-- **SCB-Dataset5 Metadata (`tests/fixtures/scb_dataset5_full/`)**: Contains dataset identity and statistics JSON files verifying data provenance.
+The scanner reads exact index blobs in staged mode and reports path/line/rule only. Any finding needs review, including known synthetic test passwords; it is a pattern scan, not a guarantee that no secret exists. Inspect additions/deletions, credential-bearing URLs, binary artifacts, and ignored source separately. Preserve local-only data with `git rm --cached` when untracking; do not delete the owner's evidence or rewrite history as part of routine cleanup.

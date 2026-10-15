@@ -549,7 +549,8 @@ def run_session_a_b_verification():
     print("=" * 76)
 
     # Persist summary
-    report_file = REPO_ROOT / "tools" / "validation" / "physical_session_ab_workflow_results.json"
+    report_file = REPO_ROOT / "reports" / "validation" / "physical_session_ab_workflow_results.json"
+    report_file.parent.mkdir(parents=True, exist_ok=True)
     with open(report_file, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2)
     print(f"Results written to: {report_file}\n")

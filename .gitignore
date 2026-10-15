@@ -148,3 +148,17 @@ backups/
 *.sqlite3-journal
 storage/db/
 storage/sessions/
+
+# Local historical outputs and retired one-off probes (kept on the owner PC).
+/configs/deployment/repository_packaging_audit.json
+/tools/dev/scratch_check_scb_sizes.py
+/tools/dev/scratch_find_clean_crops.py
+/tools/dev/scratch_inspect_kaggle.py
+/tools/dev/scratch_inspect_kaggle_zip.py
+/tools/dev/scratch_inspect_remote_zips.py
+/tools/dev/scratch_inspect_roboflow.py
+/tools/validation/canonical_physical_single_camera_benchmark.json
+/tools/validation/final_60m_soak_summary.json
+/tools/validation/physical_normal_baseline_results.json
+/tools/validation/physical_session_ab_workflow_results.json
+/tools/validation/scale_and_dense_room_certification_results.json

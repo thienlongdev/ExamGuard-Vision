@@ -43,14 +43,11 @@ import json
 import logging
 import os
 import platform
-import queue
-import shutil
 import socket
 import subprocess
 import sys
 import threading
 import time
-from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Any, Callable
 
 import cv2
@@ -69,13 +66,11 @@ if hasattr(cv2, "utils") and hasattr(cv2.utils, "logging"):
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from src.pilot.preflight import CERTIFIED_HASHES
-from src.video.base import VideoFrame
 from src.video.webcam import WebcamSource
-from src.orchestration.stage2_pipeline import Stage2Pipeline, Stage2FrameResult, Stage2FrameMetrics
+from src.orchestration.stage2_pipeline import Stage2Pipeline, Stage2FrameResult
 from src.orchestration.session_capture import SessionCaptureController
 from src.api.main import create_app
-from src.behavior.event_manager import EventManager, SuspiciousEvent
-from src.fusion.types import FusedEvent, RiskLevel, ObservationStatus
+from src.fusion.types import FusedEvent
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("local_live_validation")

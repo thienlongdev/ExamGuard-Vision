@@ -1,7 +1,6 @@
 """Default Auto launcher. Reuses the existing authenticated, session-bound live application."""
 import argparse
 from collections import deque
-import json
 import logging
 import os
 from pathlib import Path

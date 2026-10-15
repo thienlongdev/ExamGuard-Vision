@@ -670,7 +670,8 @@ def run_60m_soak():
         }
     }
 
-    out_file = REPO_ROOT / "tools" / "validation" / "final_60m_soak_summary.json"
+    out_file = REPO_ROOT / "reports" / "validation" / "final_60m_soak_summary.json"
+    out_file.parent.mkdir(parents=True, exist_ok=True)
     with open(out_file, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
 

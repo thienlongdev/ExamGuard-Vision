@@ -175,7 +175,7 @@ For a standard 30–40 student examination hall (typically 5 columns x 7–8 row
 
 ## 8. Physical Normal Exam Behavior Baseline (30-Minute Soak)
 
-A dedicated physical validation run (`sess_1791134491_b62c0d`) was executed with 1 real cooperative participant performing genuine seated exam tasks (reading exam sheets, writing answers, turning pages, slight posture adjustments) for 30.00 continuous minutes (1,800.07 wall-clock seconds).
+A dedicated physical validation run ([session identifier omitted]) was executed with 1 real cooperative participant performing genuine seated exam tasks (reading exam sheets, writing answers, turning pages, slight posture adjustments) for 30.00 continuous minutes (1,800.07 wall-clock seconds).
 
 ### Hardware & Environment
 - **Camera:** 1280x720 @ 30 FPS (`CAP_MSMF`), 1.2m height, 15° downward tilt.

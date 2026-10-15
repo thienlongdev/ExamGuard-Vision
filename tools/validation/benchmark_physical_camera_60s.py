@@ -232,7 +232,8 @@ def run_benchmark(duration_sec: float = 60.0, target_ai_fps: float = 12.0, cam_i
     }
 
     # Save to local benchmark file
-    out_file = REPO_ROOT / "tools" / "validation" / "canonical_physical_single_camera_benchmark.json"
+    out_file = REPO_ROOT / "reports" / "validation" / "canonical_physical_single_camera_benchmark.json"
+    out_file.parent.mkdir(parents=True, exist_ok=True)
     with open(out_file, "w", encoding="utf-8") as f:
         json.dump(benchmark_summary, f, indent=2)
 

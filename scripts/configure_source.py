@@ -1,5 +1,4 @@
 """Optional first-run source chooser. Ordinary Auto startup requires no source editing."""
-import json
 from pathlib import Path
 import sys
 from urllib.parse import quote, urlsplit, urlunsplit

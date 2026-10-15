@@ -538,7 +538,8 @@ def main():
         "headpose_distance_gating": headpose_results,
     }
 
-    out_file = REPO_ROOT / "tools" / "validation" / "scale_and_dense_room_certification_results.json"
+    out_file = REPO_ROOT / "reports" / "validation" / "scale_and_dense_room_certification_results.json"
+    out_file.parent.mkdir(parents=True, exist_ok=True)
     with open(out_file, "w", encoding="utf-8") as f:
         json.dump(summary, f, indent=2)
 

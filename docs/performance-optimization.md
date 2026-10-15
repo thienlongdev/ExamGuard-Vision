@@ -223,7 +223,7 @@ All certification gates have passed:
 
 ## 11. Telemetry Frame Count & Capture FPS Arithmetic Reconciliation
 
-During the 60-minute certification soak (`sess_1791126473_06b532`), the telemetry system reported:
+During the 60-minute certification soak ([session identifier omitted]), the telemetry system reported:
 - **Total Captured Frames:** 104,952 frames
 - **Total Elapsed Wall-Clock Time:** 3,600.07 seconds
 - **Reported Mean Camera Observed FPS:** 28.51 FPS
@@ -244,7 +244,7 @@ During the 60-minute certification soak (`sess_1791126473_06b532`), the telemetr
 ## 12. 60-Minute Soak 311 Evidence Artifact Forensic Reconciliation
 
 ### Exact Object Cardinality
-In session `sess_1791126473_06b532`:
+In session [session identifier omitted]:
 - **Unique Events in SQLite Database:** 311
 - **Snapshot Evidence Records:** 311 (`storage/sessions/.../snapshot.jpg.enc`)
 - **Video Clip Evidence Records:** 311 (`storage/sessions/.../clip.mp4.enc`)

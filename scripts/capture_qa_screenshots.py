@@ -21,7 +21,6 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")
 import uvicorn
 import numpy as np
 import cv2
-from pathlib import Path
 from playwright.sync_api import sync_playwright
 
 from src.api.main import create_app
