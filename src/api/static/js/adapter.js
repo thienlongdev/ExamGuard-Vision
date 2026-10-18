@@ -119,7 +119,9 @@ export function normalizeEvent(raw) {
   const ts = Number(raw.timestamp || raw.last_update_timestamp || raw.end_time || Date.now() / 1000);
   const startTime = Number(raw.start_time || raw.start_timestamp || ts);
   const endTime = Number(raw.end_time || raw.end_timestamp || ts);
-  const duration = Number(raw.duration !== undefined ? raw.duration : (endTime > startTime ? endTime - startTime : 0));
+  const observedDuration = raw.evidence_summary?.active_evidence_duration ?? raw.evidence?.active_evidence_duration;
+  const boundedOrientation = ["SUSTAINED_LATERAL_HEAD_ORIENTATION", "SUSTAINED_TORSO_ROTATION", "SUSTAINED_SIDEWAYS_LEAN", "REARWARD_TURN_CANDIDATE"].includes(raw.event_type);
+  const duration = Number(boundedOrientation && observedDuration !== undefined ? observedDuration : (raw.duration !== undefined ? raw.duration : (endTime > startTime ? endTime - startTime : 0)));
 
   // Risk & Score
   const rawScore = raw.score !== undefined ? raw.score : (raw.risk_score !== undefined ? raw.risk_score : 0.0);

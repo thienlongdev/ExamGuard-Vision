@@ -538,6 +538,9 @@ export class CameraViewComponent {
         } else if (t.phone_candidate_only) {
           badgeHtml = `<span class="track-tag-badge candidate">⌛ ĐANG XÁC MINH</span>`;
           bottomText = "Ứng viên điện thoại";
+        } else if (t.body_candidate) {
+          badgeHtml = `<span class="track-tag-badge candidate">👁 ĐANG QUAN SÁT</span>`;
+          bottomText = getEventNameVi(t.body_candidate);
         } else if (yawAbs !== null) {
           bottomText = `Góc quay • ${t.yaw_deg}°`;
         } else if (t.turn_candidate || t.candidate) {

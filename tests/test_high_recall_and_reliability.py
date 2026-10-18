@@ -253,11 +253,15 @@ def test_ten_repeated_incidents_produce_ten_distinct_events():
         ev, act = sm.process_frame(t, evidence_score=0.65, is_vetoed=False, cue_state=None)
         assert sm.state == EventLifecycleState.CANDIDATE
         
-        # Frame 2: Candidate duration elapsed (0.7s) -> OPEN
-        t += 0.7
+        # Observed orientation time is capped at 0.5s per sample (a91f407).
+        # Supply continuous observations instead of counting a sparse 0.7s gap.
+        t += 0.35
+        assert sm.process_frame(t, evidence_score=0.65, is_vetoed=False, cue_state=None)[1] == "NONE"
+        t += 0.35
         ev_open, act_open = sm.process_frame(t, evidence_score=0.65, is_vetoed=False, cue_state=None)
         assert act_open == "OPEN"
         assert ev_open is not None
+        assert ev_open.evidence_summary["active_evidence_duration"] >= 0.6
         event_ids.append(ev_open.event_id)
         assert sm.state == EventLifecycleState.ACTIVE
         
@@ -293,6 +297,7 @@ def test_independent_event_types_do_not_suppress_each_other():
         track_id=1,
         last_update_timestamp=1.0,
         turn_fused_evidence=0.65,
+        orientation_observed=True,
         phone_detected=True,
         phone_confidence=0.85,
         phone_association_status="CLEAR_ASSOCIATION",
@@ -303,7 +308,9 @@ def test_independent_event_types_do_not_suppress_each_other():
     cue.last_update_timestamp = 0.0
     engine.process_cue_state(cue)
     
-    # Frame 2 at t=0.8: both candidate durations passed -> both OPEN
+    # Fresh observed samples satisfy orientation time as well as phone duration.
+    cue.last_update_timestamp = 0.4
+    engine.process_cue_state(cue)
     cue.last_update_timestamp = 0.8
     emitted = engine.process_cue_state(cue)
     

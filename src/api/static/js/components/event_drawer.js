@@ -112,6 +112,10 @@ export class EventDrawerComponent {
     // Macro cue
     const rawMacro = obs.macro?.cue || evObj.macro_behavior || "NOT_EVALUATED";
     const macroVi = MACRO_BEHAVIOR_VI[rawMacro] || POSTURE_NAMES_VI[rawMacro] || (rawMacro === "AVAILABLE" ? "Có dữ liệu" : (rawMacro === "NOT_EVALUATED" ? "Chưa đánh giá" : rawMacro));
+    const body = ["SUSTAINED_TORSO_ROTATION", "SUSTAINED_SIDEWAYS_LEAN", "REARWARD_TURN_CANDIDATE"].includes(ev.canonicalType) ? (obs.body || evObj.body) : null;
+    const bodyText = body?.calibrated
+      ? (body.rearward_score > 0 ? "Vai và hông đổi hướng — cần đối chiếu hình ảnh" : body.lean_score > 0 ? "Đầu và thân lệch sang bên" : body.rotation_score > 0 ? "Bề rộng vai và hông thay đổi" : "Chưa đủ dấu hiệu")
+      : "Chưa đủ mốc tư thế hoặc vai/hông bị che";
 
     // Status separation:
     const lifecycleLabel = (ev.lifecycle === "closed") ? "Đã kết thúc" : "Đang diễn ra";
@@ -230,6 +234,8 @@ export class EventDrawerComponent {
               <span class="cue-name">Hành vi tổng quát</span>
               <span class="cue-val">${macroVi}</span>
             </div>
+            ${body ? `<div class="cue-row"><span class="cue-name">Quan sát thân người (2D)</span><span class="cue-val">${bodyText}</span></div>
+            <div class="cue-row"><span class="cue-name">Thời gian có dấu hiệu</span><span class="cue-val">${formatDurationVi(evObj.active_evidence_duration || 0)}</span></div>` : ""}
           </div>
         </div>
 

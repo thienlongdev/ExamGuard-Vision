@@ -28,6 +28,9 @@ try {
     $locked = $mutex.WaitOne(0)
     if (-not $locked) { Write-Host 'ExamGuard is already initializing. Please wait.'; exit 0 }
     Write-Host 'ExamGuard Vision - Auto runtime'
+    Write-Host 'First use: Setup ExamGuard Vision.bat. Change source: Configure ExamGuard Source.bat.'
+    Write-Host 'Create admin at /setup; sign in; start a monitoring session to enable AI.'
+    Write-Host 'Stop: Stop ExamGuard Vision.bat. Missing models: git lfs pull. Diagnostics: .runtime/logs.'
     if (Get-Ready) { Write-Host 'ExamGuard Vision đang chạy.'; Open-Dashboard; exit 0 }
     $tcp = New-Object Net.Sockets.TcpClient
     try { $occupied = $tcp.ConnectAsync('127.0.0.1',$Port).Wait(500) -and $tcp.Connected } catch { $occupied = $false } finally { $tcp.Dispose() }

@@ -1,0 +1,42 @@
+ExamGuard Vision - third-party attribution and model provenance
+
+Project integration: Nguyen Tu Thien Long, Hoang Van Thai, Nguyen Minh Duc.
+This notice does not grant a new license for the project or third-party datasets.
+
+Ultralytics YOLO26 detector, macro model architecture, optional COCO pose model,
+and the BYTETracker implementation used through Ultralytics:
+https://github.com/ultralytics/ultralytics
+https://github.com/ultralytics/ultralytics/blob/main/LICENSE
+AGPL-3.0 / separately obtained Enterprise license. See licenses/Ultralytics-AGPL-3.0.txt.
+Pose source: https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n-pose.pt
+Pose SHA-256: eb3bb8268828aeaf515cec23a4bfafd793944a86fe9af94ba7823609c14522a9
+
+ByteTrack research and original implementation: Yifu Zhang and contributors.
+https://github.com/FoundationVision/ByteTrack
+Original upstream MIT text: licenses/ByteTrack-MIT.txt.
+The application imports BYTETracker from Ultralytics; the original MIT notice
+does not replace the license of the Ultralytics implementation.
+
+HopeNet head pose: Nataniel Ruiz and contributors, Georgia Institute of Technology.
+https://github.com/natanielruiz/deep-head-pose
+Apache-2.0 text with upstream attribution: licenses/HopeNet.txt.
+The project implements a yaw-specific variant and checkpoint adapter; it does
+not claim to have invented HopeNet or its ResNet backbone.
+
+MobileNetV3 / ResNet backbones: torchvision and original architecture authors.
+https://github.com/pytorch/vision
+BSD 3-Clause notice: licenses/TorchVision-BSD.txt.
+Project posture classes, checkpoint loading, PhoneAssociator, temporal/event
+rules, body geometry and dashboard integration are implemented in this source.
+
+Custom model metadata: models/manifests/v4_checkpoint_identity.json and
+configs/deployment/runtime_checkpoints.json. All 8 distributed weight hashes
+are checked by tools/validation/verify_checkpoint_hashes.py; the historical
+7-checkpoint manifest remains unchanged for identity/provenance compatibility.
+
+Dataset references: SCB-dataset https://arxiv.org/abs/2304.02488,
+AFLW/AFLW2000-3D https://github.com/cleardusk/3DDFA,
+COCO https://cocodataset.org/ . References are attribution, not redistribution
+permission. No private classroom dataset or recorded evidence is distributed.
+Training data and experiment scripts are owner-local; runtime does not train.
+Dependency distributions retain their own licenses in the Python environment.
