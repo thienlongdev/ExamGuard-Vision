@@ -78,6 +78,28 @@ temporal_buffer:
 # ---------------------------------------------------------------------
 # Note: All duration thresholds are PROVISIONAL until physical target validation
 provisional_thresholds:
+  # Provisional 2D body policies: owner physical acceptance still required.
+  sustained_torso_rotation:
+    min_candidate_duration_sec: 2.0
+    evidence_enter_threshold: 0.65
+    evidence_exit_threshold: 0.40
+    exit_grace_seconds: 0.8
+    cooldown_seconds: 3.0
+    normal_reset_seconds: 2.0
+  sustained_sideways_lean:
+    min_candidate_duration_sec: 2.0
+    evidence_enter_threshold: 0.65
+    evidence_exit_threshold: 0.40
+    exit_grace_seconds: 0.8
+    cooldown_seconds: 3.0
+    normal_reset_seconds: 2.0
+  rearward_turn_candidate:
+    min_candidate_duration_sec: 2.5
+    evidence_enter_threshold: 0.70
+    evidence_exit_threshold: 0.45
+    exit_grace_seconds: 0.8
+    cooldown_seconds: 3.0
+    normal_reset_seconds: 2.0
   sustained_head_rest:
     min_candidate_duration_sec: 2.0  # Duration in seconds before candidate promotes to ACTIVE
     evidence_enter_threshold: 0.55   # Minimum HEAD_REST_SLEEP probability
@@ -97,7 +119,7 @@ provisional_thresholds:
     exit_grace_seconds: 1.0          # Retains ACTIVE during momentary frame flutter
     cooldown_seconds: 2.5
     normal_reset_seconds: 3.0        # Real recovery required before opening new turn event
-    sustained_turn_min_duration_sec: 0.85 # Sustained turn >= 0.85s or repeated glances is reviewable
+    sustained_turn_min_duration_sec: 2.0 # Require 2s observed evidence before a sustained-turn review.
 
   phone_associated:
     min_candidate_duration_sec: 0.60  # Fast promotion within 0.5-1.0s for clear phone

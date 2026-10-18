@@ -342,7 +342,7 @@ def test_sustained_behaviors_minimum_medium_severity():
         (EventFamily.SUSTAINED_HEAD_REST.value, 2.0),
         (EventFamily.SUSTAINED_HEAD_REST.value, 2.9),
         (EventFamily.SUSTAINED_HEAD_REST.value, 8.0),
-        (EventFamily.SUSTAINED_LATERAL_HEAD_ORIENTATION.value, 1.5),
+        (EventFamily.SUSTAINED_LATERAL_HEAD_ORIENTATION.value, 2.5),
         (EventFamily.SUSTAINED_LATERAL_HEAD_ORIENTATION.value, 3.5),
         (EventFamily.STANDING.value, 1.5),
         (EventFamily.STANDING.value, 3.0),

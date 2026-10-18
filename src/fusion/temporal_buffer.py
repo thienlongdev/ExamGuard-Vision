@@ -282,20 +282,12 @@ class TemporalBuffer:
         key = (camera_id, track_id)
         if key in self._tracks:
             return self._tracks[key].get_window(window_seconds)
-        if track_id in self._tracks:
-            return self._tracks[track_id].get_window(window_seconds)
         return []
 
     def check_identity_continuity(self, track_id: int, current_timestamp: float, camera_id: str = "cam_0") -> Tuple[bool, float]:
         """Check if track was lost or has a gap exceeding continuity tolerance."""
         key = (camera_id, track_id)
         last_t = self._last_seen.get(key)
-        if last_t is None:
-            # Fallback search
-            for (c, tid), lt in self._last_seen.items():
-                if tid == track_id:
-                    last_t = lt
-                    break
         if last_t is None:
             return True, 0.0
         gap = current_timestamp - last_t

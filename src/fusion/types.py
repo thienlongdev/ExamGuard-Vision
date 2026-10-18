@@ -60,6 +60,9 @@ class EventFamily(str, Enum):
     """Observable fact-based event families."""
     SUSTAINED_HEAD_REST = "SUSTAINED_HEAD_REST"
     SUSTAINED_LATERAL_HEAD_ORIENTATION = "SUSTAINED_LATERAL_HEAD_ORIENTATION"
+    SUSTAINED_TORSO_ROTATION = "SUSTAINED_TORSO_ROTATION"
+    SUSTAINED_SIDEWAYS_LEAN = "SUSTAINED_SIDEWAYS_LEAN"
+    REARWARD_TURN_CANDIDATE = "REARWARD_TURN_CANDIDATE"
     PHONE_ASSOCIATED = "PHONE_ASSOCIATED"
     PHONE_VISIBLE_UNASSOCIATED = "PHONE_VISIBLE_UNASSOCIATED"
     PHONE_VISUAL_CANDIDATE = "PHONE_VISUAL_CANDIDATE"
@@ -134,6 +137,7 @@ class HeadPoseCue:
     reliability_weight: float = 1.0
     source_model: str = "HopeNet-Yaw"
     support_status: HeadPoseSupportStatus = HeadPoseSupportStatus.WITHIN_PRIMARY_SUPPORT
+    observed_at: Optional[float] = None
 
 
 @dataclass
@@ -172,6 +176,29 @@ class TrackingState:
 
 
 @dataclass
+class BodyCue:
+    """Observable 2D geometry; scores are rule strengths, never angle estimates."""
+    status: ObservationStatus = ObservationStatus.NOT_EVALUATED
+    observed_at: Optional[float] = None
+    fresh: bool = False
+    reliability: float = 0.0
+    lean_score: float = 0.0
+    rotation_score: float = 0.0
+    rearward_score: float = 0.0
+    direction: str = "UNKNOWN"
+    face_visible: Optional[bool] = None
+    identity_ambiguous: bool = False
+    calibrated: bool = False
+    repeated_movement_count: int = 0
+    lean_observable: bool = True
+    rotation_observable: bool = True
+    rearward_observable: bool = True
+    head_bbox: Optional[Tuple[float, float, float, float]] = None
+    geometry: Dict[str, Any] = field(default_factory=dict)
+    uncertainty: str = "POSE_NOT_EVALUATED"
+
+
+@dataclass
 class UnifiedTrackUpdate:
     """Unified observation update for a single track at an explicit timestamp."""
     track_id: int
@@ -183,6 +210,7 @@ class UnifiedTrackUpdate:
     phone: PhoneCue = field(default_factory=PhoneCue)
     macro_behavior: MacroBehaviorCue = field(default_factory=MacroBehaviorCue)
     source_origin: str = SourceOrigin.UNKNOWN.value
+    body: BodyCue = field(default_factory=BodyCue)
 
     @property
     def origin(self) -> str:

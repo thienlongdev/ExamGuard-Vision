@@ -50,6 +50,7 @@ from src.fusion.types import (
     RiskLevel,
     EventFamily,
     EventLifecycleState,
+    BodyCue,
 )
 from src.fusion.cue_state import PerTrackCueState
 from src.fusion.fusion_engine import MultiCueFusionEngine
@@ -61,6 +62,7 @@ from src.orchestration.model_registry import ModelRegistry
 from src.orchestration.crop_scheduler import CropScheduler
 from src.orchestration.phone_associator import PhoneAssociator
 from src.orchestration.evidence_manager import IntegratedEvidenceManager
+from src.orchestration.body_analysis import BodyPoseScheduler
 
 logger = logging.getLogger(__name__)
 
@@ -84,6 +86,7 @@ class Stage2FrameMetrics:
     headpose_preprocess_ms: float = 0.0
     headpose_inference_ms: float = 0.0
     headpose_ms: float = 0.0                   # Backward compat: headpose_inference_ms
+    body_pose_ms: float = 0.0
     phone_association_ms: float = 0.0
     phone_ms: float = 0.0                      # Backward compat: phone_association_ms
     fusion_ms: float = 0.0                     # Physical fusion engine update time
@@ -279,6 +282,8 @@ class Stage2Pipeline:
 
         # 6. Persistent Track State Metadata (real track age, continuity, missing duration)
         self._track_metadata: Dict[int, Dict[str, Any]] = {}
+        self.body_scheduler = BodyPoseScheduler(self.registry, self.config)
+        self._body_cues = {}
 
         # 7. V4D Temporal Multi-Cue Fusion & Event Engines
         fusion_cfg_path = self.config.get("fusion", {}).get("config_path", "configs/v4d_fusion.yaml")
@@ -402,6 +407,8 @@ class Stage2Pipeline:
                 except Exception:
                     pass
             self.temporal_buffer.clear()
+            self.body_scheduler.reset()
+            self._body_cues.clear()
             self.event_engine.reset()
             self.risk_aggregator.reset()
             if hasattr(self.phone_associator, "reset"):
@@ -425,6 +432,7 @@ class Stage2Pipeline:
 
     def _broadcast_event(self, event: FusedEvent, action: str) -> None:
         """Broadcast lifecycle transition to registered listeners."""
+        event.evidence_summary["policy_ready_at"] = time.time()
         for cb in self.event_listeners:
             try:
                 cb(event, action)
@@ -462,6 +470,10 @@ class Stage2Pipeline:
         active_clusters: Set[str] = set()
         active_cues_count = 0
         ev_type = ev.event_type
+
+        if ev_type in (EventFamily.SUSTAINED_TORSO_ROTATION.value, EventFamily.SUSTAINED_SIDEWAYS_LEAN.value,
+                       EventFamily.REARWARD_TURN_CANDIDATE.value):
+            return 1, 1, cue_state.body.reliability
 
         # 1. Orientation Cluster (TURN_HEAD_CLEAR posture and/or headpose yaw)
         turn_posture_active = (
@@ -615,12 +627,21 @@ class Stage2Pipeline:
                 }
             else:
                 m_entry = self._track_metadata[tid]
+                prior_bbox = m_entry.get("last_bbox")
+                if prior_bbox is not None:
+                    distance = np.linalg.norm(np.asarray(track.bbox.center) - np.asarray(prior_bbox.center)) / max(1, prior_bbox.height)
+                    if ts - m_entry["last_seen_timestamp"] > .7 or distance > .65:
+                        self.crop_scheduler._track_states.pop(tid, None)
+                        self.body_scheduler.geometry.states.pop((cam_id, tid), None)
+                        self.body_scheduler.cache.pop((cam_id, tid), None)
+                        self._body_cues.pop(tid, None)
                 m_entry["track_age_frames"] += 1
                 dt = max(0.0, ts - m_entry["last_seen_timestamp"])
                 m_entry["time_since_seen_sec"] = dt
                 m_entry["missing_duration"] = dt if track.lost else 0.0
                 m_entry["last_seen_timestamp"] = ts
                 m_entry["continuity_status"] = "LOST" if track.lost else "TRACKED"
+            self._track_metadata[tid]["last_bbox"] = track.bbox
 
         if frame_idx % 10 == 0 or frame_idx == 1:
             expired_ids = self.temporal_buffer.evict_inactive_tracks(ts, camera_id=cam_id)
@@ -660,10 +681,19 @@ class Stage2Pipeline:
                 attention_track_ids.add(tid)
 
         # 4. Cadence-scheduled batched GPU crop inference (Posture & Head-Pose)
+        self.crop_scheduler.body_cues = self._body_cues
         with self.registry.inference_lock:
             posture_cues, headpose_cues, crop_timings = self.crop_scheduler.schedule_and_infer(
                 frame, tracks, ts, attention_track_ids=attention_track_ids
             )
+
+        self._body_cues, body_pose_ms = self.body_scheduler.infer(frame, tracks, ts, cam_id, posture_cues, headpose_cues)
+        # Do not run a facial yaw estimate on a known invisible face/back of head.
+        from src.fusion.types import HeadPoseCue, HeadPoseSupportStatus
+        for tid, body in self._body_cues.items():
+            if body.identity_ambiguous or body.face_visible is False:
+                headpose_cues[tid] = HeadPoseCue(status=ObservationStatus.UNAVAILABLE,
+                                              support_status=HeadPoseSupportStatus.FACE_UNRESOLVABLE)
 
         # 5. Macro behavior detection with cadence gating
         time_since_macro = ts - self._last_macro_timestamp
@@ -809,6 +839,7 @@ class Stage2Pipeline:
                 headpose=hp_cue or HeadPoseCue(),
                 phone=phone_cue or None,
                 macro_behavior=macro_cue,
+                body=self._body_cues.get(t_id) or BodyCue(),
             )
             unified_updates.append(update)
 
@@ -841,13 +872,16 @@ class Stage2Pipeline:
                     elif action == "CLOSE":
                         self._active_events_map.pop(scored_ev.event_id, None)
 
+                    # Notify immediately after policy; evidence may still be PENDING.
+                    if action == "OPEN" and self.evidence_manager.enabled:
+                        scored_ev.evidence_summary.update(snapshot_status="PENDING", clip_status="PENDING")
+                    self._broadcast_event(scored_ev, action)
+
                     # Evidence Manager transition handling
                     t_ev0 = time.perf_counter()
                     self.evidence_manager.handle_event_lifecycle(scored_ev, action, frame, ts, fps=self.source.fps)
                     t_evidence_total += (time.perf_counter() - t_ev0)
 
-                    # Broadcast lifecycle transition
-                    self._broadcast_event(scored_ev, action)
                     lifecycle_events.append((scored_ev, action))
 
         # 7b. Process unassociated phone observations (Room-level cue persistence)
@@ -866,8 +900,8 @@ class Stage2Pipeline:
                     self._active_events_map[scored_ev.event_id] = scored_ev
                 elif action == "CLOSE":
                     self._active_events_map.pop(scored_ev.event_id, None)
-                self.evidence_manager.handle_event_lifecycle(scored_ev, action, frame, ts, fps=self.source.fps)
                 self._broadcast_event(scored_ev, action)
+                self.evidence_manager.handle_event_lifecycle(scored_ev, action, frame, ts, fps=self.source.fps)
                 lifecycle_events.append((scored_ev, action))
 
         # 8. Real Serialization Path Measurement
@@ -933,6 +967,7 @@ class Stage2Pipeline:
             headpose_preprocess_ms=round(crop_timings.get("headpose_preprocess_ms", 0.0), 3),
             headpose_inference_ms=round(crop_timings.get("headpose_inference_ms", 0.0), 3),
             headpose_ms=round(crop_timings.get("headpose_ms", 0.0), 3),
+            body_pose_ms=round(body_pose_ms, 3),
             phone_association_ms=round(phone_assoc_ms, 3),
             phone_ms=round(phone_assoc_ms, 3),
             fusion_ms=round(t_fusion_total * 1000.0, 3),
@@ -1100,6 +1135,10 @@ class Stage2Pipeline:
                             )
                         cand_start = getattr(turn_machine, "candidate_start_time", None) if turn_machine else None
                         turn_cand_dur = (frame_ts - cand_start) if (is_turn_candidate and cand_start is not None) else 0.0
+                        body_candidate = next((family.value for family in (EventFamily.REARWARD_TURN_CANDIDATE,
+                            EventFamily.SUSTAINED_TORSO_ROTATION, EventFamily.SUSTAINED_SIDEWAYS_LEAN)
+                            if (canonical_cam, tid, family) in self.event_engine._machines and
+                            self.event_engine._machines[(canonical_cam, tid, family)].state == EventLifecycleState.CANDIDATE), None)
 
                         hp_status_str = getattr(hp.status, "value", str(hp.status)) if (hp and hasattr(hp, "status")) else "UNAVAILABLE"
                         yaw_val = round(float(hp.yaw_deg), 1) if (hp and hasattr(hp, "yaw_deg") and hp.yaw_deg is not None) else None
@@ -1133,7 +1172,7 @@ class Stage2Pipeline:
                             sev_str = "HIGH"
                         elif max_risk == "MEDIUM":
                             sev_str = "AMBER"
-                        elif is_turn_candidate or (yaw_abs_val is not None and yaw_abs_val >= 24.0):
+                        elif is_turn_candidate or body_candidate or (yaw_abs_val is not None and yaw_abs_val >= 24.0):
                             sev_str = "LOW"
 
                         if os.environ.get("EXAMGUARD_DIAGNOSTIC_CUES") == "1" or logger.isEnabledFor(logging.DEBUG):
@@ -1153,7 +1192,9 @@ class Stage2Pipeline:
                             "yaw_deg": yaw_val,
                             "headpose_status": hp_status_str,
                             "turn_candidate": is_turn_candidate,
-                            "candidate": is_turn_candidate,
+                            "candidate": bool(is_turn_candidate or body_candidate),
+                            "body_candidate": body_candidate,
+                            "body_cue": asdict(self._body_cues[tid]) if tid in self._body_cues else None,
                             "is_reviewable": head_reviewable,
                             "phone_status": ph.status if ph and hasattr(ph, "status") else "NONE",
                             "phone_confidence": round(float(ph.confidence), 4) if ph and hasattr(ph, "confidence") else None,

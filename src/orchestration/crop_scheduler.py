@@ -185,6 +185,19 @@ class CropScheduler:
 
         return crop, HeadPoseSupportStatus.WITHIN_PRIMARY_SUPPORT
 
+    def _pose_head_crop(self, frame, track, timestamp):
+        cue = getattr(self, "body_cues", {}).get(track.track_id)
+        if cue is not None and cue.observed_at is not None and 0 <= timestamp - cue.observed_at <= .5:
+            if cue.identity_ambiguous or cue.face_visible is False:
+                return None, HeadPoseSupportStatus.FACE_UNRESOLVABLE
+            if cue.head_bbox is not None:
+                x1, y1, x2, y2 = map(int, cue.head_bbox)
+                h, w = frame.shape[:2]
+                crop = frame[max(0, y1):min(h, y2), max(0, x1):min(w, x2)]
+                if crop.size and min(crop.shape[:2]) >= self.min_head_dim:
+                    return crop, HeadPoseSupportStatus.WITHIN_PRIMARY_SUPPORT
+        return self.extract_head_crop(frame, track.bbox)
+
     def schedule_and_infer(
         self,
         frame: np.ndarray,
@@ -309,7 +322,7 @@ class CropScheduler:
 
             if run_hp:
                 t_h0 = time.perf_counter()
-                h_crop, hp_status = self.extract_head_crop(frame, track.bbox)
+                h_crop, hp_status = self._pose_head_crop(frame, track, timestamp_sec)
                 t_crop_extract_total += (time.perf_counter() - t_h0)
                 if h_crop is not None and hp_status == HeadPoseSupportStatus.WITHIN_PRIMARY_SUPPORT:
                     t_hp0 = time.perf_counter()
@@ -379,7 +392,11 @@ class CropScheduler:
                 # Handle any tracks where inference failed
                 if not outputs:
                     for t_id in t_ids:
-                        posture_results[t_id] = PostureCue(status=ObservationStatus.UNAVAILABLE)
+                        failed_cue = PostureCue(status=ObservationStatus.UNAVAILABLE)
+                        posture_results[t_id] = failed_cue
+                        state = self._get_track_state(t_id)
+                        state.latest_posture_cue = failed_cue
+                        state.last_posture_timestamp = timestamp_sec
 
             t_pos_end = time.perf_counter()
             t_pos_ms = (t_pos_end - t_pos_start) * 1000.0
@@ -414,6 +431,7 @@ class CropScheduler:
                         reliability_weight=out.pose_confidence,
                         source_model="HopeNet-Yaw",
                         support_status=HeadPoseSupportStatus.WITHIN_PRIMARY_SUPPORT,
+                        observed_at=timestamp_sec,
                     )
                     headpose_results[t_id] = cue
                     state = self._get_track_state(t_id)
@@ -423,11 +441,15 @@ class CropScheduler:
 
                 if not outputs:
                     for t_id in t_ids:
-                        headpose_results[t_id] = HeadPoseCue(
+                        failed_cue = HeadPoseCue(
                             status=ObservationStatus.UNAVAILABLE,
                             yaw_deg=None,
                             support_status=HeadPoseSupportStatus.FACE_UNRESOLVABLE,
                         )
+                        headpose_results[t_id] = failed_cue
+                        state = self._get_track_state(t_id)
+                        state.latest_headpose_cue = failed_cue
+                        state.last_headpose_timestamp = timestamp_sec
             t_hp_end = time.perf_counter()
             t_hp_ms = (t_hp_end - t_hp_start) * 1000.0
         else:
@@ -441,14 +463,14 @@ class CropScheduler:
             if t_id not in posture_results:
                 # Use latest posture cue with cadence bridged status
                 cached_cue = state.latest_posture_cue
-                if cached_cue.status == ObservationStatus.AVAILABLE:
+                if cached_cue.status == ObservationStatus.AVAILABLE and 0 <= timestamp_sec - state.last_posture_timestamp <= .5:
                     posture_results[t_id] = cached_cue
                 else:
                     posture_results[t_id] = PostureCue(status=ObservationStatus.NOT_EVALUATED)
 
             if t_id not in headpose_results:
                 cached_hp = state.latest_headpose_cue
-                if cached_hp.status == ObservationStatus.AVAILABLE:
+                if cached_hp.status == ObservationStatus.AVAILABLE and 0 <= timestamp_sec - state.last_headpose_timestamp <= .5:
                     headpose_results[t_id] = cached_hp
                 else:
                     headpose_results[t_id] = HeadPoseCue(status=ObservationStatus.NOT_EVALUATED)

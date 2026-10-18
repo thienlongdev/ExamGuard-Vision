@@ -18,6 +18,16 @@ video_source:
 
 # 2. MODELS & CHECKPOINTS
 models:
+  # Optional additive local research component. Missing file -> graceful fallback.
+  # Official YOLO26n-Pose COCO weights, same AGPL-3.0/Enterprise terms as detector.
+  body_pose:
+    enabled: true
+    model_path: "models/optional/yolo26n-pose.pt"
+    sha256: "eb3bb8268828aeaf515cec23a4bfafd793944a86fe9af94ba7823609c14522a9"
+    image_size: 640
+    normal_hz: 4.0
+    attention_hz: 6.0
+    keypoint_confidence: 0.55
   # General Object Detector (for Person & Phone bodies)
   general_object_detector:
     model_path: "models/trained/yolo26m.pt"

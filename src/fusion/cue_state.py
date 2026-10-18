@@ -16,6 +16,7 @@ from src.fusion.types import (
     PhoneCue,
     MacroBehaviorCue,
     TrackingState,
+    BodyCue,
 )
 
 
@@ -69,3 +70,6 @@ class PerTrackCueState:
     turn_multi_cue_agreement: bool = False
     glance_count: int = 0
     glance_burst_active: bool = False
+    orientation_observed: bool = True
+    head_direction: str = "UNKNOWN"
+    body: BodyCue = field(default_factory=BodyCue)

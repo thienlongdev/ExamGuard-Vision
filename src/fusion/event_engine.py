@@ -13,6 +13,7 @@ Enforces:
 
 import uuid
 import logging
+from dataclasses import asdict
 from typing import Dict, List, Optional, Any, Tuple
 
 from src.fusion.types import (
@@ -21,6 +22,7 @@ from src.fusion.types import (
     EventLifecycleState,
     RiskLevel,
     ObservationStatus,
+    BodyCue,
 )
 from src.fusion.cue_state import PerTrackCueState
 
@@ -61,6 +63,12 @@ class TrackEventStateMachine:
         self.last_update_time: Optional[float] = None
         self.active_evidence_duration: float = 0.0
         self.last_evidence_timestamp: Optional[float] = None
+        self.observed_timing = event_family in (
+            EventFamily.SUSTAINED_LATERAL_HEAD_ORIENTATION, EventFamily.SUSTAINED_TORSO_ROTATION,
+            EventFamily.SUSTAINED_SIDEWAYS_LEAN, EventFamily.REARWARD_TURN_CANDIDATE,
+        )
+        self.missing_since: Optional[float] = None
+        self.evidence_direction = "UNKNOWN"
 
     def process_frame(
         self,
@@ -70,10 +78,39 @@ class TrackEventStateMachine:
         cue_state: PerTrackCueState,
         camera_id: str = "cam_0",
         supporting_details: Optional[Dict[str, Any]] = None,
+        observed: bool = True,
     ) -> Tuple[Optional[FusedEvent], str]:
         """Update state machine and return (event, action) where action in ['OPEN', 'UPDATE', 'CLOSE', 'NONE']."""
+        previous_time = self.last_update_time
+        if previous_time is not None and timestamp <= previous_time:
+            return None, "NONE"
         self.last_update_time = timestamp
         details = supporting_details or {}
+
+        if self.observed_timing:
+            # Pause rather than fabricate observed duration during cue/track loss.
+            if not observed:
+                self.last_evidence_timestamp = None
+                self.normal_reset_start_time = None
+                if self.missing_since is None:
+                    self.missing_since = timestamp
+                if timestamp - self.missing_since <= .7:
+                    return None, "NONE"
+                closed = self.force_close(timestamp, "OBSERVATION_EXPIRED")
+                return closed, "CLOSE" if closed else "NONE"
+            if previous_time is not None and timestamp - previous_time > .7:
+                closed = self.force_close(timestamp, "OBSERVATION_GAP")
+                if closed:
+                    return closed, "CLOSE"
+            self.missing_since = None
+            direction = details.get("direction", "UNKNOWN")
+            if self.state == EventLifecycleState.CANDIDATE and direction != "UNKNOWN" and self.evidence_direction not in ("UNKNOWN", direction):
+                self.state = EventLifecycleState.INACTIVE
+                self.candidate_start_time = None
+                self.active_evidence_duration = 0.0
+                self.last_evidence_timestamp = None
+            if direction != "UNKNOWN":
+                self.evidence_direction = direction
 
         if cue_state is None:
             from src.fusion.cue_state import PerTrackCueState
@@ -87,6 +124,8 @@ class TrackEventStateMachine:
             if evidence_score >= self.enter_threshold and not is_vetoed:
                 self.state = EventLifecycleState.CANDIDATE
                 self.candidate_start_time = timestamp
+                self.active_evidence_duration = 0.0
+                self.last_evidence_timestamp = timestamp
             return None, "NONE"
 
         # 2. State: CANDIDATE
@@ -102,6 +141,11 @@ class TrackEventStateMachine:
             # Check if duration in candidate state meets threshold
             candidate_start = self.candidate_start_time if self.candidate_start_time is not None else timestamp
             candidate_duration = timestamp - candidate_start
+            if self.observed_timing:
+                if self.last_evidence_timestamp is not None:
+                    self.active_evidence_duration += min(.5, max(0.0, timestamp - self.last_evidence_timestamp))
+                self.last_evidence_timestamp = timestamp
+                candidate_duration = self.active_evidence_duration
             if candidate_duration >= self.min_candidate_duration:
                 # Promote to ACTIVE: Open new event
                 self.state = EventLifecycleState.ACTIVE
@@ -145,6 +189,7 @@ class TrackEventStateMachine:
                         "discuss_score": round(float(getattr(cue_state, "discuss_score", 0.0)), 2),
                         "availability": getattr(cue_state.macro_status, "value", str(cue_state.macro_status)),
                     },
+                    "body": asdict(getattr(cue_state, "body", BodyCue())),
                     "risk": {
                         "score": round(evidence_score * 100.0 if evidence_score <= 1.0 else evidence_score, 1),
                         "level": RiskLevel.LOW.value,
@@ -214,7 +259,8 @@ class TrackEventStateMachine:
                 # Evidence active: reset exit grace period
                 self.exit_grace_start_time = None
                 if self.last_evidence_timestamp is not None:
-                    self.active_evidence_duration += max(0.0, timestamp - self.last_evidence_timestamp)
+                    delta = max(0.0, timestamp - self.last_evidence_timestamp)
+                    self.active_evidence_duration += min(.5, delta) if self.observed_timing else delta
                 self.last_evidence_timestamp = timestamp
                 if self.active_event is not None:
                     self.active_event.last_update_timestamp = timestamp
@@ -270,6 +316,10 @@ class TrackEventStateMachine:
 
             # Track genuine normal behavior during cooldown
             is_normal = (not is_vetoed and evidence_score < self.exit_threshold) or (is_vetoed and evidence_score < self.enter_threshold)
+            if self.observed_timing and not is_vetoed:
+                # Recovery uses the entry boundary. A weak residual score in the
+                # hysteresis band must not lock out a later clear movement forever.
+                is_normal = evidence_score < self.enter_threshold
             if is_normal:
                 if self.normal_reset_start_time is None:
                     self.normal_reset_start_time = timestamp
@@ -300,6 +350,7 @@ class TrackEventStateMachine:
         """Force close active event due to track expiration or continuity break."""
         self.exit_grace_start_time = None
         self.normal_reset_start_time = None
+        self.missing_since = None
         if self.state == EventLifecycleState.ACTIVE and self.active_event is not None:
             closed_event = self.active_event
             closed_event.end_timestamp = timestamp
@@ -309,6 +360,7 @@ class TrackEventStateMachine:
             if not getattr(closed_event, "review_status", None):
                 closed_event.review_status = "internal" if self.event_family == EventFamily.SUSTAINED_LATERAL_HEAD_ORIENTATION else "awaiting"
             closed_event.evidence_summary["closure_reason"] = reason
+            closed_event.evidence_summary["active_evidence_duration"] = round(self.active_evidence_duration, 3)
             self.active_event = None
             self.state = EventLifecycleState.INACTIVE
             self.candidate_start_time = None
@@ -490,6 +542,7 @@ class EventEngine:
             is_vetoed=False,
             cue_state=cue_state,
             camera_id=camera_id,
+            observed=cue_state.orientation_observed,
             supporting_details={
                 "posture": "TURN_HEAD_CLEAR",
                 "posture_confidence": round(cue_state.posture_probs.get("TURN_HEAD_CLEAR", 0.0), 4),
@@ -500,10 +553,34 @@ class EventEngine:
                 "headpose_source": cue_state.headpose_source_model,
                 "glance_burst": getattr(cue_state, "glance_burst_active", False),
                 "glance_count": getattr(cue_state, "glance_count", 0),
+                "direction": cue_state.head_direction,
             },
         )
         if ev_turn is not None and act_turn != "NONE":
             emitted.append((ev_turn, act_turn))
+
+        # Same lifecycle engine for body observations, with explicit missing-cue pause.
+        body = cue_state.body
+        for family, score in (
+            (EventFamily.SUSTAINED_SIDEWAYS_LEAN, body.lean_score),
+            (EventFamily.SUSTAINED_TORSO_ROTATION, body.rotation_score if not body.rearward_score else 0.0),
+            (EventFamily.REARWARD_TURN_CANDIDATE, body.rearward_score),
+        ):
+            machine = self._get_machine(track_id, family, camera_id)
+            body_observed = (body.status == ObservationStatus.AVAILABLE and body.observed_at is not None
+                             and 0 <= t - body.observed_at <= .5 and not body.identity_ambiguous)
+            body_observed = body_observed and (
+                body.lean_observable if family == EventFamily.SUSTAINED_SIDEWAYS_LEAN else
+                body.rotation_observable if family == EventFamily.SUSTAINED_TORSO_ROTATION else body.rearward_observable)
+            ev, action = machine.process_frame(
+                t, score, False, cue_state, camera_id=camera_id, observed=body_observed,
+                supporting_details={"body": asdict(body),
+                                    "direction": body.direction if family == EventFamily.SUSTAINED_SIDEWAYS_LEAN else "UNKNOWN",
+                                    "head_body_agreement": cue_state.turn_multi_cue_agreement and cue_state.headpose_reliability > 0,
+                                    "uncertainty": body.uncertainty},
+            )
+            if ev is not None and action != "NONE":
+                emitted.append((ev, action))
 
         # -------------------------------------------------------------
         # 3. Event: PHONE_ASSOCIATED vs PHONE_VISUAL_CANDIDATE

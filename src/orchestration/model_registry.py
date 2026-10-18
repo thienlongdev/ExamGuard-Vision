@@ -143,6 +143,7 @@ class ModelRegistry:
         self.posture_model: Optional[nn.Module] = None
         self.headpose_predictor: Optional[HeadPosePredictor] = None
         self.headpose_model: Optional[nn.Module] = None
+        self.body_pose_model = None
 
         self._initialized = False
 
@@ -283,7 +284,33 @@ class ModelRegistry:
             "runtime_role": "SPECIALIZED_HEADPOSE_ESTIMATOR",
         }
 
-        # Warm up models on GPU if applicable
+        # Optional additive model: never download weights while starting monitoring.
+        pose_cfg = self.models_cfg.get("body_pose", {})
+        if pose_cfg.get("enabled", False):
+            pose_path = str(pose_cfg.get("model_path", "models/optional/yolo26n-pose.pt"))
+            try:
+                if not Path(pose_path).is_file():
+                    raise FileNotFoundError(pose_path)
+                expected_sha = pose_cfg.get("sha256")
+                if expected_sha and compute_sha256(pose_path) != expected_sha:
+                    raise ValueError("Optional pose checkpoint checksum mismatch")
+                from ultralytics import YOLO
+                pose = YOLO(pose_path, task="pose")
+                if pose.task != "pose" or pose.model.yaml.get("kpt_shape") != [17, 3]:
+                    raise ValueError("Body pose requires COCO 17-keypoint weights")
+                pose.to(str(self.device))
+                self.body_pose_model = pose
+                self._registry_metadata["body_pose"] = {
+                    "checkpoint_path": pose_path, "sha256": compute_sha256(pose_path),
+                    "runtime_role": "OPTIONAL_COCO_BODY_POSE", "device": str(self.device),
+                    "precision_mode": "fp32", "model_name": "yolo26n-pose",
+                    "license": "AGPL-3.0 / Enterprise", "keypoints": 17,
+                    "source": "https://github.com/ultralytics/assets/releases/download/v8.4.0/yolo26n-pose.pt",
+                    "runtime_image_size": int(pose_cfg.get("image_size", 640)),
+                }
+            except Exception as exc:
+                logger.warning("Body pose unavailable; retaining existing perception: %s", exc)
+                self._registry_metadata["body_pose"] = {"status": "UNAVAILABLE", "reason": str(exc)}
         self._warmup()
         self._initialized = True
         logger.info("ModelRegistry fully initialized and warmed up.")
@@ -302,6 +329,16 @@ class ModelRegistry:
                 # Warm up headpose
                 dummy_headpose = torch.zeros((1, 3, 224, 224), dtype=torch.float32, device=self.device)
                 self.headpose_model(dummy_headpose)
+
+                # YOLO predictor construction/fusion is lazy. Do it before the
+                # first session frame, including the optional scheduled component.
+                import numpy as np
+                dummy_frame = np.zeros((360, 640, 3), dtype=np.uint8)
+                self.detector.detect(dummy_frame)
+                self.macro_detector.detect(dummy_frame, [])
+                if self.body_pose_model is not None:
+                    self.body_pose_model.predict(dummy_frame, imgsz=int(self.models_cfg.get("body_pose", {}).get("image_size", 640)),
+                                                 device=str(self.device), verbose=False)
 
                 torch.cuda.synchronize()
             logger.info("CUDA warm-up complete.")

@@ -298,7 +298,7 @@ def test_10_head_turn_visual_state_exits_green_promptly():
 
 
 def test_11_sustained_head_turn_amber():
-    """11. Sustained head turn (>= 0.85s) maps to AMBER / reviewable awaiting."""
+    """11. Sustained head turn (>= 2s observed) maps to AMBER / reviewable awaiting."""
     agg = RiskAggregator()
     ev = FusedEvent(
         event_id="ev_sustained_turn",
@@ -306,8 +306,8 @@ def test_11_sustained_head_turn_amber():
         camera_id="cam_main",
         event_type=EventFamily.SUSTAINED_LATERAL_HEAD_ORIENTATION.value,
         start_timestamp=0.0,
-        last_update_timestamp=0.9,
-        duration=0.9,
+        last_update_timestamp=2.1,
+        duration=2.1,
         risk_level=RiskLevel.LOW.value,
         status="active",
         lifecycle_status="active",

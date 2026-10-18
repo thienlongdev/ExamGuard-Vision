@@ -42,13 +42,13 @@ class RiskAggregator:
         self.max_single_frame_score = float(risk_cfg.get("max_single_frame_score", 25.0))
         self.phone_high_min_duration_sec = float(risk_cfg.get("phone_high_min_duration_sec", 2.5))
         turn_cfg = self.config.get("provisional_thresholds", {}).get("sustained_lateral_head_orientation", {})
-        self.sustained_turn_duration_sec = float(turn_cfg.get("sustained_turn_min_duration_sec", 0.85))
+        self.sustained_turn_duration_sec = float(turn_cfg.get("sustained_turn_min_duration_sec", 2.0))
         self.event_min_severity_active = dict(self.EVENT_MIN_SEVERITY_ACTIVE)
         if "event_min_severity_active" in risk_cfg:
             self.event_min_severity_active.update(risk_cfg["event_min_severity_active"])
 
         # Track event recurrence: track_id -> count of historical events
-        self._recurrence_counter: Dict[int, int] = {}
+        self._recurrence_counter: Dict[tuple, int] = {}
 
     def assess_event_risk(
         self,
@@ -97,7 +97,8 @@ class RiskAggregator:
             concurrence_bonus = 20.0 * (independent_cues_count - 1)
 
         # 4. Recurrence bonus
-        past_events = self._recurrence_counter.get(track_id, 0)
+        recurrence_key = (event.camera_id, track_id)
+        past_events = self._recurrence_counter.get(recurrence_key, 0)
         recurrence_bonus = min(15.0, past_events * 5.0)
 
         # 5. Reliability scaling
@@ -141,16 +142,16 @@ class RiskAggregator:
                 event.evidence_summary.get("glance_burst", False) or
                 event.evidence_summary.get("glance_count", 0) >= 3
             )
-            is_multi_cue = (independent_cues_count >= 2)
-
-            if is_sustained or is_repeated or is_multi_cue:
+            # A separate phone/body cue can raise priority, but cannot turn a
+            # short head episode into a second premature review card.
+            if is_sustained or is_repeated:
                 # Reviewable event: clear sustained lateral orientation or repeated glances
                 if final_score < self.low_to_medium:
                     final_score = self.low_to_medium
                 event.review_status = "awaiting"
                 event.evidence_summary["is_reviewable"] = True
                 event.evidence_summary["glance_classification"] = (
-                    "REPEATED_GLANCES" if is_repeated else ("SUSTAINED_LATERAL_TURN" if is_sustained else "MULTI_CUE_TURN")
+                    "REPEATED_GLANCES" if is_repeated else "SUSTAINED_LATERAL_TURN"
                 )
             else:
                 # Brief isolated glance (< sustained_turn_duration_sec, no repetition): internal cue only!
@@ -208,6 +209,25 @@ class RiskAggregator:
                     event.observation_snapshot["risk"]["level"] = event.risk_level
                 return event
 
+        # Orientation is review triage. Correlated pose features/repetitions never
+        # earn independent-cue bonuses or HIGH on their own.
+        body_families = {EventFamily.SUSTAINED_TORSO_ROTATION.value,
+                         EventFamily.SUSTAINED_SIDEWAYS_LEAN.value,
+                         EventFamily.REARWARD_TURN_CANDIDATE.value}
+        if ev_type in body_families:
+            body = event.evidence_summary.get("body", {})
+            observed_duration = float(event.evidence_summary.get("active_evidence_duration", 0))
+            supported = body.get("calibrated", False) and body.get("reliability", 0) >= .55 and not body.get("identity_ambiguous", False)
+            minimum = 2.5 if ev_type == EventFamily.REARWARD_TURN_CANDIDATE.value else 2.0
+            reviewable = supported and observed_duration >= minimum
+            event.review_status = "awaiting" if reviewable else "internal"
+            event.evidence_summary["is_reviewable"] = bool(reviewable)
+            final_score = max(self.low_to_medium, final_score) if reviewable else min(final_score, self.low_to_medium - 1)
+            final_score = min(final_score, self.medium_to_high - 1)
+            escalation_reason = "SUSTAINED_2D_BODY_REQUIRES_HUMAN_REVIEW"
+        if ev_type == EventFamily.SUSTAINED_LATERAL_HEAD_ORIENTATION.value:
+            final_score = min(final_score, self.medium_to_high - 1)
+
         # 7. Event-Type Minimum Severity Floor once ACTIVE:
         # Sustained behaviors that passed temporal candidate confirmation must not display as LOW.
         min_sev = self.event_min_severity_active.get(ev_type)
@@ -245,7 +265,7 @@ class RiskAggregator:
 
         # If event is closed, increment recurrence counter
         if event.status == "closed":
-            self._recurrence_counter[track_id] = past_events + 1
+            self._recurrence_counter[recurrence_key] = past_events + 1
 
         return event
 

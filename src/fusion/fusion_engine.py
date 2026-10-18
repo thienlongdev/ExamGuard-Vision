@@ -12,6 +12,8 @@ Strict adherence to:
 
 from typing import Dict, Any, Optional, List
 import logging
+import math
+from dataclasses import replace
 
 from src.fusion.types import (
     UnifiedTrackUpdate,
@@ -69,10 +71,33 @@ class MultiCueFusionEngine:
             logger.warning(f"Rejected invalid track update for track {update.track_id}")
             return None
 
+        hp = update.headpose
+        if hp.status == ObservationStatus.AVAILABLE and (
+            hp.yaw_deg is None or not math.isfinite(hp.yaw_deg) or
+            hp.support_status in (HeadPoseSupportStatus.OUT_OF_SUPPORT, HeadPoseSupportStatus.FACE_UNRESOLVABLE) or
+            (hp.source_model == "HopeNet-Yaw" and abs(hp.yaw_deg) >= 99) or
+            update.body.face_visible is False or update.body.identity_ambiguous
+        ):
+            update = replace(update, headpose=replace(hp, status=ObservationStatus.UNAVAILABLE, yaw_deg=None))
+
         # Check track continuity before push
         continuous, gap = self.temporal_buffer.check_identity_continuity(
-            update.track_id, update.timestamp_sec
+            update.track_id, update.timestamp_sec, camera_id=update.camera_id
         )
+        key = (update.camera_id, update.track_id)
+        previous = self.temporal_buffer._tracks.get(key)
+        if previous and previous._history and update.tracking:
+            prior = previous._history[-1].tracking
+            if prior:
+                a, b = prior.bbox, update.tracking.bbox
+                jump = math.dist(((a[0]+a[2])/2, (a[1]+a[3])/2), ((b[0]+b[2])/2, (b[1]+b[3])/2)) / max(1, a[3]-a[1])
+                continuous = continuous and jump <= .65
+        if update.body.identity_ambiguous:
+            continuous = False
+        if not continuous:
+            self.temporal_buffer._tracks.pop(key, None)
+        reliable_track = not (update.tracking and (update.tracking.occluded or update.tracking.visibility_score < .35))
+        reliable_track = reliable_track and not update.body.identity_ambiguous
 
         # Ingest into sliding window buffer
         pushed = self.temporal_buffer.push(update)
@@ -84,7 +109,7 @@ class MultiCueFusionEngine:
 
         # 1. Posture Processing & Temporal Smoothing
         posture_status = update.posture.status
-        smoothed_probs = self.temporal_buffer._tracks[track_id].smoothed_posture_probabilities(window_seconds=0.5)
+        smoothed_probs = self.temporal_buffer._tracks[key].smoothed_posture_probabilities(window_seconds=0.5)
 
         # Active probabilities (instant if available, else bridged from recent window)
         active_posture_probs = update.posture.probabilities if (posture_status == ObservationStatus.AVAILABLE and update.posture.probabilities) else smoothed_probs
@@ -126,7 +151,7 @@ class MultiCueFusionEngine:
 
         if headpose_status == ObservationStatus.AVAILABLE and update.headpose.yaw_deg is not None:
             # Get recent window for yaw smoothing
-            recent_updates = self.temporal_buffer.get_track_history(track_id, window_seconds=1.5)
+            recent_updates = self.temporal_buffer.get_track_history(track_id, window_seconds=1.5, camera_id=update.camera_id)
             yaws = [
                 u.headpose.yaw_deg for u in recent_updates
                 if u.headpose.status == ObservationStatus.AVAILABLE and u.headpose.yaw_deg is not None
@@ -148,8 +173,8 @@ class MultiCueFusionEngine:
         # Check repeated glance burst across recent temporal window
         glance_burst = False
         glance_cnt = 0
-        if track_id in self.temporal_buffer._tracks:
-            glance_burst, glance_cnt = self.temporal_buffer._tracks[track_id].detect_glance_burst(
+        if key in self.temporal_buffer._tracks:
+            glance_burst, glance_cnt = self.temporal_buffer._tracks[key].detect_glance_burst(
                 window_seconds=3.5, yaw_thresh=max(28.0, self.yaw_deg_thresh), min_glances=3
             )
         # Repeated glance burst ONLY reinforces turn fused evidence when student orientation is actually lateral
@@ -218,4 +243,8 @@ class MultiCueFusionEngine:
             turn_multi_cue_agreement=turn_agreement,
             glance_count=glance_cnt,
             glance_burst_active=glance_burst,
+            orientation_observed=reliable_track and (headpose_status == ObservationStatus.AVAILABLE or
+                (posture_status == ObservationStatus.AVAILABLE and active_posture_probs.get("TURN_HEAD_CLEAR", 0) >= .5)),
+            head_direction=("RIGHT" if update.headpose.yaw_deg > 0 else "LEFT") if headpose_status == ObservationStatus.AVAILABLE and update.headpose.yaw_deg is not None and abs(update.headpose.yaw_deg) >= self.yaw_deg_thresh else "UNKNOWN",
+            body=update.body,
         )
